@@ -54,7 +54,8 @@ const UnitMesh: React.FC<UnitMeshProps> = ({
   const width = unit.carpetAreaSqm > 600 ? 5.2 : 3.8;
   const depth = 3.6;
   const height = 0.85;
-  const xOffset = unit.unitCode.includes('A') || unit.unitCode.includes('201') || unit.unitCode.includes('01') ? -2.2 : 2.2;
+  const isLeft = unit.unitCode.endsWith('1') || unit.unitCode.endsWith('A');
+  const xOffset = isLeft ? -2.2 : 2.2;
   const yPos = floorOffset;
 
   useFrame((state) => {
@@ -371,11 +372,11 @@ export const Exploded3DViewer: React.FC = () => {
         </Canvas>
 
         {/* Building Info & Back to Map */}
-        <div className="absolute top-4 left-4 glass-panel rounded-xl p-3 border border-white/10 max-w-sm pointer-events-auto space-y-2">
-          <div className="flex items-center gap-2">
+        <div className="absolute top-5 left-5 glass-panel rounded-2xl p-4 max-w-sm pointer-events-auto space-y-3 shadow-2xl transition-all duration-300">
+          <div className="flex items-center gap-3">
             <button
               onClick={() => setActiveTab('MAPLIBRE_3D')}
-              className="p-1.5 rounded-lg bg-surface-100 hover:bg-surface-200 text-slate-300 border border-white/10 transition-all"
+              className="p-2 rounded-xl bg-white/5 hover:bg-white/10 text-slate-300 border border-white/10 transition-all duration-200 hover:-translate-x-1"
               title="Back to Map"
             >
               <ArrowLeft className="w-4 h-4" />
@@ -402,8 +403,8 @@ export const Exploded3DViewer: React.FC = () => {
           )}
 
           {/* Quick Switch Building Dropdown */}
-          <div className="pt-1">
-            <label className="text-[9px] uppercase font-semibold text-slate-400">Switch Building Drill-Down:</label>
+          <div className="pt-2 border-t border-white/10">
+            <label className="text-[10px] uppercase font-bold tracking-wider text-slate-400">Switch Drill-Down:</label>
             <select
               value={bldg.id}
               onChange={(e) => {
@@ -412,7 +413,7 @@ export const Exploded3DViewer: React.FC = () => {
                 // Also check if it's the current selected (dynamic) building
                 if (selectedBuilding && selectedBuilding.id === e.target.value) return;
               }}
-              className="mt-0.5 w-full bg-surface-100 text-slate-200 text-xs rounded border border-white/10 px-2 py-1 focus:outline-none focus:ring-1 focus:ring-brand-primary cursor-pointer"
+              className="mt-1.5 w-full bg-white/5 text-slate-200 text-xs rounded-lg border border-white/10 px-3 py-2.5 focus:outline-none focus:ring-1 focus:ring-brand-primary cursor-pointer transition-colors hover:bg-white/10"
             >
               {/* Show current dynamic building first if it's not in SAMPLE_BUILDINGS */}
               {bldg.id.startsWith('osm-') && (
@@ -430,11 +431,11 @@ export const Exploded3DViewer: React.FC = () => {
         </div>
 
         {activeUndergroundLayerIds.length > 0 && (
-          <div className="absolute top-4 right-4 glass-card p-3 rounded-xl border border-amber-500/20 bg-amber-950/20 shadow-2xl pointer-events-auto">
-            <div className="text-[10px] font-bold text-amber-400 flex items-center gap-1.5 mb-1">
+          <div className="absolute top-5 right-5 glass-panel p-4 rounded-2xl border border-amber-500/30 bg-amber-950/20 shadow-[0_0_20px_rgba(245,158,11,0.15)] pointer-events-auto max-w-xs animate-in slide-in-from-right-4 fade-in duration-300">
+            <div className="text-[11px] font-bold text-amber-400 flex items-center gap-1.5 mb-2 tracking-wide uppercase">
               <AlertCircle className="w-4 h-4" /> ⚠ Illustrative Depth Warning
             </div>
-            <p className="text-[9px] text-slate-300 leading-relaxed font-mono">
+            <p className="text-[10px] text-slate-300 leading-relaxed font-mono">
               The 3D pipelines visualized below the building are placed at an illustrative default underground depth. The MCGM ArcGIS dataset does not contain surveyed engineering pipeline depth (Z-coordinates).
             </p>
           </div>

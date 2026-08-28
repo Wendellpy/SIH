@@ -14,6 +14,7 @@ import {
   EyeOff 
 } from 'lucide-react';
 import { useAppStore } from '@/lib/store';
+import { BorderBeam } from './ui/BorderBeam';
 
 export const LayerControl: React.FC = () => {
   const { layers, toggleLayer } = useAppStore();
@@ -28,36 +29,37 @@ export const LayerControl: React.FC = () => {
   ];
 
   return (
-    <div className="glass-panel rounded-xl p-3 shadow-2xl w-60 border border-white/10">
-      <div className="flex items-center justify-between pb-2 mb-2 border-b border-white/10">
-        <div className="flex items-center gap-1.5 text-xs font-semibold text-white">
-          <Layers className="w-3.5 h-3.5 text-brand-primary" />
+    <div className="relative glass-panel rounded-2xl p-4 shadow-2xl w-64 border border-white/10 backdrop-blur-2xl overflow-hidden">
+      <BorderBeam size={150} duration={12} delay={0} colorFrom="#10b981" colorTo="#0ea5e9" />
+      <div className="relative z-10 flex items-center justify-between pb-3 mb-3 border-b border-white/10">
+        <div className="flex items-center gap-2 text-xs font-bold text-white uppercase tracking-wider">
+          <Layers className="w-4 h-4 text-brand-primary" />
           <span>Cadastral Layers</span>
         </div>
-        <span className="text-[10px] text-slate-400 uppercase font-mono">3D GIS</span>
+        <span className="text-[9px] text-slate-500 font-mono">3D GIS</span>
       </div>
 
-      <div className="space-y-1.5">
+      <div className="relative z-10 space-y-1.5">
         {layerItems.map(({ key, label, icon: Icon, color, activeBg }) => {
           const active = layers[key];
           return (
             <button
               key={key}
               onClick={() => toggleLayer(key)}
-              className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg text-xs transition-all ${
+              className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs transition-all duration-300 group ${
                 active 
-                  ? `${activeBg} text-white font-medium border border-white/10` 
-                  : 'bg-surface-100/50 text-slate-400 hover:text-slate-200 hover:bg-white/5 border border-transparent'
+                  ? `${activeBg} text-white font-medium border border-white/10 shadow-sm` 
+                  : 'bg-white/5 text-slate-400 hover:text-slate-300 hover:bg-white/10 border border-transparent'
               }`}
             >
-              <div className="flex items-center gap-2">
-                <Icon className={`w-3.5 h-3.5 ${color}`} />
-                <span className="truncate">{label}</span>
+              <div className="flex items-center gap-2.5">
+                <Icon className={`w-3.5 h-3.5 ${color} ${!active && 'opacity-60 group-hover:opacity-100'} transition-opacity`} />
+                <span className="truncate tracking-wide">{label}</span>
               </div>
               {active ? (
-                <Eye className="w-3.5 h-3.5 text-brand-primary" />
+                <Eye className="w-4 h-4 text-brand-primary drop-shadow-[0_0_8px_rgba(14,165,233,0.5)]" />
               ) : (
-                <EyeOff className="w-3.5 h-3.5 text-slate-500" />
+                <EyeOff className="w-4 h-4 text-slate-600 group-hover:text-slate-400 transition-colors" />
               )}
             </button>
           );

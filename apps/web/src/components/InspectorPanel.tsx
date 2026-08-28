@@ -35,6 +35,47 @@ export const InspectorPanel: React.FC = () => {
   } = useAppStore();
 
   const [copied, setCopied] = useState(false);
+  const [isDownloading, setIsDownloading] = useState(false);
+
+  const handleDownloadPropertyCard = async (ulpin: string) => {
+    try {
+      setIsDownloading(true);
+      
+      // Grab the MapLibre canvas (or R3F canvas)
+      const canvas = document.querySelector('canvas');
+      let thumbnailBase64 = '';
+      if (canvas) {
+        thumbnailBase64 = canvas.toDataURL('image/jpeg', 0.8);
+      }
+
+      const response = await fetch(`http://localhost:4000/api/v1/units/${ulpin}/property-card`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ thumbnailBase64 })
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to generate card');
+      }
+
+      // Download the PDF blob
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `Property_Card_${ulpin}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+
+    } catch (err) {
+      console.error(err);
+      alert('Error generating Property Card');
+    } finally {
+      setIsDownloading(false);
+    }
+  };
 
   // If nothing is selected, show default parcel overview
   const parcel = selectedParcel;
@@ -265,13 +306,12 @@ export const InspectorPanel: React.FC = () => {
         </button>
 
         <button
-          onClick={() => {
-            alert(`Generating legal 3D Cadastral Property Card for ${currentUlpin} with digital signature hash.`);
-          }}
-          className="w-full py-1.5 px-3 rounded-xl bg-surface-100 hover:bg-surface-200 text-slate-200 text-xs font-medium border border-white/10 flex items-center justify-center gap-1.5 transition-colors"
+          onClick={() => currentUlpin && handleDownloadPropertyCard(currentUlpin)}
+          disabled={isDownloading || !currentUlpin}
+          className="w-full py-1.5 px-3 rounded-xl bg-surface-100 hover:bg-surface-200 text-slate-200 text-xs font-medium border border-white/10 flex items-center justify-center gap-1.5 transition-colors disabled:opacity-50"
         >
           <FileCheck className="w-3.5 h-3.5 text-emerald-400" />
-          Download 3D Cadastral Property Card
+          {isDownloading ? 'Generating...' : 'Download 3D Cadastral Property Card'}
         </button>
       </div>
     </div>

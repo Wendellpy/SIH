@@ -5,7 +5,8 @@ import {
   UndergroundAsset, 
   TopologyValidationLog, 
   AuditLog, 
-  AIJob 
+  AIJob,
+  AccessLog
 } from '@sih/shared-types';
 import { 
   SAMPLE_PARCELS, 
@@ -27,6 +28,7 @@ export class CadastreStore {
   private undergroundAssets: Map<string, UndergroundAsset> = new Map();
   private topologyLogs: Map<string, TopologyValidationLog> = new Map();
   private auditLogs: AuditLog[] = [];
+  private accessLogs: AccessLog[] = [];
   private jobs: Map<string, AIJob> = new Map();
 
   constructor() {
@@ -34,10 +36,10 @@ export class CadastreStore {
   }
 
   private seedInitialData() {
-    SAMPLE_PARCELS.forEach(p => this.parcels.set(p.id, { ...p }));
+    SAMPLE_PARCELS.forEach(p => this.parcels.set(p.id, { ...p, visibleTo: ['revenue', 'engineer', 'utility'] }));
     SAMPLE_BUILDINGS.forEach(b => this.buildings.set(b.id, { ...b }));
-    SAMPLE_VERTICAL_UNITS.forEach(u => this.verticalUnits.set(u.id, { ...u }));
-    SAMPLE_UNDERGROUND_ASSETS.forEach(a => this.undergroundAssets.set(a.id, { ...a }));
+    SAMPLE_VERTICAL_UNITS.forEach(u => this.verticalUnits.set(u.id, { ...u, visibleTo: ['revenue', 'engineer', 'utility'] }));
+    SAMPLE_UNDERGROUND_ASSETS.forEach(a => this.undergroundAssets.set(a.id, { ...a, visibleTo: ['engineer', 'utility'] }));
     SAMPLE_TOPOLOGY_LOGS.forEach(l => this.topologyLogs.set(l.id, { ...l }));
     this.auditLogs = [...SAMPLE_AUDIT_LOGS];
   }
@@ -143,6 +145,21 @@ export class CadastreStore {
 
   saveJob(job: AIJob) {
     this.jobs.set(job.id, job);
+  }
+
+  // --- Access Logs (Feature 3) ---
+  logAccess(role: string, endpoint: string, ulpinId?: string) {
+    this.accessLogs.unshift({
+      id: crypto.randomUUID(),
+      role,
+      endpoint,
+      ulpinId,
+      timestamp: new Date().toISOString()
+    });
+  }
+
+  getAccessLogs(limit: number = 20): AccessLog[] {
+    return this.accessLogs.slice(0, limit);
   }
 
   // --- Immutable Audit Ledger ---

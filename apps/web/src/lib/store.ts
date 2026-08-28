@@ -24,6 +24,10 @@ export interface AppState {
   activeTab: 'MAP_3D' | 'MAPLIBRE_3D' | 'EXPLODED_3D' | 'AI_STUDIO' | 'ADMIN_PORTAL' | 'AUDIT_LEDGER';
   setActiveTab: (tab: 'MAP_3D' | 'MAPLIBRE_3D' | 'EXPLODED_3D' | 'AI_STUDIO' | 'ADMIN_PORTAL' | 'AUDIT_LEDGER') => void;
 
+  // Role-Based Access Views
+  currentRole: 'revenue' | 'engineer' | 'utility';
+  setCurrentRole: (role: 'revenue' | 'engineer' | 'utility') => void;
+
   // Selected Entities
   selectedParcel: Parcel | null;
   setSelectedParcel: (parcel: Parcel | null) => void;
@@ -105,6 +109,9 @@ export interface AppState {
 export const useAppStore = create<AppState>((set, get) => ({
   activeTab: 'MAPLIBRE_3D', // Default to the requested MapLibre 3D Vector view!
   setActiveTab: (tab) => set({ activeTab: tab }),
+
+  currentRole: 'revenue',
+  setCurrentRole: (role) => set({ currentRole: role }),
 
   selectedParcel: SAMPLE_PARCELS[0],
   setSelectedParcel: (parcel) => set({ selectedParcel: parcel }),

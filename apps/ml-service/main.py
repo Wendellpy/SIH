@@ -12,6 +12,7 @@ Provides spatial intelligence microservices:
 import math
 import uuid
 import numpy as np
+import requests
 from typing import List, Optional, Dict, Any
 from fastapi import FastAPI, UploadFile, File, Form, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
@@ -116,12 +117,28 @@ class TopologyConflictDetail(BaseModel):
 class TopologyValidationResponse(BaseModel):
     is_valid: bool
     total_units_checked: int
-    conflicts_found: int
-    conflicts: List[TopologyConflictDetail]
-    execution_time_ms: float
+    z_min: float
+    z_max: float
+    boundary_polygon: List[List[float]] # Normalized local coordinates [[x,y],...]
+
+class ClearanceCheckRequest(BaseModel):
+    footprint: Dict[str, Any] = Field(..., description="GeoJSON Polygon of proposed footprint")
+    depth_min_m: Optional[float] = 0.0
+    depth_max_m: Optional[float] = -5.0
+
+class ConflictDetails(BaseModel):
+    utility_id: str
+    type: str
+    distance: float
+    severity: str
+
+class ClearanceCheckResponse(BaseModel):
+    clear: bool
+    conflicts: List[ConflictDetails]
+    suggested_fix: Optional[Dict[str, Any]] = None
 
 # ---------------------------------------------------------------------------
-# Service Endpoints
+# Core Feature 1: Cadastral Footprint Extraction
 # ---------------------------------------------------------------------------
 
 @app.get("/health")
@@ -362,6 +379,111 @@ def validate_3d_topology(req: TopologyValidationRequest):
         conflicts_found=len(conflicts),
         conflicts=conflicts,
         execution_time_ms=12.4
+    )
+
+# ---------------------------------------------------------------------------
+# Core Feature 2: Utility Clearance Check (Feature 2)
+# ---------------------------------------------------------------------------
+@app.post("/clearance-check", response_model=ClearanceCheckResponse)
+def clearance_check(req: ClearanceCheckRequest):
+    # Base clearance buffers by utility type
+    CLEARANCE_CONSTANTS = {
+        'WATER_SUPPLY': 1.0,
+        'GAS_PIPELINE': 0.5,
+        'METRO_TUNNEL': 3.0,
+        'POWER_HV': 1.5,
+        'SEWER_DRAIN': 1.0,
+        'TELECOM_FIBER': 0.3
+    }
+    
+    try:
+        # Fetch underground utilities from Node API (assuming it's running locally on 4000)
+        api_url = "http://localhost:4000/api/v1/underground"
+        # Since we use roleMiddleware now, we must pass the engineer role!
+        headers = {'x-user-role': 'engineer'}
+        response = requests.get(api_url, headers=headers)
+        if response.status_code != 200:
+            raise HTTPException(status_code=500, detail="Failed to fetch utilities from API")
+        utilities = response.json().get('data', [])
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+        
+    try:
+        footprint_poly = shape(req.footprint)
+        if not footprint_poly.is_valid:
+            footprint_poly = make_valid(footprint_poly)
+    except Exception as e:
+        raise HTTPException(status_code=400, detail="Invalid GeoJSON footprint")
+
+    conflicts = []
+    # Base geometry for suggested fix, start with original footprint
+    safe_footprint = footprint_poly
+    
+    for u in utilities:
+        u_type = u.get('assetType', 'WATER_SUPPLY')
+        u_id = u.get('id', 'unknown')
+        d_min = u.get('depthMinM', 0)
+        d_max = u.get('depthMaxM', -5)
+        
+        # Depth check: if footprint depth doesn't overlap utility depth, skip
+        if req.depth_min_m < d_max or req.depth_max_m > d_min:
+            continue
+            
+        coords = u.get('coordinates3D', {}).get('coordinates', [])
+        if not coords: continue
+        
+        try:
+            # 3D LineString -> 2D
+            coords_2d = [[c[0], c[1]] for c in coords]
+            from shapely.geometry import LineString
+            line = LineString(coords_2d)
+        except:
+            continue
+            
+        radius_m = (u.get('diameterMm', 0) / 1000.0) / 2.0
+        clearance = CLEARANCE_CONSTANTS.get(u_type, 1.0)
+        total_buffer = radius_m + clearance
+        
+        # Convert buffer distance from meters to degrees roughly (1 deg ~ 111km)
+        # This is a hack for demo purposes, proper GIS should project to UTM first.
+        buffer_deg = total_buffer / 111139.0
+        
+        utility_poly = line.buffer(buffer_deg)
+        
+        if footprint_poly.intersects(utility_poly):
+            dist_deg = footprint_poly.distance(line)
+            dist_m = dist_deg * 111139.0
+            
+            severity = 'high'
+            if dist_m > (radius_m + clearance * 0.5):
+                severity = 'medium'
+            if dist_m > (radius_m + clearance):
+                severity = 'low'
+                
+            conflicts.append(ConflictDetails(
+                utility_id=u_id,
+                type=u_type,
+                distance=dist_m,
+                severity=severity
+            ))
+            
+            # Remove the conflicting area from the safe footprint
+            safe_footprint = safe_footprint.difference(utility_poly)
+            
+    is_clear = len(conflicts) == 0
+    suggested_fix = None
+    if not is_clear and not safe_footprint.is_empty:
+        # If difference created a multipolygon, just take the largest piece for simplicity
+        if safe_footprint.geom_type == 'MultiPolygon':
+            safe_footprint = max(safe_footprint.geoms, key=lambda a: a.area)
+        
+        from shapely.geometry import mapping
+        suggested_fix = mapping(safe_footprint)
+        
+    return ClearanceCheckResponse(
+        clear=is_clear,
+        conflicts=conflicts,
+        suggested_fix=suggested_fix
     )
 
 if __name__ == "__main__":

@@ -87,6 +87,8 @@ export interface Parcel {
   boundary: GeoPolygon2D;
   crs: string; // EPSG:4326 / EPSG:32643
   ownershipType: 'Government' | 'Private' | 'Municipal' | 'Leasehold';
+  zoningCategory?: string;
+  visibleTo?: string[];
   simulated: boolean;
   createdAt: string;
   updatedAt: string;
@@ -131,10 +133,11 @@ export interface VerticalUnit {
   meshGeometry?: any; // Three.js / Cesium Solid structure
   validationStatus: ValidationStatus;
   provenance: ProvenanceSource;
-  taxStatus: 'PAID' | 'DUE' | 'EXEMPT';
+  taxStatus: 'PAID' | 'DUE' | 'DISPUTED' | 'EXEMPT';
   simulated: boolean;
   createdAt: string;
   updatedAt: string;
+  visibleTo?: string[];
 }
 
 export interface UndergroundAsset {
@@ -150,7 +153,9 @@ export interface UndergroundAsset {
   installationYear: number;
   operationalStatus: 'ACTIVE' | 'MAINTENANCE' | 'DECOMMISSIONED';
   validationStatus: ValidationStatus;
+  riskLevel?: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
   simulated: boolean;
+  visibleTo?: string[];
 }
 
 export type JobType = 
@@ -218,6 +223,14 @@ export interface AuditLog {
   hashSignature: string; // SHA-256 for audit immutability
 }
 
+export interface AccessLog {
+  id: string;
+  role: string;
+  endpoint: string;
+  ulpinId?: string;
+  timestamp: string;
+}
+
 export interface UserSession {
   id: string;
   name: string;
@@ -258,4 +271,12 @@ export function parseUlpin3D(ulpinString: string): ParsedUlpin3D | null {
     unitCode,
     rawString: ulpinString.toUpperCase()
   };
+}
+
+export interface AccessLog {
+  id: string;
+  role: string;
+  endpoint: string;
+  ulpinId?: string;
+  timestamp: string;
 }

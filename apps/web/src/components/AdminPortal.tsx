@@ -33,6 +33,20 @@ export const AdminPortal: React.FC = () => {
 
   const [selectedLogId, setSelectedLogId] = useState<string>(topologyLogs[0]?.id || '');
   const [activeSubTab, setActiveSubTab] = useState<'CONFLICTS' | 'AUDIT_LOGS'>('CONFLICTS');
+  const [accessLogs, setAccessLogs] = useState<any[]>([]);
+
+  React.useEffect(() => {
+    if (activeSubTab === 'AUDIT_LOGS') {
+      fetch('http://localhost:4000/api/v1/access-log')
+        .then(res => res.json())
+        .then(data => {
+          if (data.data) {
+            setAccessLogs(data.data);
+          }
+        })
+        .catch(console.error);
+    }
+  }, [activeSubTab]);
 
   const currentLog = topologyLogs.find(l => l.id === selectedLogId) || topologyLogs[0];
 
@@ -275,6 +289,36 @@ export const AdminPortal: React.FC = () => {
           </div>
 
           <div className="space-y-3">
+            {/* Render Network Access Logs First */}
+            {accessLogs.map((log, i) => (
+              <div
+                key={`access-${i}`}
+                className="glass-card p-4 rounded-xl border border-brand-primary/50 space-y-2"
+              >
+                <div className="flex items-center justify-between text-xs">
+                  <div className="flex items-center gap-2">
+                    <span className="px-2 py-0.5 rounded font-mono font-bold text-[10px] bg-blue-500/20 text-blue-300">
+                      ACCESS
+                    </span>
+                    <span className="font-semibold text-white">Role: {log.role}</span>
+                  </div>
+
+                  <div className="flex items-center gap-1 text-[11px] text-slate-400 font-mono">
+                    <Clock className="w-3 h-3" />
+                    {new Date(log.timestamp).toLocaleString()}
+                  </div>
+                </div>
+
+                <p className="text-xs text-slate-300 leading-relaxed">
+                  Requested {log.route} ({log.method})
+                </p>
+                
+                <div className="pt-1.5 flex items-center justify-between text-[10px] font-mono text-slate-400 border-t border-white/5">
+                  <span>IP: {log.ip}</span>
+                </div>
+              </div>
+            ))}
+            
             {auditLogs.map((log) => (
               <div
                 key={log.id}

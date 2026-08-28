@@ -1,6 +1,8 @@
 import { Request, Response, Router } from 'express';
 import { db } from '../database/store.js';
 import { ulpinService } from '../services/ulpin.service.js';
+import { PropertyCardService } from '../services/property-card.service.js';
+import { roleMiddleware } from '../middleware/role.middleware.js';
 
 export const cadastreRouter = Router();
 
@@ -94,7 +96,7 @@ cadastreRouter.get('/ulpin/:id3d', (req: Request, res: Response) => {
  * GET /api/v1/underground
  * List underground utility infrastructure with 3D depth geometry
  */
-cadastreRouter.get('/underground', (req: Request, res: Response) => {
+cadastreRouter.get('/underground', roleMiddleware(['engineer', 'utility']), (req: Request, res: Response) => {
   const parcelId = req.query.parcelId as string | undefined;
   const assets = db.getUndergroundAssets(parcelId);
   res.json({
@@ -102,6 +104,41 @@ cadastreRouter.get('/underground', (req: Request, res: Response) => {
     count: assets.length,
     data: assets
   });
+});
+
+/**
+ * GET /api/v1/access-log
+ * Get the recent access log
+ */
+cadastreRouter.get('/access-log', roleMiddleware(['revenue', 'admin']), (req: Request, res: Response) => {
+  const limit = req.query.limit ? parseInt(req.query.limit as string, 10) : 20;
+  res.json({
+    status: 'success',
+    data: db.getAccessLogs(limit)
+  });
+});
+
+/**
+ * POST /api/v1/certificate
+ * Export clearance certificate
+ */
+cadastreRouter.post('/certificate', roleMiddleware(['engineer']), async (req: Request, res: Response) => {
+  try {
+    const { conflicts, footprint } = req.body;
+    // We reuse PropertyCardService's hashing concept but format a certificate
+    // Creating a mock entity to pass to generateCard (or we can add a generateCertificate method)
+    // For now, we will add generateCertificate to PropertyCardService.
+    const { pdfBuffer, recordHash } = await PropertyCardService.generateCertificate(conflicts, footprint);
+
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename="Clearance_Certificate.pdf"`);
+    res.setHeader('X-Record-Hash', recordHash);
+    
+    return res.send(pdfBuffer);
+  } catch (err) {
+    console.error('Failed to generate clearance certificate:', err);
+    return res.status(500).json({ status: 'error', message: 'Failed to generate certificate' });
+  }
 });
 
 /**
@@ -117,4 +154,46 @@ cadastreRouter.get('/search', (req: Request, res: Response) => {
     count: results.length,
     data: results
   });
+});
+
+/**
+ * POST /api/v1/units/:ulpin/property-card
+ * Generate a PDF property card for a specific 3D ULPIN
+ */
+cadastreRouter.post('/units/:ulpin/property-card', async (req: Request, res: Response) => {
+  try {
+    const { ulpin } = req.params;
+    const { thumbnailBase64 } = req.body; // Expect JSON body parsing middleware is enabled
+
+    // Try finding as VerticalUnit
+    let entity: any = db.getVerticalUnitBy3DUlpin(ulpin);
+    let type: 'VerticalUnit' | 'Parcel' | 'UndergroundAsset' = 'VerticalUnit';
+
+    // If not found, try finding as Parcel
+    if (!entity) {
+      entity = db.getParcelByUlpin(ulpin);
+      type = 'Parcel';
+    }
+
+    // If not found, try finding as UndergroundAsset
+    if (!entity) {
+      entity = db.getUndergroundAssets().find(a => a.ulpin3D.toUpperCase() === ulpin.toUpperCase());
+      type = 'UndergroundAsset';
+    }
+
+    if (!entity) {
+      return res.status(404).json({ status: 'error', message: `No record found for ULPIN ${ulpin}` });
+    }
+
+    const { pdfBuffer, recordHash } = await PropertyCardService.generateCard(entity, type, thumbnailBase64);
+
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename="Property_Card_${ulpin}.pdf"`);
+    res.setHeader('X-Record-Hash', recordHash);
+    
+    return res.send(pdfBuffer);
+  } catch (err) {
+    console.error('Failed to generate property card:', err);
+    return res.status(500).json({ status: 'error', message: 'Failed to generate property card' });
+  }
 });

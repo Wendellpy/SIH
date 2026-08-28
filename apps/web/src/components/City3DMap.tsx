@@ -227,7 +227,8 @@ export const City3DMap: React.FC = () => {
     setSelectedUnderground,
     selectedRegion,
     setSelectedRegion,
-    setActiveTab 
+    setActiveTab,
+    currentRole
   } = useAppStore();
 
   const regions: Array<{ key: MumbaiRegionKey; label: string; coords: [number, number, number] }> = [
@@ -278,8 +279,10 @@ export const City3DMap: React.FC = () => {
             />
           ))}
 
-          {/* Subterranean Utility Networks */}
-          {layers.underground && SAMPLE_UNDERGROUND_ASSETS.map(asset => (
+          {/* Underground Infrastructure - Filtered by Role */}
+          {layers.underground && SAMPLE_UNDERGROUND_ASSETS
+            .filter(asset => !asset.visibleTo || asset.visibleTo.includes(currentRole))
+            .map(asset => (
             <UndergroundPipe
               key={asset.id}
               asset={asset}

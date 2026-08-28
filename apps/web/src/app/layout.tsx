@@ -1,5 +1,8 @@
 import type { Metadata } from 'next';
+import { Inter } from 'next/font/google';
 import './globals.css';
+
+const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
   title: '3D ULPIN Generation & Vertical Property Mapping System | DoLR #26011',
@@ -12,8 +15,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className="dark">
-      <body className="bg-background text-slate-100 min-h-screen antialiased overflow-hidden select-none">
+    <html lang="en" className={`dark ${inter.className}`}>
+      <body className="bg-[#0B0F19] text-slate-100 min-h-screen antialiased overflow-hidden select-none">
         {children}
       </body>
     </html>

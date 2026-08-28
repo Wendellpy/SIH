@@ -9,6 +9,7 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@mapbox/mapbox-gl-draw": "^1.5.1",
     "@react-three/drei": "^9.105.6",
     "@react-three/fiber": "^8.16.6",
     "@sih/sample-data": "workspace:*",
@@ -25,6 +26,7 @@
     "zustand": "^4.5.2"
   },
   "devDependencies": {
+    "@types/mapbox__mapbox-gl-draw": "^1.4.9",
     "@types/node": "^20.12.7",
     "@types/react": "^18.3.1",
     "@types/react-dom": "^18.3.0",
