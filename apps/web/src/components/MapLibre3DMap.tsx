@@ -618,19 +618,21 @@ export const MapLibre3DMap: React.FC = () => {
     const map = mapRef.current;
     if (!map.getLayer('3d-buildings')) return;
 
-    // In 2018, show buildings up to ~40m. In 2026, show everything.
-    const maxVisibleHeight = temporalYear >= 2026 ? 1000 : Math.max(10, (temporalYear - 2017) * 35);
+    let progress = 1.0;
+    if (temporalYear < 2018) progress = 0.05;
+    else if (temporalYear === 2018) progress = 0.08;
+    else if (temporalYear === 2019) progress = 0.14;
+    else if (temporalYear === 2020) progress = 0.20;
+    else if (temporalYear === 2021) progress = 0.35;
+    else if (temporalYear === 2022) progress = 0.55;
+    else if (temporalYear === 2023) progress = 0.75;
+    else if (temporalYear >= 2024) progress = 1.0;
 
     map.setPaintProperty('3d-buildings', 'fill-extrusion-height', [
       'case',
       ['has', 'render_height'],
-      [
-        'case',
-        ['>', ['get', 'render_height'], maxVisibleHeight],
-        ['*', ['get', 'render_height'], 0.15], // Show as under construction (15% height)
-        ['get', 'render_height']
-      ],
-      18
+      ['*', ['get', 'render_height'], progress],
+      ['*', 18, progress]
     ]);
   }, [temporalYear, mapLoaded]);
 
@@ -989,10 +991,19 @@ export const MapLibre3DMap: React.FC = () => {
 
           {/* Building Measurements */}
           {(() => {
-            const maxVisibleHeight = temporalYear >= 2026 ? 1000 : Math.max(10, (temporalYear - 2017) * 35);
-            const isUnderConstruction = selectedBuildingInfo.height > maxVisibleHeight;
-            const displayHeight = isUnderConstruction ? Math.round(selectedBuildingInfo.height * 0.15) : selectedBuildingInfo.height;
-            const displayFloors = isUnderConstruction ? Math.max(1, Math.round(selectedBuildingInfo.floors * 0.15)) : selectedBuildingInfo.floors;
+            let progress = 1.0;
+            if (temporalYear < 2018) progress = 0.05;
+            else if (temporalYear === 2018) progress = 0.08;
+            else if (temporalYear === 2019) progress = 0.14;
+            else if (temporalYear === 2020) progress = 0.20;
+            else if (temporalYear === 2021) progress = 0.35;
+            else if (temporalYear === 2022) progress = 0.55;
+            else if (temporalYear === 2023) progress = 0.75;
+            else if (temporalYear >= 2024) progress = 1.0;
+
+            const isUnderConstruction = progress < 1.0;
+            const displayHeight = Math.max(1, Math.round(selectedBuildingInfo.height * progress));
+            const displayFloors = Math.max(1, Math.round(selectedBuildingInfo.floors * progress));
             
             return (
               <div className="grid grid-cols-3 gap-2 text-center font-mono text-[10px]">
