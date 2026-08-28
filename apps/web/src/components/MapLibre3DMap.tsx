@@ -65,7 +65,7 @@ export const MapLibre3DMap: React.FC = () => {
   const [copied, setCopied] = useState(false);
   const [selectedFloor, setSelectedFloor] = useState<string>('Ground Floor');
   const [selectedUnit, setSelectedUnit] = useState<string>('101');
-  const { layers, setActiveTab, setSelectedBuilding, flyToTarget, setFlyToTarget } = useAppStore();
+  const { layers, setActiveTab, setSelectedBuilding, flyToTarget, setFlyToTarget, activeUndergroundLayerIds } = useAppStore();
 
   useEffect(() => {
     if (flyToTarget && mapRef.current && mapLoaded) {
@@ -400,9 +400,13 @@ export const MapLibre3DMap: React.FC = () => {
               };
               
               let parsedFloors = 1;
+              let hasBasement = false;
               if (bmcData.noOfFloorsStr) {
-                 const match = bmcData.noOfFloorsStr.match(/\d+/);
-                 if (match) parsedFloors = parseInt(match[0], 10) + (bmcData.noOfFloorsStr.toLowerCase().includes('g') ? 1 : 0);
+                 const str = bmcData.noOfFloorsStr.toLowerCase();
+                 if (str.includes('b') || str.includes('base')) hasBasement = true;
+                 const match = str.match(/\d+/);
+                 if (match) parsedFloors = parseInt(match[0], 10) + (str.includes('g') || str.includes('gr') ? 1 : 0);
+                 else if (str.includes('g') || str.includes('gr')) parsedFloors = 1;
               }
               
               if (parsedFloors > 0) {
@@ -417,6 +421,7 @@ export const MapLibre3DMap: React.FC = () => {
                      eavesHeightM: Math.round(accurateHeight * 0.85),
                      roofHeightM: Math.round(accurateHeight),
                      numFloors: accurateFloors,
+                     numBasements: hasBasement ? 1 : 0,
                      totalBuiltupAreaSqm: accurateFloors * 650,
                      name: (bmcData.name && bmcData.name.trim().length > 1) ? bmcData.name : prev.building.name
                    };
@@ -485,6 +490,72 @@ export const MapLibre3DMap: React.FC = () => {
       }
     };
   }, []);
+
+  // Sync MCGM Underground Layers to MapLibre
+  useEffect(() => {
+    if (!mapLoaded || !mapRef.current) return;
+    const map = mapRef.current;
+
+    // Track active sources so we can remove ones that are toggled off
+    const currentLayerIds = map.getStyle().layers.filter(l => l.id.startsWith('mcgm-underground-')).map(l => l.id.replace('mcgm-underground-layer-', ''));
+
+    // Remove inactive ones
+    currentLayerIds.forEach(idStr => {
+      const id = parseInt(idStr, 10);
+      if (!activeUndergroundLayerIds.includes(id)) {
+        if (map.getLayer(`mcgm-underground-layer-${id}`)) map.removeLayer(`mcgm-underground-layer-${id}`);
+        if (map.getSource(`mcgm-underground-source-${id}`)) map.removeSource(`mcgm-underground-source-${id}`);
+      }
+    });
+
+    // Add new ones
+    activeUndergroundLayerIds.forEach(async (id) => {
+      const sourceId = `mcgm-underground-source-${id}`;
+      const layerId = `mcgm-underground-layer-${id}`;
+      
+      if (!map.getSource(sourceId)) {
+        const bounds = map.getBounds();
+        const bbox = `${bounds.getWest()},${bounds.getSouth()},${bounds.getEast()},${bounds.getNorth()}`;
+        
+        try {
+          const url = `https://prsrvgisapp.mcgm.gov.in/server/rest/services/mcgm/MCGMGIS_Departments_Master_All_Layers/MapServer/${id}/query?geometry=${bbox}&geometryType=esriGeometryEnvelope&inSR=4326&spatialRel=esriSpatialRelIntersects&outFields=*&returnGeometry=true&f=geojson&resultRecordCount=2000`;
+          
+          const geojson = await fetch(url).then(r => r.json());
+          
+          if (!map.getSource(sourceId)) { // check again after async
+            map.addSource(sourceId, {
+              type: 'geojson',
+              data: geojson
+            });
+
+            // Assign colors based on typical utility types
+            let color = '#38bdf8'; // default cyan
+            if ([4, 5].includes(id)) color = '#a855f7'; // Sewer = purple
+            if ([6, 7].includes(id)) color = '#10b981'; // SWD = green
+            if ([310, 313].includes(id)) color = '#f59e0b'; // Tunnel = amber
+
+            map.addLayer({
+              id: layerId,
+              type: 'line',
+              source: sourceId,
+              layout: {
+                'line-join': 'round',
+                'line-cap': 'round'
+              },
+              paint: {
+                'line-color': color,
+                'line-width': 4,
+                'line-dasharray': [2, 2],
+                'line-opacity': 0.8
+              }
+            }, 'poi-labels'); // insert below labels
+          }
+        } catch (e) {
+          console.warn(`[MapLibre] Failed to load MCGM layer ${id}`, e);
+        }
+      }
+    });
+  }, [activeUndergroundLayerIds, mapLoaded]);
 
   // Sync layer visibility
   useEffect(() => {
@@ -706,9 +777,11 @@ export const MapLibre3DMap: React.FC = () => {
                       onChange={(e) => setSelectedFloor(e.target.value)}
                       className="w-full bg-surface-100 border border-white/10 rounded px-2 py-1 text-white focus:outline-none focus:border-brand-primary"
                     >
-                      <option value="Basement">Basement</option>
+                      {(selectedBuildingInfo.building?.numBasements ?? 0) > 0 && (
+                        <option value="Basement">Basement</option>
+                      )}
                       <option value="Ground Floor">Ground Floor</option>
-                      {Array.from({ length: selectedBuildingInfo.floors - 1 }).map((_, i) => (
+                      {Array.from({ length: Math.max(0, selectedBuildingInfo.floors - 1) }).map((_, i) => (
                         <option key={i} value={getOrdinal(i + 1)}>{getOrdinal(i + 1)}</option>
                       ))}
                     </select>

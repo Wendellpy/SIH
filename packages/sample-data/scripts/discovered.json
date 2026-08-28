@@ -1,0 +1,209 @@
+[
+  {
+    "id": 5,
+    "name": "Sewerage Operations",
+    "parentLayerId": -1,
+    "defaultVisibility": false,
+    "subLayerIds": [
+      9,
+      3,
+      4
+    ],
+    "minScale": 0,
+    "maxScale": 0,
+    "type": "Group Layer"
+  },
+  {
+    "id": 4,
+    "name": "Sewer Line",
+    "parentLayerId": 5,
+    "defaultVisibility": true,
+    "subLayerIds": null,
+    "minScale": 6001,
+    "maxScale": 0,
+    "type": "Feature Layer",
+    "geometryType": "esriGeometryPolyline"
+  },
+  {
+    "id": 229,
+    "name": "Storm Water Drainage",
+    "parentLayerId": -1,
+    "defaultVisibility": false,
+    "subLayerIds": [
+      6,
+      7
+    ],
+    "minScale": 0,
+    "maxScale": 0,
+    "type": "Group Layer"
+  },
+  {
+    "id": 6,
+    "name": "Storm Water Manholes",
+    "parentLayerId": 229,
+    "defaultVisibility": true,
+    "subLayerIds": null,
+    "minScale": 6001,
+    "maxScale": 0,
+    "type": "Feature Layer",
+    "geometryType": "esriGeometryPoint"
+  },
+  {
+    "id": 7,
+    "name": "Storm Water Drains",
+    "parentLayerId": 229,
+    "defaultVisibility": true,
+    "subLayerIds": null,
+    "minScale": 6001,
+    "maxScale": 0,
+    "type": "Feature Layer",
+    "geometryType": "esriGeometryPolyline"
+  },
+  {
+    "id": 310,
+    "name": "Tunnel / Shaft",
+    "parentLayerId": 215,
+    "defaultVisibility": true,
+    "subLayerIds": [
+      313,
+      311,
+      312
+    ],
+    "minScale": 0,
+    "maxScale": 0,
+    "type": "Group Layer"
+  },
+  {
+    "id": 313,
+    "name": "Tunnel",
+    "parentLayerId": 310,
+    "defaultVisibility": true,
+    "subLayerIds": null,
+    "minScale": 0,
+    "maxScale": 0,
+    "type": "Feature Layer",
+    "geometryType": "esriGeometryPolyline"
+  },
+  {
+    "id": 154,
+    "name": "Open Pipeline",
+    "parentLayerId": 161,
+    "defaultVisibility": true,
+    "subLayerIds": null,
+    "minScale": 10001,
+    "maxScale": 0,
+    "type": "Feature Layer",
+    "geometryType": "esriGeometryPolyline"
+  },
+  {
+    "id": 239,
+    "name": "Water Bodies",
+    "parentLayerId": 161,
+    "defaultVisibility": true,
+    "subLayerIds": null,
+    "minScale": 10001,
+    "maxScale": 0,
+    "type": "Feature Layer",
+    "geometryType": "esriGeometryPolygon"
+  },
+  {
+    "id": 219,
+    "name": "Pipeline",
+    "parentLayerId": 223,
+    "defaultVisibility": true,
+    "subLayerIds": null,
+    "minScale": 6001,
+    "maxScale": 0,
+    "type": "Feature Layer",
+    "geometryType": "esriGeometryPolyline"
+  },
+  {
+    "id": 116,
+    "name": "Tunnel",
+    "parentLayerId": 117,
+    "defaultVisibility": true,
+    "subLayerIds": null,
+    "minScale": 6001,
+    "maxScale": 0,
+    "type": "Feature Layer",
+    "geometryType": "esriGeometryPolyline"
+  },
+  {
+    "id": 115,
+    "name": "Pipeline",
+    "parentLayerId": 117,
+    "defaultVisibility": true,
+    "subLayerIds": null,
+    "minScale": 6001,
+    "maxScale": 0,
+    "type": "Feature Layer",
+    "geometryType": "esriGeometryPolyline"
+  },
+  {
+    "id": 55,
+    "name": "Pipeline",
+    "parentLayerId": 118,
+    "defaultVisibility": true,
+    "subLayerIds": null,
+    "minScale": 0,
+    "maxScale": 0,
+    "type": "Feature Layer",
+    "geometryType": "esriGeometryPolyline"
+  },
+  {
+    "id": 347,
+    "name": "Steel Pipe",
+    "parentLayerId": 349,
+    "defaultVisibility": true,
+    "subLayerIds": null,
+    "minScale": 0,
+    "maxScale": 0,
+    "type": "Feature Layer",
+    "geometryType": "esriGeometryPolyline"
+  },
+  {
+    "id": 350,
+    "name": "MDPE Pipe",
+    "parentLayerId": 349,
+    "defaultVisibility": true,
+    "subLayerIds": null,
+    "minScale": 0,
+    "maxScale": 0,
+    "type": "Feature Layer",
+    "geometryType": "esriGeometryPolyline"
+  },
+  {
+    "id": 211,
+    "name": "Election",
+    "parentLayerId": -1,
+    "defaultVisibility": false,
+    "subLayerIds": [
+      222
+    ],
+    "minScale": 0,
+    "maxScale": 0,
+    "type": "Group Layer"
+  },
+  {
+    "id": 293,
+    "name": "SWD / Water",
+    "parentLayerId": 295,
+    "defaultVisibility": true,
+    "subLayerIds": null,
+    "minScale": 4001,
+    "maxScale": 0,
+    "type": "Feature Layer",
+    "geometryType": "esriGeometryPoint"
+  },
+  {
+    "id": 292,
+    "name": "Telecom Tower",
+    "parentLayerId": 295,
+    "defaultVisibility": false,
+    "subLayerIds": null,
+    "minScale": 4001,
+    "maxScale": 0,
+    "type": "Feature Layer",
+    "geometryType": "esriGeometryPoint"
+  }
+]

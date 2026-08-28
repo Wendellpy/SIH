@@ -1,0 +1,63 @@
+{
+  "source": {
+    "name": "MCGM GIS",
+    "masterService": "https://prsrvgisapp.mcgm.gov.in/server/rest/services/mcgm/MCGMGIS_Departments_Master_All_Layers/MapServer",
+    "generatedAt": "2026-08-28T16:50:00Z"
+  },
+  "categories": {
+    "undergroundUtilities": {
+      "title": "Underground Utilities",
+      "layers": [
+        {
+          "id": 4,
+          "name": "Sewer Line",
+          "url": "https://prsrvgisapp.mcgm.gov.in/server/rest/services/mcgm/MCGMGIS_Departments_Master_All_Layers/MapServer/4",
+          "type": "FeatureLayer",
+          "geometryType": "esriGeometryPolyline",
+          "visible": false,
+          "reason": "Sewer line networks"
+        },
+        {
+          "id": 7,
+          "name": "Storm Water Drains",
+          "url": "https://prsrvgisapp.mcgm.gov.in/server/rest/services/mcgm/MCGMGIS_Departments_Master_All_Layers/MapServer/7",
+          "type": "FeatureLayer",
+          "geometryType": "esriGeometryPolyline",
+          "visible": false,
+          "reason": "Drainage networks"
+        },
+        {
+          "id": 55,
+          "name": "Pipeline",
+          "url": "https://prsrvgisapp.mcgm.gov.in/server/rest/services/mcgm/MCGMGIS_Departments_Master_All_Layers/MapServer/55",
+          "type": "FeatureLayer",
+          "geometryType": "esriGeometryPolyline",
+          "visible": false,
+          "reason": "Generic utility pipelines"
+        }
+      ]
+    },
+    "undergroundRoadwork": {
+      "title": "Underground Roadwork",
+      "layers": [
+        {
+          "id": 313,
+          "name": "Tunnel",
+          "url": "https://prsrvgisapp.mcgm.gov.in/server/rest/services/mcgm/MCGMGIS_Departments_Master_All_Layers/MapServer/313",
+          "type": "FeatureLayer",
+          "geometryType": "esriGeometryPolyline",
+          "visible": false,
+          "reason": "Underground tunnel infrastructure"
+        }
+      ]
+    },
+    "undergroundBuildingSpaces": {
+      "title": "Underground Building Spaces",
+      "layers": []
+    },
+    "otherUnderground": {
+      "title": "Other Underground Infrastructure",
+      "layers": []
+    }
+  }
+}

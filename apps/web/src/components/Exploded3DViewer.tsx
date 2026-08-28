@@ -19,7 +19,8 @@ import {
   Sparkles,
   Building2,
   ArrowLeft,
-  MapPin
+  MapPin,
+  AlertCircle
 } from 'lucide-react';
 
 interface UnitMeshProps {
@@ -184,6 +185,56 @@ const BuildingScene: React.FC<{
   );
 };
 
+const UndergroundTubes: React.FC<{ activeIds: number[] }> = ({ activeIds }) => {
+  if (activeIds.length === 0) return null;
+
+  const tubes = [];
+  
+  // Sewer / Drainage
+  if (activeIds.includes(4) || activeIds.includes(5)) {
+    const path = new THREE.CatmullRomCurve3([
+      new THREE.Vector3(-15, -4, -10),
+      new THREE.Vector3(0, -4, 0),
+      new THREE.Vector3(15, -4, 10),
+    ]);
+    tubes.push(<mesh key="sewer"><tubeGeometry args={[path, 20, 0.4, 8, false]} /><meshStandardMaterial color="#a855f7" metalness={0.6} roughness={0.2} /></mesh>);
+  }
+
+  // Storm Water
+  if (activeIds.includes(6) || activeIds.includes(7)) {
+    const path = new THREE.CatmullRomCurve3([
+      new THREE.Vector3(-15, -2, 5),
+      new THREE.Vector3(15, -2, 5),
+    ]);
+    tubes.push(<mesh key="swd"><tubeGeometry args={[path, 20, 0.6, 8, false]} /><meshStandardMaterial color="#10b981" metalness={0.3} roughness={0.4} /></mesh>);
+  }
+
+  // Generic Pipeline
+  if (activeIds.includes(55)) {
+    const path = new THREE.CatmullRomCurve3([
+      new THREE.Vector3(5, -3, -15),
+      new THREE.Vector3(5, -3, 15),
+    ]);
+    tubes.push(<mesh key="pipe"><tubeGeometry args={[path, 20, 0.25, 8, false]} /><meshStandardMaterial color="#38bdf8" metalness={0.8} roughness={0.1} /></mesh>);
+  }
+
+  // Tunnel
+  if (activeIds.includes(310) || activeIds.includes(313)) {
+    const path = new THREE.CatmullRomCurve3([
+      new THREE.Vector3(-10, -12, -15),
+      new THREE.Vector3(-5, -12, 0),
+      new THREE.Vector3(-10, -12, 15),
+    ]);
+    tubes.push(<mesh key="tunnel"><tubeGeometry args={[path, 20, 2.5, 16, false]} /><meshStandardMaterial color="#f59e0b" metalness={0.2} roughness={0.8} /></mesh>);
+  }
+
+  return (
+    <group>
+      {tubes}
+    </group>
+  );
+};
+
 export const Exploded3DViewer: React.FC = () => {
   const { 
     selectedBuilding, 
@@ -192,7 +243,8 @@ export const Exploded3DViewer: React.FC = () => {
     setSelectedUnit, 
     explodedDistance, 
     setExplodedDistance,
-    setActiveTab 
+    setActiveTab,
+    activeUndergroundLayerIds
   } = useAppStore();
 
   const [hoveredUnit, setHoveredUnit] = useState<VerticalUnit | null>(null);
@@ -214,23 +266,32 @@ export const Exploded3DViewer: React.FC = () => {
     const isResidential = bldg.name.includes('Residen') || bldg.name.includes('Villa') || bldg.name.includes('Apartment');
     const isMixed = bldg.numFloors > 5;
 
-    for (let f = 1; f <= displayFloors; f++) {
-      const zMin = bldg.plinthElevationM + (f - 1) * 3.8;
-      const zMax = bldg.plinthElevationM + f * 3.8;
+    const startFloor = -(bldg.numBasements || 0);
+
+    // Generate floors from startFloor (negative for basements) up to displayFloors
+    // We treat 0 as Ground/Plinth
+    for (let f = startFloor; f <= displayFloors; f++) {
+      // For z index calculation, treat basement as below plinth
+      const floorIdx = f < 0 ? f : f;
+      const zMin = bldg.plinthElevationM + floorIdx * 3.8;
+      const zMax = bldg.plinthElevationM + (floorIdx + 1) * 3.8;
 
       // Generate 2 units per floor (left wing A, right wing B)
       for (const wing of ['A', 'B'] as const) {
-        const uCode = `FL${f.toString().padStart(2, '0')}${wing}`;
+        let uCode = '';
+        if (f === 0) uCode = `G0${wing === 'A' ? 1 : 2}`;
+        else if (f < 0) uCode = `B${Math.abs(f)}0${wing === 'A' ? 1 : 2}`;
+        else uCode = `F${f.toString().padStart(2, '0')}${wing}`;
 
-        // Determine use type: ground floors commercial in mixed-use, upper floors residential
         let useType: 'Commercial' | 'Residential' | 'Recreational' | 'Utility' = isResidential ? 'Residential' : 'Commercial';
-        if (isMixed) {
+        if (f < 0) useType = 'Utility';
+        else if (isMixed) {
           if (f <= 2) useType = 'Commercial';
           else if (f === displayFloors) useType = 'Recreational';
           else useType = 'Residential';
         }
 
-        const carpetArea = wing === 'A' ? 520 + Math.floor(f * 15) : 480 + Math.floor(f * 12);
+        const carpetArea = wing === 'A' ? 520 + Math.floor(Math.abs(f) * 15) : 480 + Math.floor(Math.abs(f) * 12);
 
         // Use building footprint coordinates if available
         const coords = bldg.footprint?.coordinates?.[0]?.[0] || [72.8280, 18.9960];
@@ -243,12 +304,12 @@ export const Exploded3DViewer: React.FC = () => {
           parcelId: parcel.id,
           ulpin3D: formatUlpin3D(ulpinBase, 'A', f, uCode),
           domainCode: 'A',
-          levelCode: `+${f.toString().padStart(2, '0')}`,
+          levelCode: f === 0 ? 'G' : f < 0 ? `B${Math.abs(f)}` : `+${f.toString().padStart(2, '0')}`,
           unitCode: uCode,
           floorNumber: f,
-          unitName: `${bldg.name} - ${wing === 'A' ? 'Wing A' : 'Wing B'} Floor ${f}`,
+          unitName: `${bldg.name} - ${wing === 'A' ? 'Wing A' : 'Wing B'} ${f === 0 ? 'Ground Floor' : f < 0 ? 'Basement ' + Math.abs(f) : 'Floor ' + f}`,
           useType,
-          ownerName: f <= 2 ? 'Mumbai Commercial Holdings Pvt. Ltd.' : `Resident Owner ${f}${wing}`,
+          ownerName: f <= 2 && f >= 0 ? 'Mumbai Commercial Holdings Pvt. Ltd.' : `Resident Owner ${f}${wing}`,
           ownerId: `${isResidential ? 'AADH' : 'CORP'}-MH-${4000 + f * 2 + (wing === 'B' ? 1 : 0)}`,
           carpetAreaSqm: carpetArea,
           builtupAreaSqm: Math.round(carpetArea * 1.15),
@@ -297,6 +358,8 @@ export const Exploded3DViewer: React.FC = () => {
             onSelectUnit={(u) => setSelectedUnit(u)}
             onHoverUnit={(u) => setHoveredUnit(u)}
           />
+
+          <UndergroundTubes activeIds={activeUndergroundLayerIds} />
 
           <OrbitControls 
             enableDamping 
@@ -365,6 +428,17 @@ export const Exploded3DViewer: React.FC = () => {
             </select>
           </div>
         </div>
+
+        {activeUndergroundLayerIds.length > 0 && (
+          <div className="absolute top-4 right-4 glass-card p-3 rounded-xl border border-amber-500/20 bg-amber-950/20 shadow-2xl pointer-events-auto">
+            <div className="text-[10px] font-bold text-amber-400 flex items-center gap-1.5 mb-1">
+              <AlertCircle className="w-4 h-4" /> ⚠ Illustrative Depth Warning
+            </div>
+            <p className="text-[9px] text-slate-300 leading-relaxed font-mono">
+              The 3D pipelines visualized below the building are placed at an illustrative default underground depth. The MCGM ArcGIS dataset does not contain surveyed engineering pipeline depth (Z-coordinates).
+            </p>
+          </div>
+        )}
 
         {/* Floating Explode Slider HUD */}
         <div className="absolute bottom-4 left-4 glass-panel rounded-xl p-3 border border-white/10 flex items-center gap-3 shadow-2xl pointer-events-auto">

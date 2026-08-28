@@ -50,11 +50,15 @@ export interface AppState {
     buildings: boolean;
     verticalUnits: boolean;
     underground: boolean;
+    undergroundUtilities: boolean;
+    undergroundRoadwork: boolean;
     satellite: boolean;
     terrain: boolean;
     mybmc: boolean;
   };
+  activeUndergroundLayerIds: number[];
   toggleLayer: (layer: keyof AppState['layers']) => void;
+  toggleUndergroundLayerId: (id: number) => void;
 
   // Vertical Floor & Depth Scrubber
   scrubber: {
@@ -127,18 +131,30 @@ export const useAppStore = create<AppState>((set, get) => ({
   setFlyToTarget: (target) => set({ flyToTarget: target }),
 
   layers: {
-    parcels: true,
+    parcels: false,
     buildings: true,
     verticalUnits: true,
-    underground: true,
-    satellite: true,
-    terrain: true,
+    underground: false,
+    undergroundUtilities: false,
+    undergroundRoadwork: false,
+    satellite: false,
+    terrain: false,
     mybmc: true,
   },
+  activeUndergroundLayerIds: [],
   toggleLayer: (layer) =>
     set((state) => ({
       layers: { ...state.layers, [layer]: !state.layers[layer] },
     })),
+  toggleUndergroundLayerId: (id) =>
+    set((state) => {
+      const exists = state.activeUndergroundLayerIds.includes(id);
+      return {
+        activeUndergroundLayerIds: exists
+          ? state.activeUndergroundLayerIds.filter((lid) => lid !== id)
+          : [...state.activeUndergroundLayerIds, id],
+      };
+    }),
 
   scrubber: {
     enabled: true,

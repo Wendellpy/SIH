@@ -5,6 +5,8 @@ import dynamic from 'next/dynamic';
 import { Header } from '@/components/Header';
 import { LayerControl } from '@/components/LayerControl';
 import { FloorScrubber } from '@/components/FloorScrubber';
+import { UndergroundControl } from '@/components/UndergroundControl';
+import { UndergroundTestPanel } from '@/components/UndergroundTestPanel';
 import { InspectorPanel } from '@/components/InspectorPanel';
 import { AIStudio } from '@/components/AIStudio';
 import { AdminPortal } from '@/components/AdminPortal';
@@ -64,8 +66,11 @@ export default function HomePage() {
         {/* Active Workspace Viewport */}
         <div className="relative flex-1 h-full rounded-2xl overflow-hidden shadow-2xl border border-white/5 bg-[#030712]">
           {activeTab === 'MAPLIBRE_3D' && (
-            <div className="w-full h-full">
+            <div className="relative w-full h-full">
               <MapLibre3DMap />
+              <div className="absolute top-4 right-4 z-20 pointer-events-auto">
+                <UndergroundControl />
+              </div>
             </div>
           )}
 
@@ -111,6 +116,8 @@ export default function HomePage() {
           </aside>
         )}
       </main>
+
+      <UndergroundTestPanel />
     </div>
   );
 }
