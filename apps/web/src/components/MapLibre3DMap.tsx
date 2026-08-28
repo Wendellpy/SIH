@@ -988,20 +988,30 @@ export const MapLibre3DMap: React.FC = () => {
           </div>
 
           {/* Building Measurements */}
-          <div className="grid grid-cols-3 gap-2 text-center font-mono text-[10px]">
-            <div className="glass-card p-2 rounded-lg border border-white/5">
-              <div className="text-slate-400 text-[8px]">HEIGHT</div>
-              <div className="font-bold text-cyan-300 text-xs mt-0.5">{selectedBuildingInfo.height}m</div>
-            </div>
-            <div className="glass-card p-2 rounded-lg border border-white/5">
-              <div className="text-slate-400 text-[8px]">FLOORS</div>
-              <div className="font-bold text-emerald-300 text-xs mt-0.5">~{selectedBuildingInfo.floors}F</div>
-            </div>
-            <div className="glass-card p-2 rounded-lg border border-white/5">
-              <div className="text-slate-400 text-[8px]">BASE DATUM</div>
-              <div className="font-bold text-amber-300 text-xs mt-0.5">+{selectedBuildingInfo.minHeight}m</div>
-            </div>
-          </div>
+          {(() => {
+            const maxVisibleHeight = temporalYear >= 2026 ? 1000 : Math.max(10, (temporalYear - 2017) * 35);
+            const isUnderConstruction = selectedBuildingInfo.height > maxVisibleHeight;
+            const displayHeight = isUnderConstruction ? Math.round(selectedBuildingInfo.height * 0.15) : selectedBuildingInfo.height;
+            const displayFloors = isUnderConstruction ? Math.max(1, Math.round(selectedBuildingInfo.floors * 0.15)) : selectedBuildingInfo.floors;
+            
+            return (
+              <div className="grid grid-cols-3 gap-2 text-center font-mono text-[10px]">
+                <div className="glass-card p-2 rounded-lg border border-white/5 relative">
+                  {isUnderConstruction && <div className="absolute -top-1 -right-1 text-[8px] bg-amber-500 text-black px-1 rounded-sm font-bold shadow-neon-emerald">U/C</div>}
+                  <div className="text-slate-400 text-[8px]">HEIGHT</div>
+                  <div className="font-bold text-cyan-300 text-xs mt-0.5">{displayHeight}m</div>
+                </div>
+                <div className="glass-card p-2 rounded-lg border border-white/5">
+                  <div className="text-slate-400 text-[8px]">FLOORS</div>
+                  <div className="font-bold text-emerald-300 text-xs mt-0.5">~{displayFloors}F</div>
+                </div>
+                <div className="glass-card p-2 rounded-lg border border-white/5">
+                  <div className="text-slate-400 text-[8px]">BASE DATUM</div>
+                  <div className="font-bold text-amber-300 text-xs mt-0.5">+{selectedBuildingInfo.minHeight}m</div>
+                </div>
+              </div>
+            );
+          })()}
 
           <button
             onClick={() => {
