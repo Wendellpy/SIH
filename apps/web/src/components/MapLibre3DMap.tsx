@@ -22,7 +22,6 @@ import {
 import { useAppStore } from '@/lib/store';
 import { formatUlpin3D, Building } from '@sih/shared-types';
 import MapboxDraw from '@mapbox/mapbox-gl-draw';
-import '@mapbox/mapbox-gl-draw/dist/mapbox-gl-draw.css';
 import { ClearanceTool } from './ClearanceTool';
 
 export const MapLibre3DMap: React.FC = () => {
@@ -98,7 +97,7 @@ export const MapLibre3DMap: React.FC = () => {
       console.error('[MapLibre] Container has zero dimensions! Map will not render.');
     }
 
-    const tileUrl = `${window.location.origin}/api/tiles/{z}/{x}/{y}`;
+    const tileUrl = 'https://tiles.stadiamaps.com/data/openmaptiles/{z}/{x}/{y}.pbf';
     console.log('[MapLibre] Tile URL:', tileUrl);
 
     try {
@@ -310,27 +309,6 @@ export const MapLibre3DMap: React.FC = () => {
 
       map.on('load', () => {
         setMapLoaded(true);
-        if (currentRole === 'engineer') {
-          const draw = new MapboxDraw({
-            displayControlsDefault: false,
-            controls: { polygon: true, trash: true }
-          });
-          map.addControl(draw as any, 'top-right');
-          drawRef.current = draw;
-
-          const updateFootprint = () => {
-            const data = draw.getAll();
-            if (data.features.length > 0) {
-              setFootprintGeoJSON(data.features[0].geometry);
-            } else {
-              setFootprintGeoJSON(null);
-            }
-          };
-
-          map.on('draw.create', updateFootprint);
-          map.on('draw.delete', updateFootprint);
-          map.on('draw.update', updateFootprint);
-        }
       });
 
       map.on('error', (e) => {
@@ -597,6 +575,42 @@ export const MapLibre3DMap: React.FC = () => {
       map.setLayoutProperty('mybmc-buildings-layer', 'visibility', layers.mybmc ? 'visible' : 'none');
     }
   }, [layers.mybmc, mapLoaded]);
+
+  // Manage Draw Tool based on role
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !mapLoaded) return;
+
+    if (currentRole === 'engineer') {
+      if (!drawRef.current) {
+        const draw = new MapboxDraw({
+          displayControlsDefault: false,
+          controls: { polygon: true, trash: true }
+        });
+        map.addControl(draw as any, 'top-left'); // Move to top-left to avoid collisions
+        drawRef.current = draw;
+
+        const updateFootprint = () => {
+          const data = draw.getAll();
+          if (data.features.length > 0) {
+            setFootprintGeoJSON(data.features[0].geometry);
+          } else {
+            setFootprintGeoJSON(null);
+          }
+        };
+
+        map.on('draw.create', updateFootprint);
+        map.on('draw.delete', updateFootprint);
+        map.on('draw.update', updateFootprint);
+      }
+    } else {
+      if (drawRef.current) {
+        map.removeControl(drawRef.current as any);
+        drawRef.current = null;
+        setFootprintGeoJSON(null);
+      }
+    }
+  }, [currentRole, mapLoaded]);
 
   const setMapPitch = (pitch: number) => {
     if (!mapRef.current) return;
