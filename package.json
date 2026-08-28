@@ -1,0 +1,29 @@
+{
+  "name": "sih-3d-ulpin-system",
+  "version": "1.0.0",
+  "private": true,
+  "description": "3D ULPIN Generation and Vertical Property Mapping System for Ministry of Rural Development (DoLR) - SIH #26011",
+  "scripts": {
+    "dev": "pnpm --filter @sih/web dev",
+    "dev:all": "concurrently \"pnpm --filter @sih/api dev\" \"pnpm --filter @sih/web dev\"",
+    "build": "pnpm --recursive run build",
+    "test": "pnpm --recursive run test",
+    "lint": "pnpm --recursive run lint"
+  },
+  "keywords": [
+    "3d-cadastre",
+    "ulpin",
+    "postgis",
+    "smart-india-hackathon",
+    "dolr",
+    "threejs",
+    "cesium",
+    "geospatial"
+  ],
+  "author": "SIH Team",
+  "license": "MIT",
+  "devDependencies": {
+    "concurrently": "^8.2.2",
+    "typescript": "^5.4.5"
+  }
+}
