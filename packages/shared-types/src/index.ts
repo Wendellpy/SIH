@@ -280,3 +280,32 @@ export interface AccessLog {
   ulpinId?: string;
   timestamp: string;
 }
+
+export type ChangeEventType = 
+  | 'FOOTPRINT_CHANGE'
+  | 'VOLUME_CHANGE'
+  | 'LANDUSE_CHANGE'
+  | 'DEMOLITION'
+  | 'NEW_CONSTRUCTION';
+
+export interface ChangeEvent {
+  id: string;
+  propertyId: string; // ulpin or buildingId
+  detectedDate: string; // YYYY-MM-DD
+  changeType: ChangeEventType;
+  oldValue: string;
+  newValue: string;
+  confidence: number; // 0 to 1
+  source: string; // e.g. Sentinel-2, Bhuvan, Drone
+  status: 'VERIFIED' | 'REVIEW_REQUIRED' | 'REJECTED';
+}
+
+export interface PropertyVersion {
+  versionId: string;
+  propertyId: string;
+  timestamp: string;
+  floorCount: number;
+  landUse: UseClassification;
+  geometry: GeoPolygon2D;
+  source: string;
+}

@@ -6,7 +6,8 @@ import {
   UndergroundAsset, 
   TopologyValidationLog, 
   AuditLog, 
-  AIJob 
+  AIJob,
+  ChangeEvent
 } from '@sih/shared-types';
 import { 
   SAMPLE_PARCELS, 
@@ -104,6 +105,20 @@ export interface AppState {
 
   // Reset to Global Mumbai View
   resetSelection: () => void;
+
+  // 4D Temporal GIS State
+  temporalYear: number;
+  setTemporalYear: (year: number) => void;
+
+  // Flood Simulation
+  floodSimulation: {
+    active: boolean;
+    waterLevelM: number;
+  };
+  setFloodSimulation: (active: boolean, waterLevelM?: number) => void;
+
+  // Mock Change Events
+  changeEvents: ChangeEvent[];
 }
 
 export const useAppStore = create<AppState>((set, get) => ({
@@ -241,4 +256,44 @@ export const useAppStore = create<AppState>((set, get) => ({
       selectedUnderground: null,
       selectedRegion: 'ALL',
     }),
+
+  temporalYear: 2024,
+  setTemporalYear: (year) => set({ temporalYear: year }),
+
+  floodSimulation: {
+    active: false,
+    waterLevelM: 0,
+  },
+  setFloodSimulation: (active, waterLevelM) => 
+    set((state) => ({ 
+      floodSimulation: { 
+        active, 
+        waterLevelM: waterLevelM ?? state.floodSimulation.waterLevelM 
+      } 
+    })),
+
+  changeEvents: [
+    {
+      id: 'CH-00192',
+      propertyId: 'bkc-fintech-tower',
+      detectedDate: '2024-11-17',
+      changeType: 'FOOTPRINT_CHANGE',
+      oldValue: '1,200 m²',
+      newValue: '1,680 m²',
+      confidence: 0.87,
+      source: 'Sentinel-2 + Bhuvan 2D',
+      status: 'REVIEW_REQUIRED'
+    },
+    {
+      id: 'CH-00193',
+      propertyId: 'andheri-nesco-it-park',
+      detectedDate: '2023-05-10',
+      changeType: 'NEW_CONSTRUCTION',
+      oldValue: '0 Floors',
+      newValue: '4 Floors',
+      confidence: 0.91,
+      source: 'Copernicus Sentinel-2',
+      status: 'VERIFIED'
+    }
+  ]
 }));

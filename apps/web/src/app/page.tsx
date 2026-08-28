@@ -10,6 +10,7 @@ import { UndergroundTestPanel } from '@/components/UndergroundTestPanel';
 import { InspectorPanel } from '@/components/InspectorPanel';
 import { AIStudio } from '@/components/AIStudio';
 import { AdminPortal } from '@/components/AdminPortal';
+import { TimelineSlider } from '@/components/TimelineSlider';
 import { useAppStore } from '@/lib/store';
 import { Loader2 } from 'lucide-react';
 
@@ -71,6 +72,11 @@ export default function HomePage() {
               <div className="absolute top-4 right-4 z-20 pointer-events-auto">
                 <UndergroundControl />
               </div>
+
+              {/* 4D Temporal Slider on Bottom-Center */}
+              <div className="absolute bottom-4 left-1/2 -translate-x-1/2 w-full max-w-2xl z-20 pointer-events-auto">
+                <TimelineSlider />
+              </div>
             </div>
           )}
 
@@ -86,6 +92,11 @@ export default function HomePage() {
               {/* Floating Vertical Scrubber on Bottom-Left */}
               <div className="absolute bottom-4 left-4 z-20 pointer-events-auto">
                 <FloorScrubber />
+              </div>
+
+              {/* 4D Temporal Slider on Bottom-Center */}
+              <div className="absolute bottom-4 left-1/2 -translate-x-1/2 w-full max-w-2xl z-20 pointer-events-auto">
+                <TimelineSlider />
               </div>
             </div>
           )}

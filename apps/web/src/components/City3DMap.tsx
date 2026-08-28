@@ -31,13 +31,17 @@ interface Building3DProps {
   isSelected: boolean;
   onSelect: (b: Building) => void;
   scrubberFloor: number;
+  temporalYear: number;
+  floodSimulation: { active: boolean; waterLevelM: number };
 }
 
 const Building3D: React.FC<Building3DProps> = ({
   building,
   isSelected,
   onSelect,
-  scrubberFloor
+  scrubberFloor,
+  temporalYear,
+  floodSimulation
 }) => {
   const [hovered, setHovered] = useState(false);
   const meshRef = useRef<THREE.Mesh>(null);
@@ -82,8 +86,26 @@ const Building3D: React.FC<Building3DProps> = ({
     return '#1e293b';
   }, [isSelected, hovered, isSuperTall, building.id]);
 
+  // Temporal Scale modifier (e.g. fewer floors in the past)
+  const isBKC = building.id.includes('bkc-fintech');
+  
+  let temporalScale = 1.0;
+  if (isBKC && temporalYear < 2024) temporalScale = 0.6; // Smaller footprint/height in the past
+  
+  const scaledHeight = totalHeight * temporalScale;
+  const scaledWaterHeight = (floodSimulation.waterLevelM / 18.0);
+  const isFlooded = floodSimulation.active && scaledWaterHeight > 0;
+
   return (
-    <group position={[pos[0], totalHeight / 2, pos[2]]}>
+    <group position={[pos[0], scaledHeight / 2, pos[2]]}>
+      {/* Flood Affected Red Base */}
+      {isFlooded && (
+        <mesh position={[0, -scaledHeight / 2 + scaledWaterHeight / 2, 0]}>
+          <boxGeometry args={[2.85 * temporalScale, scaledWaterHeight, 2.45 * temporalScale]} />
+          <meshStandardMaterial color="#ef4444" emissive="#dc2626" emissiveIntensity={0.6} transparent opacity={0.8} />
+        </mesh>
+      )}
+
       {/* 3D Tower Box */}
       <mesh
         ref={meshRef}
@@ -102,7 +124,7 @@ const Building3D: React.FC<Building3DProps> = ({
         castShadow
         receiveShadow
       >
-        <boxGeometry args={[2.8, totalHeight, 2.4]} />
+        <boxGeometry args={[2.8 * temporalScale, scaledHeight, 2.4 * temporalScale]} />
         <meshStandardMaterial
           color={facadeColor}
           metalness={0.6}
@@ -116,13 +138,13 @@ const Building3D: React.FC<Building3DProps> = ({
 
       {/* Wireframe Architectural Edges */}
       <lineSegments>
-        <edgesGeometry args={[new THREE.BoxGeometry(2.8, totalHeight, 2.4)]} />
+        <edgesGeometry args={[new THREE.BoxGeometry(2.8 * temporalScale, scaledHeight, 2.4 * temporalScale)]} />
         <lineBasicMaterial color={isSelected ? '#ffffff' : '#0284c7'} linewidth={1} transparent opacity={0.6} />
       </lineSegments>
 
       {/* Rooftop Spire / Heli-deck for Supertalls */}
       {isSuperTall && (
-        <mesh position={[0, totalHeight / 2 + 0.8, 0]}>
+        <mesh position={[0, scaledHeight / 2 + 0.8, 0]}>
           <cylinderGeometry args={[0.05, 0.2, 1.6, 8]} />
           <meshStandardMaterial color="#f59e0b" emissive="#f59e0b" emissiveIntensity={0.8} />
         </mesh>
@@ -228,7 +250,9 @@ export const City3DMap: React.FC = () => {
     selectedRegion,
     setSelectedRegion,
     setActiveTab,
-    currentRole
+    currentRole,
+    temporalYear,
+    floodSimulation
   } = useAppStore();
 
   const regions: Array<{ key: MumbaiRegionKey; label: string; coords: [number, number, number] }> = [
@@ -265,17 +289,38 @@ export const City3DMap: React.FC = () => {
             />
           </mesh>
 
+          {/* Flood Water Plane */}
+          {floodSimulation.active && floodSimulation.waterLevelM > 0 && (
+            <mesh position={[0, floodSimulation.waterLevelM / 18.0, 0]} receiveShadow rotation={[-Math.PI / 2, 0, 0]}>
+              <planeGeometry args={[52, 52]} />
+              <meshStandardMaterial
+                color="#0ea5e9"
+                transparent
+                opacity={0.3}
+                roughness={0.1}
+                metalness={0.4}
+              />
+            </mesh>
+          )}
+
           {/* Mumbai Cadastral Survey Grid Lines */}
           <gridHelper args={[52, 52, '#0ea5e9', '#1e293b']} position={[0, 0.01, 0]} />
 
           {/* 3D Mumbai Buildings */}
-          {layers.buildings && SAMPLE_BUILDINGS.map(bldg => (
+          {layers.buildings && SAMPLE_BUILDINGS
+            .filter(bldg => {
+              if (bldg.id.includes('andheri-nesco') && temporalYear < 2024) return false;
+              return true;
+            })
+            .map(bldg => (
             <Building3D
               key={bldg.id}
               building={bldg}
               isSelected={selectedBuilding?.id === bldg.id}
               onSelect={(b) => setSelectedBuilding(b)}
               scrubberFloor={scrubber.currentFloor}
+              temporalYear={temporalYear}
+              floodSimulation={floodSimulation}
             />
           ))}
 

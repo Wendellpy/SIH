@@ -31,7 +31,9 @@ export const InspectorPanel: React.FC = () => {
     setSelectedUnit,
     setActiveTab,
     resolveConflict,
-    topologyLogs
+    topologyLogs,
+    changeEvents,
+    temporalYear
   } = useAppStore();
 
   const [copied, setCopied] = useState(false);
@@ -90,6 +92,12 @@ export const InspectorPanel: React.FC = () => {
   const conflictLog = topologyLogs.find(
     l => l.ulpin3DPrimary === currentUlpin || l.ulpin3DColliding === currentUlpin
   );
+
+  const relevantChanges = changeEvents.filter(ce => {
+    if (ce.propertyId !== building?.id && ce.propertyId !== currentUlpin) return false;
+    const year = parseInt(ce.detectedDate.split('-')[0], 10);
+    return year <= temporalYear;
+  });
 
   const handleCopy = (text: string) => {
     navigator.clipboard.writeText(text);
@@ -201,6 +209,30 @@ export const InspectorPanel: React.FC = () => {
           </span>
         </div>
       )}
+
+      {/* Temporal Change Alerts */}
+      {relevantChanges.map(change => (
+        <div key={change.id} className="p-3 rounded-xl bg-orange-950/40 border border-orange-500/50 text-orange-200 space-y-1.5">
+          <div className="flex items-center gap-2 text-xs font-bold text-orange-400">
+            <AlertTriangle className="w-4 h-4 text-orange-400 animate-pulse" />
+            <span>POTENTIAL CHANGE DETECTED</span>
+          </div>
+          <p className="text-[11px] text-orange-300/90 leading-tight">
+            {change.changeType.replace('_', ' ')} detected via temporal GIS layer.
+          </p>
+          <div className="text-[10px] font-mono text-orange-200/80 bg-orange-900/30 px-2 py-1.5 rounded space-y-1">
+            <div className="font-bold text-orange-300">{change.oldValue} &rarr; {change.newValue}</div>
+            <div className="text-orange-400/80 flex justify-between pt-1 border-t border-orange-500/20">
+              <span>Confidence: {(change.confidence * 100).toFixed(0)}%</span>
+              <span>Source: {change.source}</span>
+            </div>
+            <div className="text-orange-400/80 flex justify-between">
+              <span>Date: {change.detectedDate}</span>
+              <span>Status: {change.status}</span>
+            </div>
+          </div>
+        </div>
+      ))}
 
       {/* 3D Geometry Metrics Grid */}
       <div className="space-y-2">

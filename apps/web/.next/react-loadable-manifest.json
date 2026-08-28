@@ -1,26 +1,26 @@
 {
-  "..\\..\\..\\node_modules\\.pnpm\\@react-three+drei@9.122.0_@_cffb916e592bd58bcb7a4cab3b67e52c\\node_modules\\@react-three\\drei\\core\\VideoTexture.js -> hls.js": {
-    "id": "..\\..\\..\\node_modules\\.pnpm\\@react-three+drei@9.122.0_@_cffb916e592bd58bcb7a4cab3b67e52c\\node_modules\\@react-three\\drei\\core\\VideoTexture.js -> hls.js",
+  "../../../node_modules/.pnpm/@react-three+drei@9.122.0_@react-three+fiber@8.18.0_@types+react@18.3.31_react-dom@18.3_cffb916e592bd58bcb7a4cab3b67e52c/node_modules/@react-three/drei/core/VideoTexture.js -> hls.js": {
+    "id": "../../../node_modules/.pnpm/@react-three+drei@9.122.0_@react-three+fiber@8.18.0_@types+react@18.3.31_react-dom@18.3_cffb916e592bd58bcb7a4cab3b67e52c/node_modules/@react-three/drei/core/VideoTexture.js -> hls.js",
     "files": []
   },
-  "..\\..\\..\\node_modules\\.pnpm\\@react-three+drei@9.122.0_@_cffb916e592bd58bcb7a4cab3b67e52c\\node_modules\\@react-three\\drei\\web\\FaceLandmarker.js -> @mediapipe/tasks-vision": {
-    "id": "..\\..\\..\\node_modules\\.pnpm\\@react-three+drei@9.122.0_@_cffb916e592bd58bcb7a4cab3b67e52c\\node_modules\\@react-three\\drei\\web\\FaceLandmarker.js -> @mediapipe/tasks-vision",
+  "../../../node_modules/.pnpm/@react-three+drei@9.122.0_@react-three+fiber@8.18.0_@types+react@18.3.31_react-dom@18.3_cffb916e592bd58bcb7a4cab3b67e52c/node_modules/@react-three/drei/web/FaceLandmarker.js -> @mediapipe/tasks-vision": {
+    "id": "../../../node_modules/.pnpm/@react-three+drei@9.122.0_@react-three+fiber@8.18.0_@types+react@18.3.31_react-dom@18.3_cffb916e592bd58bcb7a4cab3b67e52c/node_modules/@react-three/drei/web/FaceLandmarker.js -> @mediapipe/tasks-vision",
     "files": []
   },
-  "app\\page.tsx -> @/components/City3DMap": {
-    "id": "app\\page.tsx -> @/components/City3DMap",
+  "app/page.tsx -> @/components/City3DMap": {
+    "id": "app/page.tsx -> @/components/City3DMap",
     "files": [
       "static/chunks/_app-pages-browser_src_components_City3DMap_tsx.js"
     ]
   },
-  "app\\page.tsx -> @/components/Exploded3DViewer": {
-    "id": "app\\page.tsx -> @/components/Exploded3DViewer",
+  "app/page.tsx -> @/components/Exploded3DViewer": {
+    "id": "app/page.tsx -> @/components/Exploded3DViewer",
     "files": [
       "static/chunks/_app-pages-browser_src_components_Exploded3DViewer_tsx.js"
     ]
   },
-  "app\\page.tsx -> @/components/MapLibre3DMap": {
-    "id": "app\\page.tsx -> @/components/MapLibre3DMap",
+  "app/page.tsx -> @/components/MapLibre3DMap": {
+    "id": "app/page.tsx -> @/components/MapLibre3DMap",
     "files": [
       "static/css/_app-pages-browser_src_components_MapLibre3DMap_tsx.css",
       "static/chunks/_app-pages-browser_src_components_MapLibre3DMap_tsx.js"

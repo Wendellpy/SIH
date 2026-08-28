@@ -67,7 +67,7 @@ export const MapLibre3DMap: React.FC = () => {
   const [copied, setCopied] = useState(false);
   const [selectedFloor, setSelectedFloor] = useState<string>('Ground Floor');
   const [selectedUnit, setSelectedUnit] = useState<string>('101');
-  const { layers, setActiveTab, setSelectedBuilding, flyToTarget, setFlyToTarget, activeUndergroundLayerIds, currentRole } = useAppStore();
+  const { layers, setActiveTab, setSelectedBuilding, flyToTarget, setFlyToTarget, activeUndergroundLayerIds, currentRole, temporalYear, floodSimulation } = useAppStore();
 
   const drawRef = useRef<MapboxDraw | null>(null);
   const [footprintGeoJSON, setFootprintGeoJSON] = useState<any>(null);
@@ -611,6 +611,74 @@ export const MapLibre3DMap: React.FC = () => {
       }
     }
   }, [currentRole, mapLoaded]);
+
+  // 4D Temporal Year Simulation
+  useEffect(() => {
+    if (!mapLoaded || !mapRef.current) return;
+    const map = mapRef.current;
+    if (!map.getLayer('3d-buildings')) return;
+
+    // In 2018, show buildings up to ~40m. In 2026, show everything.
+    const maxVisibleHeight = temporalYear >= 2026 ? 1000 : Math.max(10, (temporalYear - 2017) * 35);
+
+    map.setPaintProperty('3d-buildings', 'fill-extrusion-height', [
+      'case',
+      ['has', 'render_height'],
+      [
+        'case',
+        ['>', ['get', 'render_height'], maxVisibleHeight],
+        ['*', ['get', 'render_height'], 0.15], // Show as under construction (15% height)
+        ['get', 'render_height']
+      ],
+      18
+    ]);
+  }, [temporalYear, mapLoaded]);
+
+  // Flood Simulation 
+  useEffect(() => {
+    if (!mapLoaded || !mapRef.current) return;
+    const map = mapRef.current;
+    
+    if (floodSimulation.active) {
+      if (!map.getSource('flood-source')) {
+        map.addSource('flood-source', {
+          type: 'geojson',
+          data: {
+            type: 'Feature',
+            properties: {},
+            geometry: {
+              type: 'Polygon',
+              coordinates: [[
+                [72.7, 18.8],
+                [73.1, 18.8],
+                [73.1, 19.3],
+                [72.7, 19.3],
+                [72.7, 18.8]
+              ]]
+            }
+          }
+        });
+        map.addLayer({
+          id: 'flood-layer',
+          type: 'fill-extrusion',
+          source: 'flood-source',
+          paint: {
+            'fill-extrusion-color': '#0284c7', // Darker water blue
+            'fill-extrusion-opacity': 0.65,
+            'fill-extrusion-height': floodSimulation.waterLevelM,
+            'fill-extrusion-base': 0
+          }
+        });
+      } else {
+        map.setPaintProperty('flood-layer', 'fill-extrusion-height', floodSimulation.waterLevelM);
+      }
+    } else {
+      if (map.getLayer('flood-layer')) {
+        map.removeLayer('flood-layer');
+        map.removeSource('flood-source');
+      }
+    }
+  }, [floodSimulation.active, floodSimulation.waterLevelM, mapLoaded]);
 
   const setMapPitch = (pitch: number) => {
     if (!mapRef.current) return;
