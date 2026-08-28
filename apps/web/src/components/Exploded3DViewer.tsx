@@ -265,7 +265,7 @@ export const Exploded3DViewer: React.FC = () => {
             maxZ: zMax
           },
           validationStatus: Math.random() > 0.9 ? 'CONFLICT' : 'VALID', // ~10% chance of conflict
-          provenance: bldg.simulated ? 'DRONE_LIDAR' : 'BIM_UPLOAD',
+          provenance: bldg.simulated ? 'DRONE_LIDAR' : 'MAHARERA_PLAN',
           taxStatus: Math.random() > 0.15 ? 'PAID' : 'DUE',
           simulated: true,
           createdAt: '2026-01-20T10:00:00Z',

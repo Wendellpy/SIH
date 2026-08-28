@@ -51,10 +51,21 @@ export const MapLibre3DMap: React.FC = () => {
       mahabhulekhLink: string;
       source: string;
     } | null;
+    bmcData?: {
+      sacNumber: string;
+      usage: string;
+      name: string;
+      noOfFloorsStr: string;
+      notFound?: boolean;
+    } | null;
   } | null>(null);
 
+  const [isFetchingBmc, setIsFetchingBmc] = useState(false);
+
   const [copied, setCopied] = useState(false);
-  const { setActiveTab, setSelectedBuilding, flyToTarget, setFlyToTarget } = useAppStore();
+  const [selectedFloor, setSelectedFloor] = useState<string>('Ground Floor');
+  const [selectedUnit, setSelectedUnit] = useState<string>('101');
+  const { layers, setActiveTab, setSelectedBuilding, flyToTarget, setFlyToTarget } = useAppStore();
 
   useEffect(() => {
     if (flyToTarget && mapRef.current && mapLoaded) {
@@ -356,7 +367,11 @@ export const MapLibre3DMap: React.FC = () => {
           simulated: true,
         };
 
-        // Set initial info immediately (ownership will load async)
+        // Reset dropdowns
+        setSelectedFloor('Ground Floor');
+        setSelectedUnit('101');
+
+        // Set initial info immediately so the popup opens instantly
         setSelectedBuildingInfo({
           id: bldgId,
           height: Math.round(height),
@@ -367,7 +382,70 @@ export const MapLibre3DMap: React.FC = () => {
           building: dynamicBuilding,
           buildingName,
           ownership: null,
+          bmcData: undefined // undefined initially
         });
+
+        // Step 1.5: Fetch MyBMC Data asynchronously
+        setIsFetchingBmc(true);
+        fetch(`https://mybmcid.mcgm.gov.in/server/rest/services/MCGM_UID/IPVS/FeatureServer/1/query?geometry=${lng},${lat}&geometryType=esriGeometryPoint&inSR=4326&spatialRel=esriSpatialRelIntersects&outFields=*&returnGeometry=false&f=json`)
+          .then(res => res.json())
+          .then(bmcJson => {
+            if (bmcJson && bmcJson.features && bmcJson.features.length > 0) {
+              const bmcProps = bmcJson.features[0].attributes || bmcJson.features[0].properties;
+              const bmcData = {
+                sacNumber: bmcProps.SAC_NUMBER || 'UNKNOWN',
+                usage: bmcProps.USAGE || 'Unknown',
+                name: bmcProps.NAME || 'Unnamed BMC Building',
+                noOfFloorsStr: bmcProps.NO_OF_FLOO || '',
+              };
+              
+              let parsedFloors = 1;
+              if (bmcData.noOfFloorsStr) {
+                 const match = bmcData.noOfFloorsStr.match(/\d+/);
+                 if (match) parsedFloors = parseInt(match[0], 10) + (bmcData.noOfFloorsStr.toLowerCase().includes('g') ? 1 : 0);
+              }
+              
+              if (parsedFloors > 0) {
+                 const accurateFloors = parsedFloors;
+                 const accurateHeight = accurateFloors * 3.5;
+                 
+                 setSelectedBuildingInfo(prev => {
+                   if (!prev) return prev;
+                   // Update the dynamic building with accurate heights
+                   const updatedBuilding = {
+                     ...prev.building,
+                     eavesHeightM: Math.round(accurateHeight * 0.85),
+                     roofHeightM: Math.round(accurateHeight),
+                     numFloors: accurateFloors,
+                     totalBuiltupAreaSqm: accurateFloors * 650,
+                     name: (bmcData.name && bmcData.name.trim().length > 1) ? bmcData.name : prev.building.name
+                   };
+                   
+                   return {
+                     ...prev,
+                     height: Math.round(accurateHeight),
+                     floors: accurateFloors,
+                     buildingName: updatedBuilding.name,
+                     building: updatedBuilding,
+                     bmcData
+                   };
+                 });
+              }
+            } else {
+              setSelectedBuildingInfo(prev => prev ? {
+                ...prev,
+                bmcData: { sacNumber: '', usage: '', name: '', noOfFloorsStr: '', notFound: true }
+              } : null);
+            }
+          })
+          .catch(err => {
+            console.warn('[MapLibre] Failed to fetch BMC data asynchronously', err);
+            setSelectedBuildingInfo(prev => prev ? {
+              ...prev,
+              bmcData: { sacNumber: '', usage: '', name: '', noOfFloorsStr: '', notFound: true }
+            } : null);
+          })
+          .finally(() => setIsFetchingBmc(false));
 
         // Step 2: Fetch ownership data from API
         try {
@@ -407,6 +485,16 @@ export const MapLibre3DMap: React.FC = () => {
       }
     };
   }, []);
+
+  // Sync layer visibility
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !mapLoaded) return;
+    
+    if (map.getLayer('mybmc-buildings-layer')) {
+      map.setLayoutProperty('mybmc-buildings-layer', 'visibility', layers.mybmc ? 'visible' : 'none');
+    }
+  }, [layers.mybmc, mapLoaded]);
 
   const setMapPitch = (pitch: number) => {
     if (!mapRef.current) return;
@@ -570,6 +658,81 @@ export const MapLibre3DMap: React.FC = () => {
               ✕
             </button>
           </div>
+
+          {/* Accurate MyBMC Data Sync / Loading */}
+          {isFetchingBmc && !selectedBuildingInfo.bmcData && (
+            <div className="glass-card p-2.5 rounded-xl border border-brand-primary/20 bg-brand-primary/5 space-y-2 flex items-center justify-center">
+              <span className="text-[10px] text-cyan-400 animate-pulse font-mono flex items-center gap-2">
+                <Sparkles className="w-3 h-3" /> Fetching precise BMC data...
+              </span>
+            </div>
+          )}
+
+          {!isFetchingBmc && selectedBuildingInfo.bmcData?.notFound && (
+            <div className="glass-card p-2.5 rounded-xl border border-rose-500/20 bg-rose-950/10 space-y-2">
+              <div className="text-[10px] text-rose-400 flex items-center gap-1 font-mono">
+                <AlertCircle className="w-3 h-3" /> No authoritative MyBMC record found here.
+              </div>
+            </div>
+          )}
+
+          {selectedBuildingInfo.bmcData && !selectedBuildingInfo.bmcData.notFound && (() => {
+            // Helper for units
+            let unitPrefix = '';
+            if (selectedFloor === 'Ground Floor') unitPrefix = 'G';
+            else if (selectedFloor === 'Basement') unitPrefix = 'B';
+            else unitPrefix = selectedFloor.replace(/\D/g, '');
+            const availableUnits = [1, 2, 3, 4, 5, 6].map(u => `${unitPrefix}0${u}`);
+
+            // Helper for ordinals
+            const getOrdinal = (n: number) => {
+              const s = ["TH", "ST", "ND", "RD"];
+              const v = n % 100;
+              return n + (s[(v - 20) % 10] || s[v] || s[0]);
+            };
+
+            return (
+              <div className="glass-card p-2.5 rounded-xl border border-brand-primary/20 bg-brand-primary/10 space-y-2">
+                <div className="text-[10px] font-bold text-brand-primary flex items-center justify-between">
+                  <span>Selected MyBMC Building ID: <span className="text-white">{selectedBuildingInfo.bmcData.sacNumber}</span></span>
+                  <span className="text-[9px] bg-brand-primary/20 text-brand-primary px-1.5 py-0.5 rounded">{selectedBuildingInfo.bmcData.usage}</span>
+                </div>
+                
+                <div className="flex gap-2 text-[10px]">
+                  <div className="flex-1 flex flex-col gap-1">
+                    <label className="text-slate-400 font-semibold">Select Floor:</label>
+                    <select 
+                      value={selectedFloor}
+                      onChange={(e) => setSelectedFloor(e.target.value)}
+                      className="w-full bg-surface-100 border border-white/10 rounded px-2 py-1 text-white focus:outline-none focus:border-brand-primary"
+                    >
+                      <option value="Basement">Basement</option>
+                      <option value="Ground Floor">Ground Floor</option>
+                      {Array.from({ length: selectedBuildingInfo.floors - 1 }).map((_, i) => (
+                        <option key={i} value={getOrdinal(i + 1)}>{getOrdinal(i + 1)}</option>
+                      ))}
+                    </select>
+                  </div>
+                  
+                  <div className="flex-1 flex flex-col gap-1">
+                    <label className="text-slate-400 font-semibold">Select Unit:</label>
+                    <select
+                      value={selectedUnit}
+                      onChange={(e) => setSelectedUnit(e.target.value)}
+                      className="w-full bg-surface-100 border border-white/10 rounded px-2 py-1 text-white focus:outline-none focus:border-brand-primary"
+                    >
+                      {availableUnits.map(u => (
+                        <option key={u} value={u}>{u}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+                <div className="text-[9px] text-emerald-400 flex items-center gap-1 font-mono">
+                  <Check className="w-3 h-3" /> Height & Floors dynamically corrected via MyBMC API ({selectedBuildingInfo.bmcData.noOfFloorsStr})
+                </div>
+              </div>
+            );
+          })()}
 
           {/* Ownership / Property Record */}
           {selectedBuildingInfo.ownership && (

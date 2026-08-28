@@ -52,6 +52,7 @@ export interface AppState {
     underground: boolean;
     satellite: boolean;
     terrain: boolean;
+    mybmc: boolean;
   };
   toggleLayer: (layer: keyof AppState['layers']) => void;
 
@@ -132,6 +133,7 @@ export const useAppStore = create<AppState>((set, get) => ({
     underground: true,
     satellite: true,
     terrain: true,
+    mybmc: true,
   },
   toggleLayer: (layer) =>
     set((state) => ({

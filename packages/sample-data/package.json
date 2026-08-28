@@ -8,6 +8,7 @@
     "@sih/shared-types": "workspace:*"
   },
   "devDependencies": {
+    "csv-parse": "^7.0.2",
     "typescript": "^5.4.5"
   }
 }

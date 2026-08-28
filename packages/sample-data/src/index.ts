@@ -12,7 +12,7 @@ import {
  * Real Mumbai City Cadastral Dataset (BMC MCGM / DP2034 Wards)
  * Georeferenced coordinates across South Mumbai, Midtown Worli/Lower Parel, BKC, Andheri, and Powai.
  */
-export const SAMPLE_PARCELS: Parcel[] = [
+const _SAMPLE_PARCELS: Parcel[] = [
   // --- 1. Bandra Kurla Complex (Ward H/East) ---
   {
     id: 'parcel-bkc-fintech',
@@ -379,7 +379,7 @@ export const SAMPLE_PARCELS: Parcel[] = [
 /**
  * Iconic Mumbai 3D Buildings across the metropolis
  */
-export const SAMPLE_BUILDINGS: Building[] = [
+const _SAMPLE_BUILDINGS: Building[] = [
   // --- BKC ---
   {
     id: 'bldg-bkc-fintech-tower',
@@ -684,8 +684,8 @@ export function generateSampleVerticalUnits(): VerticalUnit[] {
   const units: VerticalUnit[] = [];
 
   // 1. BKC FinTech Tower Units (Floors -02 to +16)
-  const bkcParcel = SAMPLE_PARCELS[0];
-  const bkcBuilding = SAMPLE_BUILDINGS[0];
+  const bkcParcel = _SAMPLE_PARCELS[0];
+  const bkcBuilding = _SAMPLE_BUILDINGS[0];
 
   // Basements
   for (let b = 2; b >= 1; b--) {
@@ -878,8 +878,8 @@ export function generateSampleVerticalUnits(): VerticalUnit[] {
   }
 
   // 2. World One Worli Supertall Units (Sample Units across 76 Floors)
-  const w1Parcel = SAMPLE_PARCELS.find(p => p.id === 'parcel-worli-world-one') || SAMPLE_PARCELS[0];
-  const w1Bldg = SAMPLE_BUILDINGS.find(b => b.id === 'bldg-worli-world-one') || SAMPLE_BUILDINGS[0];
+  const w1Parcel = _SAMPLE_PARCELS.find(p => p.id === 'parcel-worli-world-one') || _SAMPLE_PARCELS[0];
+  const w1Bldg = _SAMPLE_BUILDINGS.find(b => b.id === 'bldg-worli-world-one') || _SAMPLE_BUILDINGS[0];
   for (let f = 1; f <= 12; f++) {
     const zMin = 5.0 + (f - 1) * 3.75;
     const zMax = 5.0 + f * 3.75;
@@ -914,8 +914,8 @@ export function generateSampleVerticalUnits(): VerticalUnit[] {
   }
 
   // 3. Nariman Point Tower Units
-  const npParcel = SAMPLE_PARCELS[4];
-  const npBuilding = SAMPLE_BUILDINGS[4];
+  const npParcel = _SAMPLE_PARCELS[4];
+  const npBuilding = _SAMPLE_BUILDINGS[4];
   for (let f = 1; f <= 8; f++) {
     const zMin = 6.0 + (f - 1) * 4.0;
     const zMax = 6.0 + f * 4.0;
@@ -952,7 +952,7 @@ export function generateSampleVerticalUnits(): VerticalUnit[] {
   return units;
 }
 
-export const SAMPLE_VERTICAL_UNITS = generateSampleVerticalUnits();
+export const _SAMPLE_VERTICAL_UNITS = generateSampleVerticalUnits();
 
 /**
  * 3D Subterranean Infrastructure Networks across Mumbai
@@ -1231,3 +1231,9 @@ export const SAMPLE_AUDIT_LOGS: AuditLog[] = [
     hashSignature: '4b227777d4dd1fc61c6f884f48641d02b4d121d3fd328cb08b5531fcacdabf8a'
   }
 ];
+
+import { MAHARERA_PARCELS, MAHARERA_BUILDINGS, MAHARERA_UNITS } from './maharera';
+
+export const SAMPLE_PARCELS: Parcel[] = [..._SAMPLE_PARCELS, ...MAHARERA_PARCELS];
+export const SAMPLE_BUILDINGS: Building[] = [..._SAMPLE_BUILDINGS, ...MAHARERA_BUILDINGS];
+export const SAMPLE_VERTICAL_UNITS: VerticalUnit[] = [..._SAMPLE_VERTICAL_UNITS, ...MAHARERA_UNITS];
