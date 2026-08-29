@@ -23,6 +23,7 @@ import { useAppStore } from '@/lib/store';
 import { formatUlpin3D, Building } from '@sih/shared-types';
 import MapboxDraw from '@mapbox/mapbox-gl-draw';
 import { ClearanceTool } from './ClearanceTool';
+import { generateProceduralUtilities } from '@/lib/proceduralUtilities';
 
 export const MapLibre3DMap: React.FC = () => {
   const mapContainerRef = useRef<HTMLDivElement>(null);
@@ -70,6 +71,7 @@ export const MapLibre3DMap: React.FC = () => {
   const { layers, setActiveTab, setSelectedBuilding, flyToTarget, setFlyToTarget, activeUndergroundLayerIds, currentRole, temporalYear, floodSimulation } = useAppStore();
 
   const drawRef = useRef<MapboxDraw | null>(null);
+  const dynamicBuildingsRef = useRef<any[]>([]);
   const [footprintGeoJSON, setFootprintGeoJSON] = useState<any>(null);
 
   useEffect(() => {
@@ -97,9 +99,6 @@ export const MapLibre3DMap: React.FC = () => {
       console.error('[MapLibre] Container has zero dimensions! Map will not render.');
     }
 
-    const tileUrl = 'https://tiles.stadiamaps.com/data/openmaptiles/{z}/{x}/{y}.pbf';
-    console.log('[MapLibre] Tile URL:', tileUrl);
-
     try {
       const map = new maplibregl.Map({
         container: mapContainerRef.current,
@@ -111,11 +110,8 @@ export const MapLibre3DMap: React.FC = () => {
           sources: {
             openmaptiles: {
               type: 'vector',
-              tiles: [tileUrl],
-              minzoom: 0,
-              maxzoom: 14,
-              bounds: [72.415, 18.466, 73.516, 19.5],
-              attribution: '© OpenStreetMap contributors, OpenMapTiles, SIH 3D ULPIN'
+              url: 'https://tiles.openfreemap.org/planet',
+              attribution: '© OpenStreetMap contributors, OpenMapTiles, OpenFreeMap, SIH 3D ULPIN'
             }
           },
           layers: [
@@ -226,7 +222,7 @@ export const MapLibre3DMap: React.FC = () => {
               paint: {
                 'fill-extrusion-color': [
                   'case',
-                  ['has', 'render_height'],
+                  ['all', ['has', 'render_height'], ['>', ['get', 'render_height'], 0]],
                   [
                     'interpolate',
                     ['linear'],
@@ -242,17 +238,17 @@ export const MapLibre3DMap: React.FC = () => {
                 ],
                 'fill-extrusion-height': [
                   'case',
-                  ['has', 'render_height'],
+                  ['all', ['has', 'render_height'], ['>', ['get', 'render_height'], 0]],
                   ['get', 'render_height'],
-                  18 // Default height in meters if unspecified
+                  18 // Default height in meters if unspecified or 0
                 ],
                 'fill-extrusion-base': [
                   'case',
-                  ['has', 'render_min_height'],
+                  ['all', ['has', 'render_min_height'], ['>', ['get', 'render_min_height'], 0]],
                   ['get', 'render_min_height'],
                   0
                 ],
-                'fill-extrusion-opacity': 0.92
+                'fill-extrusion-opacity': 0.90
               }
             },
             // POI Labels (used to extract building/place names on click)
@@ -315,12 +311,128 @@ export const MapLibre3DMap: React.FC = () => {
         console.warn('[MapLibre] Map warning/error event:', e);
       });
 
+      // OpenStreetMap Nominatim API Fallback for missing buildings
+      map.on('click', async (e) => {
+        // Only trigger if we didn't click an existing 3D building
+        const features = map.queryRenderedFeatures(e.point, { layers: ['3d-buildings'] });
+        if (features.length > 0) return; 
+
+        const lng = parseFloat(e.lngLat.lng.toFixed(5));
+        const lat = parseFloat(e.lngLat.lat.toFixed(5));
+        
+        try {
+          const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1`, {
+            headers: {
+              'Accept-Language': 'en'
+            }
+          });
+          const data = await res.json();
+          
+          if (data && data.address) {
+            // Extract the name from address components
+            let buildingName = data.address.building || data.address.amenity || data.address.office || data.address.shop || data.address.house || data.name || data.display_name;
+            if (buildingName.length > 30) buildingName = buildingName.split(',')[0];
+            
+            const bldgId = `osm-fallback-${Date.now().toString(36)}`;
+            const dynamicBuilding: Building = {
+              id: bldgId,
+              parcelId: `parcel-${bldgId}`,
+              name: buildingName,
+              footprint: {
+                type: 'Polygon',
+                coordinates: [[
+                  [lng - 0.0001, lat - 0.0001],
+                  [lng + 0.0001, lat - 0.0001],
+                  [lng + 0.0001, lat + 0.0001],
+                  [lng - 0.0001, lat + 0.0001],
+                  [lng - 0.0001, lat - 0.0001],
+                ]]
+              },
+              eavesHeightM: 10,
+              roofHeightM: 12,
+              numFloors: 3,
+              numBasements: 0,
+              plinthElevationM: 0,
+              totalBuiltupAreaSqm: 400,
+              address: data.display_name,
+              city: data.address.city || data.address.town || 'Unknown',
+              state: data.address.state || 'Unknown',
+              pincode: data.address.postcode || '000000',
+              constructionYear: 2000,
+              buildingType: 'Mixed Use',
+              fireSafetyCompliance: true,
+              structuralAuditValidTill: new Date().toISOString()
+            };
+
+            const latStr = Math.round(lat * 1000000).toString(36).padStart(5, '0');
+            const lngStr = Math.round(lng * 1000000).toString(36).padStart(6, '0');
+            const ulpin3D = formatUlpin3D(`MH1${latStr}${lngStr}`.toUpperCase(), 'A', 3, 'U301');
+
+            // Visually add the missing building to the 3D map
+            const newFeature = {
+              type: 'Feature',
+              properties: {
+                height: dynamicBuilding.roofHeightM,
+                color: '#f59e0b' // Amber/Yellow to highlight that it's a fallback building
+              },
+              geometry: dynamicBuilding.footprint
+            };
+            dynamicBuildingsRef.current.push(newFeature);
+            
+            if (!map.getSource('fallback-buildings-source')) {
+              map.addSource('fallback-buildings-source', {
+                type: 'geojson',
+                data: { type: 'FeatureCollection', features: dynamicBuildingsRef.current }
+              });
+              map.addLayer({
+                id: 'fallback-buildings-3d',
+                type: 'fill-extrusion',
+                source: 'fallback-buildings-source',
+                paint: {
+                  'fill-extrusion-color': ['get', 'color'],
+                  'fill-extrusion-height': ['get', 'height'],
+                  'fill-extrusion-base': 0,
+                  'fill-extrusion-opacity': 0.85
+                }
+              }, map.getLayer('poi-labels') ? 'poi-labels' : undefined);
+            } else {
+              const source = map.getSource('fallback-buildings-source') as maplibregl.GeoJSONSource;
+              source.setData({
+                type: 'FeatureCollection',
+                features: dynamicBuildingsRef.current
+              });
+            }
+
+            setSelectedBuildingInfo({
+              id: bldgId,
+              height: 12,
+              minHeight: 0,
+              floors: 3,
+              ulpin3D,
+              coordinates: [lng, lat],
+              building: dynamicBuilding,
+              buildingName,
+              ownership: null,
+              bmcData: {
+                sacNumber: 'OSM-NOMINATIM',
+                usage: 'Sourced from OpenStreetMap',
+                name: buildingName,
+                noOfFloorsStr: '3'
+              }
+            });
+            setSelectedBuilding(dynamicBuilding);
+          }
+        } catch (err) {
+          console.error('[MapLibre] Nominatim API Fallback failed:', err);
+        }
+      });
+
       // Click on 3D Building
       map.on('click', '3d-buildings', async (e) => {
         if (!e.features || e.features.length === 0) return;
         const f = e.features[0];
         const props = f.properties || {};
-        const rawHeight = props.render_height || 32;
+        const rawHeight = (props.render_height && props.render_height > 0) ? props.render_height : 18;
         const height = Math.min(rawHeight, 300);
         const minHeight = props.render_min_height || 0;
         const floors = Math.max(1, Math.min(Math.round(height / 3.8), 80));
@@ -342,6 +454,22 @@ export const MapLibre3DMap: React.FC = () => {
         // Also check building layer name property
         if (buildingName === 'Unnamed Building' && props.name) {
           buildingName = props.name;
+        }
+
+        // Step 1.1: If still unnamed, fallback to Nominatim
+        if (buildingName === 'Unnamed Building') {
+          try {
+            const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1`, {
+              headers: { 'Accept-Language': 'en' }
+            });
+            const data = await res.json();
+            if (data && data.address) {
+              buildingName = data.address.building || data.address.amenity || data.address.office || data.address.shop || data.address.house || data.name || data.display_name;
+              if (buildingName.length > 30) buildingName = buildingName.split(',')[0];
+            }
+          } catch (err) {
+            console.warn('[MapLibre] Nominatim fallback for unnamed 3D building failed:', err);
+          }
         }
 
         // Geospatially encode coordinates into the 14-char ULPIN so search can fly back precisely
@@ -446,14 +574,37 @@ export const MapLibre3DMap: React.FC = () => {
                  });
               }
             } else {
-              setSelectedBuildingInfo(prev => prev ? {
-                ...prev,
-                bmcData: { sacNumber: '', usage: '', name: '', noOfFloorsStr: '', notFound: true }
-              } : null);
+              // Pan-India Fallback: Overpass API
+              // Search for any named feature (node, way, relation) within 30 meters, or just any building
+              const overpassQuery = `[out:json];(nwr(around:30,${lat},${lng})["name"];nwr(around:30,${lat},${lng})["building"];);out tags;`;
+              return fetch(`https://overpass-api.de/api/interpreter`, {
+                method: 'POST',
+                body: overpassQuery
+              }).then(r => r.json()).then(osmJson => {
+                if (osmJson && osmJson.elements && osmJson.elements.length > 0) {
+                  // Prioritize elements that actually have a name
+                  const bestElement = osmJson.elements.find((e: any) => e.tags && (e.tags.name || e.tags['name:en'])) || osmJson.elements[0];
+                  const tags = bestElement.tags || {};
+                  
+                  const osmData = {
+                    sacNumber: `OSM-${bestElement.id}`,
+                    usage: tags.building || tags.amenity || tags.shop || tags.office || 'Unknown',
+                    name: tags.name || tags['name:en'] || 'Unnamed Building',
+                    noOfFloorsStr: tags['building:levels'] || '',
+                  };
+                  setSelectedBuildingInfo(prev => prev ? { 
+                    ...prev, 
+                    buildingName: osmData.name !== 'Unnamed Building' ? osmData.name : prev.buildingName,
+                    bmcData: osmData 
+                  } : prev);
+                } else {
+                  setSelectedBuildingInfo(prev => prev ? { ...prev, bmcData: { sacNumber: '', usage: '', name: '', noOfFloorsStr: '', notFound: true } } : prev);
+                }
+              });
             }
           })
           .catch(err => {
-            console.warn('[MapLibre] Failed to fetch BMC data asynchronously', err);
+            console.warn('[MapLibre] Failed to fetch building metadata', err);
             setSelectedBuildingInfo(prev => prev ? {
               ...prev,
               bmcData: { sacNumber: '', usage: '', name: '', noOfFloorsStr: '', notFound: true }
@@ -565,6 +716,87 @@ export const MapLibre3DMap: React.FC = () => {
       }
     });
   }, [activeUndergroundLayerIds, mapLoaded]);
+
+  // Procedurally generate Pan-India Underground Utilities
+  useEffect(() => {
+    if (!mapLoaded || !mapRef.current) return;
+    const map = mapRef.current;
+
+    const sourceId = 'procedural-utilities-source';
+    const layerId = 'procedural-utilities-layer';
+
+    const updateUtilities = async () => {
+      if (!['engineer', 'utility'].includes(currentRole)) return;
+      
+      const bounds = map.getBounds();
+      const bbox = `${bounds.getSouth()},${bounds.getWest()},${bounds.getNorth()},${bounds.getEast()}`;
+      
+      let features: any[] = [];
+      try {
+        const query = `[out:json];(way[man_made=pipeline](${bbox});way[power=cable](${bbox});way[route=pipeline](${bbox}););out geom;`;
+        const res = await fetch(`https://overpass-api.de/api/interpreter`, { method: 'POST', body: query });
+        const osmJson = await res.json();
+        
+        // Use Real Data if it exists in OSM
+        if (osmJson && osmJson.elements && osmJson.elements.length > 0) {
+          features = osmJson.elements.map((e: any) => {
+            const isPower = e.tags.power === 'cable';
+            const type = isPower ? 'POWER_HV' : (e.tags.substance === 'sewage' ? 'SEWER_DRAIN' : 'WATER_SUPPLY');
+            return {
+              type: 'Feature',
+              properties: {
+                assetType: type,
+                owningAgency: e.tags.operator || 'Unknown Agency',
+                depthMin: -1.5,
+                depthMax: -2.5,
+                color: isPower ? '#eab308' : (type === 'SEWER_DRAIN' ? '#f97316' : '#06b6d4')
+              },
+              geometry: {
+                type: 'LineString',
+                coordinates: e.geometry.map((pt: any) => [pt.lon, pt.lat])
+              }
+            };
+          });
+        } else {
+          console.warn('[MapLibre] No real underground utility data mapped in this region of OpenStreetMap.');
+        }
+      } catch (err) {
+        console.error('[MapLibre] Failed to fetch real utilities from OSM:', err);
+      }
+
+      const geojson = { type: 'FeatureCollection', features };
+
+      if (!map.getSource(sourceId)) {
+        map.addSource(sourceId, { type: 'geojson', data: geojson as any });
+        map.addLayer({
+          id: layerId,
+          type: 'line',
+          source: sourceId,
+          layout: { 'line-join': 'round', 'line-cap': 'round' },
+          paint: {
+            'line-color': ['get', 'color'],
+            'line-width': 4,
+            'line-dasharray': [2, 2],
+            'line-opacity': 0.85
+          }
+        }, 'poi-labels');
+      } else {
+        (map.getSource(sourceId) as maplibregl.GeoJSONSource).setData(geojson as any);
+      }
+    };
+
+    if (['engineer', 'utility'].includes(currentRole)) {
+      updateUtilities(); // initial render
+      map.on('moveend', updateUtilities);
+    } else {
+      if (map.getLayer(layerId)) map.removeLayer(layerId);
+      if (map.getSource(sourceId)) map.removeSource(sourceId);
+    }
+
+    return () => {
+      map.off('moveend', updateUtilities);
+    };
+  }, [currentRole, mapLoaded]);
 
   // Sync layer visibility
   useEffect(() => {

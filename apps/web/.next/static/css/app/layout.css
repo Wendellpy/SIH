@@ -499,6 +499,12 @@ body {
 .inset-\[0\]{
   inset: 0;
 }
+.-right-1{
+  right: -0.25rem;
+}
+.-top-1{
+  top: -0.25rem;
+}
 .bottom-4{
   bottom: 1rem;
 }
@@ -543,12 +549,6 @@ body {
 }
 .top-full{
   top: 100%;
-}
-.-right-1{
-  right: -0.25rem;
-}
-.-top-1{
-  top: -0.25rem;
 }
 .isolate{
   isolation: isolate;
@@ -620,8 +620,14 @@ body {
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 2;
 }
+.block{
+  display: block;
+}
 .inline-block{
   display: inline-block;
+}
+.inline{
+  display: inline;
 }
 .flex{
   display: flex;
@@ -676,6 +682,9 @@ body {
 }
 .max-h-\[calc\(100vh-5\.5rem\)\]{
   max-height: calc(100vh - 5.5rem);
+}
+.max-h-\[80vh\]{
+  max-height: 80vh;
 }
 .min-h-\[580px\]{
   min-height: 580px;
@@ -757,6 +766,9 @@ body {
 }
 .max-w-xs{
   max-width: 20rem;
+}
+.max-w-4xl{
+  max-width: 56rem;
 }
 .flex-1{
   flex: 1 1 0%;
@@ -926,6 +938,9 @@ body {
   margin-top: calc(1.5rem * calc(1 - var(--tw-space-y-reverse)));
   margin-bottom: calc(1.5rem * var(--tw-space-y-reverse));
 }
+.overflow-auto{
+  overflow: auto;
+}
 .overflow-hidden{
   overflow: hidden;
 }
@@ -964,11 +979,11 @@ body {
 .rounded-md{
   border-radius: 0.375rem;
 }
-.rounded-xl{
-  border-radius: 0.75rem;
-}
 .rounded-sm{
   border-radius: 0.125rem;
+}
+.rounded-xl{
+  border-radius: 0.75rem;
 }
 .border{
   border-width: 1px;
@@ -1307,6 +1322,12 @@ body {
   --tw-bg-opacity: 1;
   background-color: rgb(250 204 21 / var(--tw-bg-opacity, 1));
 }
+.bg-\[\#070b14\]\/95{
+  background-color: rgb(7 11 20 / 0.95);
+}
+.bg-orange-500\/20{
+  background-color: rgb(249 115 22 / 0.2);
+}
 .bg-gradient-to-b{
   background-image: linear-gradient(to bottom, var(--tw-gradient-stops));
 }
@@ -1430,6 +1451,10 @@ body {
   padding-top: 0.625rem;
   padding-bottom: 0.625rem;
 }
+.py-3{
+  padding-top: 0.75rem;
+  padding-bottom: 0.75rem;
+}
 .pb-2{
   padding-bottom: 0.5rem;
 }
@@ -1459,6 +1484,12 @@ body {
 }
 .pt-2{
   padding-top: 0.5rem;
+}
+.pb-1{
+  padding-bottom: 0.25rem;
+}
+.pb-4{
+  padding-bottom: 1rem;
 }
 .text-left{
   text-align: left;
@@ -1500,6 +1531,10 @@ body {
   font-size: 0.75rem;
   line-height: 1rem;
 }
+.text-2xl{
+  font-size: 1.5rem;
+  line-height: 2rem;
+}
 .font-bold{
   font-weight: 700;
 }
@@ -1514,6 +1549,9 @@ body {
 }
 .uppercase{
   text-transform: uppercase;
+}
+.capitalize{
+  text-transform: capitalize;
 }
 .italic{
   font-style: italic;
@@ -1713,6 +1751,13 @@ body {
   --tw-text-opacity: 1;
   color: rgb(250 204 21 / var(--tw-text-opacity, 1));
 }
+.text-brand-primary\/80{
+  color: rgb(14 165 233 / 0.8);
+}
+.text-\[\#070b14\]{
+  --tw-text-opacity: 1;
+  color: rgb(7 11 20 / var(--tw-text-opacity, 1));
+}
 .antialiased{
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -1772,6 +1817,11 @@ body {
   --tw-shadow-colored: 0 0 15px var(--tw-shadow-color);
   box-shadow: var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000), var(--tw-shadow);
 }
+.shadow-neon-emerald{
+  --tw-shadow: 0 0 15px rgba(16, 185, 129, 0.5);
+  --tw-shadow-colored: 0 0 15px var(--tw-shadow-color);
+  box-shadow: var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000), var(--tw-shadow);
+}
 .shadow-neon-red{
   --tw-shadow: 0 0 15px rgba(239, 68, 68, 0.6);
   --tw-shadow-colored: 0 0 15px var(--tw-shadow-color);
@@ -1785,11 +1835,6 @@ body {
 .shadow-xl{
   --tw-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
   --tw-shadow-colored: 0 20px 25px -5px var(--tw-shadow-color), 0 8px 10px -6px var(--tw-shadow-color);
-  box-shadow: var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000), var(--tw-shadow);
-}
-.shadow-neon-emerald{
-  --tw-shadow: 0 0 15px rgba(16, 185, 129, 0.5);
-  --tw-shadow-colored: 0 0 15px var(--tw-shadow-color);
   box-shadow: var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000), var(--tw-shadow);
 }
 .ring-1{
@@ -1853,6 +1898,9 @@ body {
 .\[mask\:linear-gradient\(transparent\2c transparent\)\2c linear-gradient\(white\2c white\)\]{
   -webkit-mask: linear-gradient(transparent,transparent),linear-gradient(white,white);
           mask: linear-gradient(transparent,transparent),linear-gradient(white,white);
+}
+.\[out\:json\]{
+  out: json;
 }
 
 /* Premium Glassmorphic Panels */
@@ -2021,6 +2069,11 @@ body {
   background-color: rgb(255 255 255 / 0.05);
 }
 
+.hover\:bg-cyan-400:hover{
+  --tw-bg-opacity: 1;
+  background-color: rgb(34 211 238 / var(--tw-bg-opacity, 1));
+}
+
 .hover\:from-cyan-400:hover{
   --tw-gradient-from: #22d3ee var(--tw-gradient-from-position);
   --tw-gradient-to: rgb(34 211 238 / 0) var(--tw-gradient-to-position);
@@ -2175,9 +2228,9 @@ body {
   }
 }
 
-/*!*****************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************!*\
-  !*** css ../../node_modules/.pnpm/next@14.2.3_react-dom@18.3.1_react@18.3.1__react@18.3.1/node_modules/next/dist/build/webpack/loaders/css-loader/src/index.js??ruleSet[1].rules[13].oneOf[2].use[1]!../../node_modules/.pnpm/next@14.2.3_react-dom@18.3.1_react@18.3.1__react@18.3.1/node_modules/next/dist/build/webpack/loaders/next-font-loader/index.js??ruleSet[1].rules[13].oneOf[2].use[2]!../../node_modules/.pnpm/next@14.2.3_react-dom@18.3.1_react@18.3.1__react@18.3.1/node_modules/next/font/google/target.css?{"path":"src/app/layout.tsx","import":"Inter","arguments":[{"subsets":["latin"]}],"variableName":"inter"} ***!
-  \*****************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************/
+/*!*******************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************!*\
+  !*** css ../../node_modules/.pnpm/next@14.2.3_react-dom@18.3.1_react@18.3.1__react@18.3.1/node_modules/next/dist/build/webpack/loaders/css-loader/src/index.js??ruleSet[1].rules[13].oneOf[2].use[1]!../../node_modules/.pnpm/next@14.2.3_react-dom@18.3.1_react@18.3.1__react@18.3.1/node_modules/next/dist/build/webpack/loaders/next-font-loader/index.js??ruleSet[1].rules[13].oneOf[2].use[2]!../../node_modules/.pnpm/next@14.2.3_react-dom@18.3.1_react@18.3.1__react@18.3.1/node_modules/next/font/google/target.css?{"path":"src\\app\\layout.tsx","import":"Inter","arguments":[{"subsets":["latin"]}],"variableName":"inter"} ***!
+  \*******************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************/
 /* cyrillic-ext */
 @font-face {
   font-family: '__Inter_f367f3';

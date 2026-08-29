@@ -13,6 +13,8 @@ import { AdminPortal } from '@/components/AdminPortal';
 import { TimelineSlider } from '@/components/TimelineSlider';
 import { useAppStore } from '@/lib/store';
 import { Loader2 } from 'lucide-react';
+import { MaharashtraTestPanel } from '@/components/MaharashtraTestPanel';
+import { MaharashtraPanel } from '@/components/MaharashtraPanel';
 
 // Dynamic client-only WebGL & MapLibre components to prevent SSR canvas issues
 const MapLibre3DMap = dynamic(
@@ -118,6 +120,12 @@ export default function HomePage() {
               <AdminPortal />
             </div>
           )}
+
+          {activeTab === 'MAHARASHTRA' && (
+            <div className="w-full h-full bg-[#030712] overflow-y-auto">
+              <MaharashtraPanel />
+            </div>
+          )}
         </div>
 
         {/* Right Inspector Panel (Visible in 3D views) */}
@@ -129,6 +137,7 @@ export default function HomePage() {
       </main>
 
       <UndergroundTestPanel />
+      <MaharashtraTestPanel />
     </div>
   );
 }
