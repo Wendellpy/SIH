@@ -1,10 +1,12 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.cadastreRouter = void 0;
+require("dotenv/config");
 const express_1 = require("express");
 const store_js_1 = require("../database/store.js");
 const ulpin_service_js_1 = require("../services/ulpin.service.js");
 const property_card_service_js_1 = require("../services/property-card.service.js");
+const mahabhumi_service_js_1 = require("../services/mahabhumi.service.js");
 const role_middleware_js_1 = require("../middleware/role.middleware.js");
 exports.cadastreRouter = (0, express_1.Router)();
 /**
@@ -129,6 +131,33 @@ exports.cadastreRouter.post('/certificate', (0, role_middleware_js_1.roleMiddlew
     catch (err) {
         console.error('Failed to generate clearance certificate:', err);
         return res.status(500).json({ status: 'error', message: 'Failed to generate certificate' });
+    }
+});
+/**
+ * GET /api/v1/integration/mahabhumi/state
+ * Proxies LGD Web Service for State Master data
+ */
+exports.cadastreRouter.get('/integration/mahabhumi/state', async (req, res) => {
+    try {
+        const data = await mahabhumi_service_js_1.mahabhumiService.getLGDState();
+        res.json({ status: 'success', data });
+    }
+    catch (error) {
+        res.status(500).json({ status: 'error', message: error.message });
+    }
+});
+/**
+ * GET /api/v1/integration/mahabhumi/ror
+ * Proxies Record of Rights from DSPRoRServiceRest
+ */
+exports.cadastreRouter.get('/integration/mahabhumi/ror', async (req, res) => {
+    try {
+        const { dist, tal, vil, sur } = req.query;
+        const data = await mahabhumi_service_js_1.mahabhumiService.getRecordOfRights(dist, tal, vil, sur);
+        res.json({ status: 'success', data });
+    }
+    catch (error) {
+        res.status(500).json({ status: 'error', message: error.message });
     }
 });
 /**

@@ -3,7 +3,7 @@
  * Smart India Hackathon #26011 - Ministry of Rural Development (DoLR)
  */
 
-export type DomainCode = 'G' | 'A' | 'U' | 'T';
+export type DomainCode = 'G' | 'A' | 'U' | 'T' | 'S';
 
 export interface ParsedUlpin3D {
   baseUlpin: string;      // 14-char base ULPIN (e.g. MH13BOM04521873)
@@ -252,8 +252,8 @@ export function formatUlpin3D(baseUlpin: string, domain: DomainCode, level: numb
 
 export function parseUlpin3D(ulpinString: string): ParsedUlpin3D | null {
   if (!ulpinString) return null;
-  // Regex: 10-18 base alphanumeric chars, dot, domain (G|A|U|T), level (+01, -02, 00, 01), hyphen, unit
-  const regex = /^([A-Z0-9]{10,18})\.([GAUT])([+-]?\d{2})-([A-Z0-9_-]+)$/i;
+  // Regex: 10-18 base alphanumeric chars, dot, domain (G|A|U|T|S), level (+01, -02, 00, 01), hyphen, unit
+  const regex = /^([A-Z0-9]{10,18})\.([GAUTS])([+-]?\d{2})-([A-Z0-9_-]+)$/i;
   const match = ulpinString.trim().toUpperCase().match(regex);
   if (!match) return null;
 

@@ -637,6 +637,86 @@ export const MapLibre3DMap: React.FC = () => {
         map.getCanvas().style.cursor = '';
       });
 
+      // Click on Surface Land Parcel to compute True Area via ML API
+      const handleSurfaceClick = async (e: any) => {
+        // Prevent if we clicked a building
+        const point = e.point;
+        const bldgs = map.queryRenderedFeatures(point, { layers: ['3d-buildings', '2d-buildings-base'] });
+        if (bldgs.length > 0) return;
+
+        const f = e.features?.[0];
+        const lngLat = e.lngLat;
+        const lng = parseFloat(lngLat.lng.toFixed(5));
+        const lat = parseFloat(lngLat.lat.toFixed(5));
+
+        // Create a 14-char base ULPIN
+        const latStr = Math.round(lat * 1000000).toString(36).padStart(5, '0');
+        const lngStr = Math.round(lng * 1000000).toString(36).padStart(6, '0');
+        const baseUlpin = `MH1${latStr}${lngStr}`.toUpperCase();
+        
+        // Mock a polygon around the click point for extraction (approx 20x20m)
+        const d = 0.0001; 
+        const polygon = [
+          [lng - d, lat - d],
+          [lng + d, lat - d],
+          [lng + d, lat + d],
+          [lng - d, lat + d],
+          [lng - d, lat - d]
+        ];
+
+        try {
+          // Hit the ML service to calculate True Area
+          const res = await fetch('http://localhost:8000/api/v1/ml/process-surface-parcel', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              base_ulpin: baseUlpin,
+              polygon_2d: polygon
+            })
+          });
+          const mlData = await res.json();
+          
+          const parcelId = `surface-parcel-${Date.now().toString(36)}`;
+          const dynamicParcel: any = {
+            id: parcelId,
+            parcelId: parcelId,
+            name: f?.properties?.name || `Satellite Extracted Surface`,
+            footprint: { type: 'Polygon', coordinates: [] }, // mock
+            totalBuiltupAreaSqm: mlData.surface_area_sqm,
+            address: `True Area (SRTM Extracted)`,
+            simulated: true,
+          };
+
+          setSelectedBuildingInfo({
+            id: parcelId,
+            height: 0,
+            minHeight: 0,
+            floors: 0,
+            ulpin3D: mlData.ulpin_3d,
+            coordinates: [lng, lat],
+            building: dynamicParcel,
+            buildingName: dynamicParcel.name,
+            ownership: null,
+            bmcData: { 
+              sacNumber: 'SAT-EXTRACT', 
+              usage: mlData.is_slope_corrected ? 'Slope Corrected (Satellite)' : 'Planimetric Fallback', 
+              name: `True Area: ${mlData.surface_area_sqm} m²`, 
+              noOfFloorsStr: '0' 
+            }
+          });
+        } catch (err) {
+          console.error("Failed to extract surface parcel data:", err);
+        }
+      };
+
+      map.on('click', 'landuse', handleSurfaceClick);
+      map.on('click', 'landcover', handleSurfaceClick);
+
+      map.on('mouseenter', 'landuse', () => { map.getCanvas().style.cursor = 'crosshair'; });
+      map.on('mouseleave', 'landuse', () => { map.getCanvas().style.cursor = ''; });
+      map.on('mouseenter', 'landcover', () => { map.getCanvas().style.cursor = 'crosshair'; });
+      map.on('mouseleave', 'landcover', () => { map.getCanvas().style.cursor = ''; });
+
       mapRef.current = map;
     } catch (err: any) {
       console.error('[MapLibre] Initialization error:', err);
