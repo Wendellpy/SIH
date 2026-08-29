@@ -23,7 +23,35 @@ export const MaharashtraPanel = () => {
   const [loadingVillages, setLoadingVillages] = useState(false);
   const [dataSource, setDataSource] = useState<string>('');
 
-  const { setActiveTab, setSearchQuery } = useAppStore();
+  const { setActiveTab, setSearchQuery, setFlyToTarget, setSearchedParcelGeoJSON } = useAppStore();
+
+  const handleFocusMap = () => {
+    if (!result || !result.geometry) return;
+    
+    setSearchedParcelGeoJSON(result.geometry);
+    
+    // Find a simple centroid from the first polygon ring to fly to
+    let lng = 0, lat = 0, count = 0;
+    try {
+      let coords = result.geometry.geometry.coordinates;
+      while (coords.length > 0 && Array.isArray(coords[0]) && Array.isArray(coords[0][0])) {
+        coords = coords[0];
+      }
+      
+      for (const pt of coords) {
+        lng += pt[0];
+        lat += pt[1];
+        count++;
+      }
+      lng /= count;
+      lat /= count;
+      
+      setFlyToTarget({ lng, lat, zoom: 17, pitch: 45 });
+      setActiveTab('MAPLIBRE_3D');
+    } catch(e) {
+      console.warn("Could not parse geometry centroid for flyTo");
+    }
+  };
 
   const handleDataSourceInfo = (data: any) => {
     if (data.source === 'mock') {
@@ -197,38 +225,80 @@ export const MaharashtraPanel = () => {
           </div>
         </div>
 
-        <div className="glass-panel p-6 rounded-xl border border-white/10">
-          <label className="block text-sm font-semibold mb-3">Search Cadastral Record</label>
-          <div className="flex gap-3">
+        <div className="bg-[#0b1221] border border-slate-700/50 p-5 rounded">
+          <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">Search Cadastral Record</label>
+          <div className="flex gap-2">
             <input 
               type="text" 
               placeholder="Enter Survey No, CTS, or ULPIN..."
               value={searchVal}
               onChange={e => setSearchVal(e.target.value)}
-              className="flex-1 bg-[#070b14] border border-white/10 rounded-lg p-3 focus:ring-1 focus:ring-brand-primary"
+              className="flex-1 bg-[#0a0f1d] border border-slate-700/50 rounded p-2 text-sm focus:border-brand-primary focus:outline-none"
             />
             <button 
               onClick={handleSearch}
               disabled={loading || !searchVal}
-              className="bg-brand-primary text-[#070b14] font-bold px-6 py-3 rounded-lg flex items-center gap-2 hover:bg-cyan-400 transition-colors disabled:opacity-50"
+              className="bg-slate-800 text-slate-200 border border-slate-700 text-sm px-4 py-2 rounded flex items-center gap-2 hover:bg-slate-700 transition-colors disabled:opacity-50"
             >
-              {loading ? <Loader2 className="animate-spin w-5 h-5" /> : <Search className="w-5 h-5" />}
+              {loading ? <Loader2 className="animate-spin w-4 h-4" /> : <Search className="w-4 h-4" />}
               Search
             </button>
           </div>
         </div>
 
         {result && (
-          <div className={`p-4 rounded-xl border ${result.success ? 'border-emerald-500/30 bg-emerald-950/20' : 'border-red-500/30 bg-red-950/20'}`}>
-            <h3 className="font-bold mb-2">{result.success ? 'Record Found' : 'Error'}</h3>
-            {result.source && (
-              <span className={`text-[10px] px-2 py-1 rounded font-mono ${result.source === 'mock' ? 'bg-orange-500/20 text-orange-400' : 'bg-brand-primary/20 text-brand-primary'}`}>
-                SOURCE: {result.source === 'mock' ? 'MOCK DATA — DEVELOPMENT ONLY' : 'Maharashtra Government'}
-              </span>
+          <div className="bg-[#0b1221] border border-slate-700/50 rounded p-4 mt-4 text-sm">
+            <h3 className="font-semibold text-slate-200 border-b border-slate-700/50 pb-2 mb-3">
+              {result.success ? 'Cadastral Parcel Record' : 'Record Not Found'}
+            </h3>
+            
+            {result.success && result.parcel && (
+              <div className="space-y-4">
+                <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-xs">
+                  <div><span className="text-slate-500">District:</span> <span className="text-slate-300 font-medium">{result.parcel.district?.name || '-'}</span></div>
+                  <div><span className="text-slate-500">Taluka:</span> <span className="text-slate-300 font-medium">{result.parcel.taluka?.name || '-'}</span></div>
+                  <div><span className="text-slate-500">Village:</span> <span className="text-slate-300 font-medium">{result.parcel.village?.name || '-'}</span></div>
+                  <div><span className="text-slate-500">Survey No / CTS:</span> <span className="text-slate-100 font-mono font-medium">{result.parcel.surveyNumber || '-'}</span></div>
+                </div>
+                
+                <div className="border border-slate-700/30 rounded bg-[#0a0f1d] p-3">
+                  <div className="flex justify-between items-center mb-2">
+                    <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Geometry Status</span>
+                    {result.geometryStatus === 'GEOMETRY_AVAILABLE' && <span className="text-[10px] px-2 py-0.5 rounded bg-emerald-900/50 text-emerald-400 border border-emerald-800">AVAILABLE</span>}
+                    {result.geometryStatus === 'GEOMETRY_PENDING' && <span className="text-[10px] px-2 py-0.5 rounded bg-amber-900/50 text-amber-400 border border-amber-800">PENDING</span>}
+                    {result.geometryStatus === 'GEOMETRY_NOT_FOUND' && <span className="text-[10px] px-2 py-0.5 rounded bg-red-900/50 text-red-400 border border-red-800">NOT FOUND</span>}
+                    {result.geometryStatus === 'GEOMETRY_SOURCE_UNAVAILABLE' && <span className="text-[10px] px-2 py-0.5 rounded bg-slate-800 text-slate-400 border border-slate-700">SOURCE UNAVAILABLE</span>}
+                    {result.geometryStatus === 'GEOMETRY_INVALID' && <span className="text-[10px] px-2 py-0.5 rounded bg-orange-900/50 text-orange-400 border border-orange-800">INVALID FORMAT</span>}
+                  </div>
+                  
+                  {result.geometryStatus === 'GEOMETRY_AVAILABLE' ? (
+                    <div className="text-xs text-slate-400">
+                      <p>Valid polygon retrieved from Mahabhunakasha. EPSG:4326 normalized.</p>
+                      <button className="mt-2 text-xs bg-slate-800 hover:bg-slate-700 border border-slate-600 px-3 py-1.5 rounded transition-colors" onClick={handleFocusMap}>Focus on Map</button>
+                    </div>
+                  ) : (
+                    <div className="text-xs text-slate-400">
+                      <p>No valid cadastral polygon could be automatically resolved for this parcel.</p>
+                      <button className="mt-2 text-xs bg-slate-800 hover:bg-slate-700 border border-slate-600 px-3 py-1.5 rounded transition-colors" onClick={handleSearch}>Retry Geometry</button>
+                    </div>
+                  )}
+                </div>
+
+                <div className="border border-slate-700/30 rounded bg-[#0a0f1d] p-3">
+                   <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider block mb-2">Provenance</span>
+                   <div className="text-xs text-slate-400 grid grid-cols-2 gap-2">
+                      <div><span className="text-slate-500 block">Land Records Source</span> <span className="font-mono text-indigo-300">{result.source?.landRecords || 'maharashtra-government'}</span></div>
+                      <div><span className="text-slate-500 block">Geometry Source</span> <span className="font-mono text-cyan-300">{result.source?.geometry || 'unavailable'}</span></div>
+                   </div>
+                </div>
+              </div>
             )}
-            <pre className="mt-4 text-xs font-mono overflow-auto text-slate-300">
-              {JSON.stringify(result, null, 2)}
-            </pre>
+            
+            {!result.success && (
+              <div className="text-red-400 text-xs">
+                {result.error?.message || 'Failed to retrieve record.'}
+              </div>
+            )}
           </div>
         )}
       </div>

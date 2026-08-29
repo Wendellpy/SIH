@@ -65,3 +65,34 @@ export interface MutationRecord {
   status: string;
   details: Record<string, any>;
 }
+
+export interface BhuNakshaPlotInfo {
+  area: number;
+  ymin: number;
+  georefpoints: any;
+  xmin: number;
+  formatedArea: string;
+  plotno: string;
+  scaleFactor: number;
+  gisinfo: string;
+  giscode: string;
+  map_area: number;
+  infoLinks: string;
+  ymax: number;
+  xmax: number;
+  plotid: string;
+  ownerplots: string[];
+  the_geom?: string;
+  info?: string;
+}
+
+export interface BhuNakshaExtentGeoref {
+  ymin: number;
+  georefpoints: any;
+  xmin: number;
+  ymax: number;
+  xmax: number;
+  scaleFactor: number;
+  plotid: string;
+  giscode: string;
+}

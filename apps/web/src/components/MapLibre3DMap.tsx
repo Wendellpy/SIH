@@ -68,7 +68,7 @@ export const MapLibre3DMap: React.FC = () => {
   const [copied, setCopied] = useState(false);
   const [selectedFloor, setSelectedFloor] = useState<string>('Ground Floor');
   const [selectedUnit, setSelectedUnit] = useState<string>('101');
-  const { layers, setActiveTab, setSelectedBuilding, flyToTarget, setFlyToTarget, activeUndergroundLayerIds, currentRole, temporalYear, floodSimulation } = useAppStore();
+  const { layers, setActiveTab, setSelectedBuilding, flyToTarget, setFlyToTarget, activeUndergroundLayerIds, currentRole, temporalYear, floodSimulation, searchedParcelGeoJSON } = useAppStore();
 
   const drawRef = useRef<MapboxDraw | null>(null);
   const dynamicBuildingsRef = useRef<any[]>([]);
@@ -877,6 +877,48 @@ export const MapLibre3DMap: React.FC = () => {
       map.off('moveend', updateUtilities);
     };
   }, [currentRole, mapLoaded]);
+
+  // Sync searched parcel geometry
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !mapLoaded) return;
+
+    if (searchedParcelGeoJSON) {
+      if (!map.getSource('searched-parcel-source')) {
+        map.addSource('searched-parcel-source', {
+          type: 'geojson',
+          data: searchedParcelGeoJSON
+        });
+        
+        map.addLayer({
+          id: 'searched-parcel-fill',
+          type: 'fill',
+          source: 'searched-parcel-source',
+          paint: {
+            'fill-color': '#10b981', // emerald-500
+            'fill-opacity': 0.3
+          }
+        }, 'poi-labels');
+
+        map.addLayer({
+          id: 'searched-parcel-line',
+          type: 'line',
+          source: 'searched-parcel-source',
+          paint: {
+            'line-color': '#10b981',
+            'line-width': 3,
+            'line-dasharray': [2, 1]
+          }
+        }, 'poi-labels');
+      } else {
+        (map.getSource('searched-parcel-source') as maplibregl.GeoJSONSource).setData(searchedParcelGeoJSON);
+      }
+    } else {
+      if (map.getLayer('searched-parcel-fill')) map.removeLayer('searched-parcel-fill');
+      if (map.getLayer('searched-parcel-line')) map.removeLayer('searched-parcel-line');
+      if (map.getSource('searched-parcel-source')) map.removeSource('searched-parcel-source');
+    }
+  }, [searchedParcelGeoJSON, mapLoaded]);
 
   // Sync layer visibility
   useEffect(() => {

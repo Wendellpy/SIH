@@ -106,6 +106,10 @@ export interface AppState {
   // Reset to Global Mumbai View
   resetSelection: () => void;
 
+  // Active searched parcel geometry
+  searchedParcelGeoJSON: any | null;
+  setSearchedParcelGeoJSON: (geo: any | null) => void;
+
   // 4D Temporal GIS State
   temporalYear: number;
   setTemporalYear: (year: number) => void;
@@ -255,7 +259,11 @@ export const useAppStore = create<AppState>((set, get) => ({
       selectedUnit: null,
       selectedUnderground: null,
       selectedRegion: 'ALL',
+      searchedParcelGeoJSON: null,
     }),
+
+  searchedParcelGeoJSON: null,
+  setSearchedParcelGeoJSON: (geo) => set({ searchedParcelGeoJSON: geo }),
 
   temporalYear: 2024,
   setTemporalYear: (year) => set({ temporalYear: year }),

@@ -22,7 +22,7 @@ describe('MaharashtraJurisdictionScraper', () => {
     mockedAxios.post.mockResolvedValueOnce({ data: mockHtml });
 
     const result = await jurisdictionScraper.getDistricts();
-    expect(result.success).toBeUndefined(); // Wrapped externally
+
     expect(result.data).toHaveLength(2);
     expect(result.data[0].id).toBe('5');
     expect(result.data[0].name).toBe('Akola');

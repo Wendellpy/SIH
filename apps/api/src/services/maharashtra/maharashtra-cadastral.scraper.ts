@@ -3,9 +3,11 @@ import NodeCache from 'node-cache';
 import qs from 'qs';
 import { ApiResult, ParcelDetails } from './maharashtra.types.js';
 import { jurisdictionScraper } from './maharashtra-jurisdiction.scraper.js';
+import { geometryResolver, GeometryStatus } from './maharashtra-geometry.resolver.js';
 
 export interface CadastralResponse extends ApiResult<ParcelDetails> {
-  geometryStatus?: 'GEOMETRY_UNAVAILABLE' | 'AVAILABLE';
+  geometryStatus?: GeometryStatus;
+  geometryMetadata?: any;
   geometry?: any;
   parcel?: any;
 }
@@ -134,9 +136,16 @@ export class MaharashtraCadastralScraper {
       // 5. Construct final response without fabricating geometry
       // The government portal only returns SRO office information for this endpoint.
       // As requested, we preserve all official attributes returned by the government service.
+      
+      // Resolve geometry using the dedicated resolver
+      const geometryResult = await geometryResolver.resolveGeometry(districtId, talukaId, villageId, cts, districtName, talukaName, villageName);
+
       const successData: CadastralResponse = {
         success: true,
-        source: 'maharashtra-government',
+        source: {
+          landRecords: 'maharashtra-government',
+          geometry: geometryResult.source || 'unavailable'
+        } as any,
         parcel: {
           district: { id: districtId, name: districtName },
           taluka: { id: talukaId, name: talukaName },
@@ -148,8 +157,9 @@ export class MaharashtraCadastralScraper {
           identifier: cts,
           attributes: recordData[0]
         },
-        geometry: null,
-        geometryStatus: 'GEOMETRY_UNAVAILABLE'
+        geometry: geometryResult.geometry || null,
+        geometryStatus: geometryResult.status,
+        geometryMetadata: geometryResult.metadata
       };
 
       this.cache.set(cacheKey, successData);

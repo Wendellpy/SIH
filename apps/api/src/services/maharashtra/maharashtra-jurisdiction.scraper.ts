@@ -2,7 +2,7 @@ import axios from 'axios';
 import * as cheerio from 'cheerio';
 import NodeCache from 'node-cache';
 import qs from 'qs';
-import { Logger } from '../../utils/logger'; // assuming a logger exists, if not console
+
 
 export interface JurisdictionItem {
   id: string;
