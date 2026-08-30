@@ -25,6 +25,35 @@ import { SAMPLE_PARCELS, SAMPLE_BUILDINGS, SAMPLE_VERTICAL_UNITS, SAMPLE_UNDERGR
 import { parseUlpin3D } from '@sih/shared-types';
 import { BorderBeam } from '@/components/ui/border-beam-search';
 
+// Known Mumbai buildings with coordinates for instant search results
+const KNOWN_BUILDINGS_GEO: Record<string, { name: string; lat: number; lng: number; floors: number; type: string; area: string }> = {
+  'ashoka towers': { name: 'Ashoka Towers', lat: 19.0054, lng: 72.8184, floors: 42, type: 'Residential', area: 'Worli' },
+  'world one': { name: 'World One Tower', lat: 19.0123, lng: 72.8151, floors: 117, type: 'Residential', area: 'Upper Worli' },
+  'palais royale': { name: 'Palais Royale', lat: 19.0069, lng: 72.8168, floors: 88, type: 'Residential', area: 'Worli Sea Face' },
+  'one bkc': { name: 'One BKC', lat: 19.0607, lng: 72.8656, floors: 53, type: 'Commercial', area: 'BKC' },
+  'maker maxity': { name: 'Maker Maxity', lat: 19.0633, lng: 72.8688, floors: 33, type: 'Commercial', area: 'BKC' },
+  'platina': { name: 'Platina (IL&FS Financial Centre)', lat: 19.0642, lng: 72.8670, floors: 27, type: 'Commercial', area: 'BKC' },
+  'air india building': { name: 'Air India Building', lat: 18.9257, lng: 72.8242, floors: 23, type: 'Commercial', area: 'Nariman Point' },
+  'express towers': { name: 'Express Towers', lat: 18.9261, lng: 72.8225, floors: 28, type: 'Commercial', area: 'Nariman Point' },
+  'trident hotel': { name: 'Trident Nariman Point', lat: 18.9270, lng: 72.8213, floors: 35, type: 'Commercial', area: 'Nariman Point' },
+  'phoenix marketcity': { name: 'Phoenix Marketcity', lat: 19.0863, lng: 72.8898, floors: 8, type: 'Commercial', area: 'Kurla West' },
+  'kohinoor square': { name: 'Kohinoor Square', lat: 19.0190, lng: 72.8432, floors: 52, type: 'Mixed', area: 'Dadar TT' },
+  'imperial towers': { name: 'Imperial Towers', lat: 18.9900, lng: 72.8120, floors: 60, type: 'Residential', area: 'Tardeo' },
+  'antilia': { name: 'Antilia', lat: 18.9740, lng: 72.8099, floors: 27, type: 'Residential', area: 'Altamount Road' },
+  'peninsula business park': { name: 'Peninsula Business Park', lat: 19.0010, lng: 72.8300, floors: 19, type: 'Commercial', area: 'Lower Parel' },
+  'lodha the park': { name: 'Lodha The Park', lat: 19.0108, lng: 72.8162, floors: 75, type: 'Residential', area: 'Worli' },
+  'taj mahal palace': { name: 'Taj Mahal Palace', lat: 18.9217, lng: 72.8332, floors: 7, type: 'Commercial', area: 'Colaba' },
+  'gateway of india': { name: 'Gateway of India', lat: 18.9220, lng: 72.8347, floors: 1, type: 'Institutional', area: 'Colaba' },
+  'bandra worli sea link': { name: 'Bandra–Worli Sea Link', lat: 19.0358, lng: 72.8155, floors: 0, type: 'Infrastructure', area: 'Bandra-Worli' },
+  'chhatrapati shivaji terminus': { name: 'Chhatrapati Shivaji Maharaj Terminus', lat: 18.9398, lng: 72.8355, floors: 3, type: 'Institutional', area: 'Fort' },
+  'bmc headquarters': { name: 'BMC Headquarters', lat: 18.9392, lng: 72.8351, floors: 4, type: 'Government', area: 'Fort' },
+  'bombay stock exchange': { name: 'Bombay Stock Exchange', lat: 18.9289, lng: 72.8326, floors: 29, type: 'Commercial', area: 'Dalal Street' },
+  'oberoi sky city': { name: 'Oberoi Sky City', lat: 19.2220, lng: 72.8632, floors: 42, type: 'Residential', area: 'Borivali East' },
+  'hiranandani gardens': { name: 'Hiranandani Gardens', lat: 19.1166, lng: 72.9080, floors: 20, type: 'Residential', area: 'Powai' },
+  'inorbit mall': { name: 'Inorbit Mall', lat: 19.1366, lng: 72.8288, floors: 4, type: 'Commercial', area: 'Malad West' },
+  'growels': { name: 'Growels 101 Mall', lat: 19.2029, lng: 72.8600, floors: 5, type: 'Commercial', area: 'Kandivali East' },
+};
+
 
 export const Header: React.FC = () => {
   const { 
@@ -41,7 +70,10 @@ export const Header: React.FC = () => {
   } = useAppStore();
 
   const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const [geocodedResults, setGeocodedResults] = useState<Array<{ name: string; lat: number; lng: number; type: string; address: string }>>([]);
+  const [isGeocoding, setIsGeocoding] = useState(false);
   const searchRef = useRef<HTMLDivElement>(null);
+  const geocodeTimer = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -53,6 +85,7 @@ export const Header: React.FC = () => {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
+<<<<<<< HEAD
   const [results, setResults] = useState<any[]>([]);
   const [isSearching, setIsSearching] = useState(false);
 
@@ -61,6 +94,223 @@ export const Header: React.FC = () => {
     if (!q) {
       setResults([]);
       return;
+=======
+  // Debounced Nominatim geocoding for building name search
+  useEffect(() => {
+    const q = searchQuery.trim();
+    if (q.length < 3) { setGeocodedResults([]); return; }
+    // Skip if it looks like a ULPIN code
+    if (/^MH/i.test(q) || /^\d{14}/.test(q)) { setGeocodedResults([]); return; }
+
+    if (geocodeTimer.current) clearTimeout(geocodeTimer.current);
+    geocodeTimer.current = setTimeout(async () => {
+      setIsGeocoding(true);
+      try {
+        const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(q + ', Mumbai, Maharashtra')}&format=json&limit=5&addressdetails=1&countrycodes=in`;
+        const res = await fetch(url, { headers: { 'User-Agent': 'SIH-GeoElevate/1.0' } });
+        const data = await res.json();
+        const results = data
+          .filter((r: any) => r.lat && r.lon)
+          .map((r: any) => ({
+            name: r.display_name?.split(',')[0] || q,
+            lat: parseFloat(r.lat),
+            lng: parseFloat(r.lon),
+            type: r.type || r.class || 'place',
+            address: r.display_name || ''
+          }));
+        setGeocodedResults(results);
+      } catch {
+        setGeocodedResults([]);
+      } finally {
+        setIsGeocoding(false);
+      }
+    }, 400);
+
+    return () => { if (geocodeTimer.current) clearTimeout(geocodeTimer.current); };
+  }, [searchQuery]);
+
+  const getResults = () => {
+    const q = searchQuery.trim().toLowerCase();
+    if (!q) return [];
+
+    const results: Array<{
+      type: '3D_UNIT' | 'PARCEL' | 'BUILDING' | 'UNDERGROUND' | 'GEOCODED';
+      title: string;
+      subtitle: string;
+      raw: any;
+    }> = [];
+
+    // 0. Known buildings with coordinates (instant, no API call)
+    for (const [key, bldg] of Object.entries(KNOWN_BUILDINGS_GEO)) {
+      if (key.includes(q) || bldg.name.toLowerCase().includes(q) || bldg.area.toLowerCase().includes(q)) {
+        results.push({
+          type: 'GEOCODED',
+          title: bldg.name,
+          subtitle: `${bldg.floors} Floors | ${bldg.type} | ${bldg.area}`,
+          raw: { lat: bldg.lat, lng: bldg.lng, name: bldg.name, address: bldg.area }
+        });
+      }
+    }
+
+    SAMPLE_VERTICAL_UNITS.forEach(u => {
+      if (u.ulpin3D.toLowerCase().includes(q) || u.unitName.toLowerCase().includes(q) || u.ownerName.toLowerCase().includes(q)) {
+        results.push({
+          type: '3D_UNIT',
+          title: u.unitName,
+          subtitle: `3D ULPIN: ${u.ulpin3D} | Level: ${u.levelCode} | ${u.ownerName}`,
+          raw: u
+        });
+      }
+    });
+
+    SAMPLE_PARCELS.forEach(p => {
+      if (p.ulpin.toLowerCase().includes(q) || p.village.toLowerCase().includes(q) || p.surveyNumber.toLowerCase().includes(q)) {
+        results.push({
+          type: 'PARCEL',
+          title: `Parcel ${p.ulpin} (${p.village})`,
+          subtitle: `Survey No: ${p.surveyNumber} | Area: ${p.areaSqm} sqm`,
+          raw: p
+        });
+      }
+    });
+
+    SAMPLE_BUILDINGS.forEach(b => {
+      if (b.name.toLowerCase().includes(q) || b.address.toLowerCase().includes(q)) {
+        results.push({
+          type: 'BUILDING',
+          title: b.name,
+          subtitle: `${b.numFloors} Floors | ${b.address}`,
+          raw: b
+        });
+      }
+    });
+
+    SAMPLE_UNDERGROUND_ASSETS.forEach(a => {
+      if (a.ulpin3D.toLowerCase().includes(q) || a.assetType.toLowerCase().includes(q) || a.owningAgency.toLowerCase().includes(q)) {
+        results.push({
+          type: 'UNDERGROUND',
+          title: `3D Utility: ${a.assetType}`,
+          subtitle: `${a.ulpin3D} | Depth: ${a.depthMinM}m to ${a.depthMaxM}m`,
+          raw: a
+        });
+      }
+    });
+
+    // Geocoded results from Nominatim (async, with deduplication against known buildings)
+    if (geocodedResults.length > 0) {
+      const knownNames = new Set(results.map(r => r.title.toLowerCase()));
+      geocodedResults.forEach(gr => {
+        if (!knownNames.has(gr.name.toLowerCase())) {
+          results.push({
+            type: 'GEOCODED',
+            title: gr.name,
+            subtitle: gr.address.length > 60 ? gr.address.substring(0, 60) + '…' : gr.address,
+            raw: gr
+          });
+        }
+      });
+    }
+
+    if (results.length === 0) {
+      const parsed = parseUlpin3D(searchQuery.trim());
+      if (parsed) {
+        let baseLng = 72.8280;
+        let baseLat = 18.9960;
+        let address = 'Simulated Address, Mumbai';
+
+        const matchingParcel = SAMPLE_PARCELS.find(p => p.ulpin === parsed.baseUlpin);
+        if (matchingParcel) {
+          baseLng = matchingParcel.centroid[0];
+          baseLat = matchingParcel.centroid[1];
+          address = `${matchingParcel.village}, ${matchingParcel.tehsil}, ${matchingParcel.district}`;
+        } else if (parsed.baseUlpin.startsWith('MH1') && parsed.baseUlpin.length === 14) {
+          // Geospatially decode the Base36 embedded coordinates
+          const latStr = parsed.baseUlpin.substring(3, 8).toLowerCase();
+          const lngStr = parsed.baseUlpin.substring(8, 14).toLowerCase();
+          const parsedLat = parseInt(latStr, 36) / 1000000;
+          const parsedLng = parseInt(lngStr, 36) / 1000000;
+          
+          if (!isNaN(parsedLat) && !isNaN(parsedLng)) {
+            baseLat = parsedLat;
+            baseLng = parsedLng;
+            address = `Decoded Coordinate (${baseLat.toFixed(4)}, ${baseLng.toFixed(4)})`;
+          } else {
+            // Fallback deterministic hash if malformed
+            let hash = 0;
+            for (let i = 0; i < parsed.baseUlpin.length; i++) {
+              hash = parsed.baseUlpin.charCodeAt(i) + ((hash << 5) - hash);
+            }
+            baseLng = 72.80 + (Math.abs(Math.sin(hash)) * 10000 % 1) * 0.15;
+            baseLat = 18.90 + (Math.abs(Math.cos(hash)) * 10000 % 1) * 0.35;
+            address = `Extrapolated Location from ULPIN, Mumbai`;
+          }
+        } else {
+          // Hackathon Mockup: Deterministically pseudo-decode unknown ULPINs to a coordinate in Mumbai
+          let hash = 0;
+          for (let i = 0; i < parsed.baseUlpin.length; i++) {
+            hash = parsed.baseUlpin.charCodeAt(i) + ((hash << 5) - hash);
+          }
+          const randLng = Math.abs(Math.sin(hash)) * 10000 % 1;
+          const randLat = Math.abs(Math.cos(hash)) * 10000 % 1;
+          
+          baseLng = 72.80 + randLng * (72.95 - 72.80);
+          baseLat = 18.90 + randLat * (19.25 - 18.90);
+          address = `Extrapolated Location from ULPIN, Mumbai`;
+        }
+
+        results.push({
+          type: '3D_UNIT',
+          title: `Simulated Unit ${parsed.unitCode}`,
+          subtitle: `3D ULPIN: ${parsed.rawString} | Simulated Record`,
+          raw: {
+            unit: {
+              id: `sim-${Date.now()}`,
+              buildingId: 'simulated-building',
+              parcelId: 'simulated-parcel',
+              ulpin3D: parsed.rawString,
+              domainCode: parsed.domainCode,
+              levelCode: parsed.levelCode,
+              unitCode: parsed.unitCode,
+              floorNumber: parsed.levelNumber,
+              unitName: `Simulated Unit ${parsed.unitCode}`,
+              useType: 'Mixed',
+              ownerName: 'Simulated Owner (MyBMC)',
+              ownerId: 'SIM-MH-9999',
+              carpetAreaSqm: 500.0,
+              builtupAreaSqm: 575.0,
+              volumeCum: 2000.0,
+              zMin: parsed.levelNumber * 3.8,
+              zMax: (parsed.levelNumber + 1) * 3.8,
+              verticalDatum: 'WGS84 MSL',
+              bounds: { minLng: baseLng, maxLng: baseLng + 0.0002, minLat: baseLat, maxLat: baseLat + 0.0002, minZ: 0, maxZ: 10 },
+              validationStatus: 'VALID',
+              provenance: 'DRONE_LIDAR',
+              taxStatus: 'PAID',
+              simulated: true,
+              createdAt: new Date().toISOString(),
+              updatedAt: new Date().toISOString()
+            },
+            building: {
+              id: 'simulated-building',
+              parcelId: 'simulated-parcel',
+              name: `Simulated Building (${parsed.baseUlpin})`,
+              footprint: { 
+                type: 'Polygon', 
+                coordinates: [[[baseLng, baseLat], [baseLng + 0.0002, baseLat], [baseLng + 0.0002, baseLat + 0.0002], [baseLng, baseLat + 0.0002], [baseLng, baseLat]]] 
+              },
+              eavesHeightM: (Math.max(4, parsed.levelNumber + 2)) * 3.8,
+              roofHeightM: (Math.max(4, parsed.levelNumber + 2)) * 3.8 + 2,
+              numFloors: Math.max(4, parsed.levelNumber + 2),
+              numBasements: 0,
+              plinthElevationM: 0,
+              totalBuiltupAreaSqm: 10000,
+              address: address,
+              simulated: true
+            }
+          }
+        });
+      }
+>>>>>>> ba1b3817 (feat: add building name search with 30+ known Mumbai landmarks and live Nominatim geocoding)
     }
     
     setIsSearching(true);
@@ -125,7 +375,6 @@ export const Header: React.FC = () => {
     } else if (result.type === 'UNDERGROUND') {
       setSelectedUnderground(result.raw);
       setActiveTab('MAPLIBRE_3D');
-      
     } else if (result.type === 'LOCATION') {
       // Clear selections so it doesn't try to highlight a fake building
       setSelectedBuilding(null);
@@ -140,6 +389,10 @@ export const Header: React.FC = () => {
       }
       
       setFlyToTarget({ lng, lat, zoom: 17, pitch: 45 });
+    } else if (result.type === 'GEOCODED') {
+      // Fly to geocoded building location
+      const { lat, lng, name } = result.raw;
+      setFlyToTarget({ lng, lat, zoom: 17.5, pitch: 60 });
       setActiveTab('MAPLIBRE_3D');
     }
   };
@@ -165,7 +418,7 @@ export const Header: React.FC = () => {
                   setIsSearchOpen(true);
                 }}
                 onFocus={() => setIsSearchOpen(true)}
-                placeholder="Search 3D ULPIN, owner, address..."
+                placeholder="Search building name, ULPIN, owner, address..."
                 className="w-full bg-transparent text-[14px] text-slate-200 placeholder-slate-500 focus:outline-none transition-all"
               />
               {searchQuery && (
@@ -206,6 +459,7 @@ export const Header: React.FC = () => {
                           res.type === 'PARCEL' ? 'bg-emerald-500/20 text-emerald-300' :
                           res.type === 'BUILDING' ? 'bg-indigo-500/20 text-indigo-300' :
                           res.type === 'LOCATION' ? 'bg-purple-500/20 text-purple-300' :
+                          res.type === 'GEOCODED' ? 'bg-violet-500/20 text-violet-300' :
                           'bg-amber-500/20 text-amber-300'
                         }`}>
                           {res.type.replace('_', ' ')}
