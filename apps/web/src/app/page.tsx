@@ -6,7 +6,6 @@ import { Header } from '@/components/Header';
 import { UndergroundControl } from '@/components/UndergroundControl';
 import { UndergroundTestPanel } from '@/components/UndergroundTestPanel';
 import { InspectorPanel } from '@/components/InspectorPanel';
-import { AIStudio } from '@/components/AIStudio';
 import { AdminPortal } from '@/components/AdminPortal';
 import { TimelineSlider } from '@/components/TimelineSlider';
 import { useAppStore } from '@/lib/store';
@@ -75,12 +74,6 @@ export default function HomePage() {
               <div className="absolute top-4 right-4 h-[calc(100%-2rem)] z-20 pointer-events-auto">
                 <InspectorPanel />
               </div>
-            </div>
-          )}
-
-          {activeTab === 'AI_STUDIO' && (
-            <div className="w-full h-full">
-              <AIStudio />
             </div>
           )}
 

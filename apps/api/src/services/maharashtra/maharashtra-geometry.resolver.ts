@@ -185,30 +185,31 @@ export class MaharashtraGeometryResolver {
       // 4. Parse WKT
       const geometry: any = wkx.Geometry.parse(plotInfo.the_geom).toGeoJSON();
 
-      // 5. Reproject from UTM to EPSG:4326
-      // We detect the correct UTM Zone dynamically based on the extent centroid longitude
-      let centroidLon = 75; // Default middle of Maharashtra
-      if (extentInfo && extentInfo.xmin && extentInfo.xmax) {
-        centroidLon = (extentInfo.xmin + extentInfo.xmax) / 2;
+      // 5. Reproject from UTM to EPSG:4326 if necessary
+      // Check if coordinates are already in EPSG:4326 (degrees)
+      let isUtm = false;
+      let testCoord = geometry.coordinates;
+      while (Array.isArray(testCoord[0])) testCoord = testCoord[0];
+      
+      if (testCoord && (testCoord[0] > 180 || testCoord[0] < -180 || testCoord[1] > 90 || testCoord[1] < -90)) {
+        isUtm = true;
       }
 
+      if (isUtm) {
+        // Assume UTM Zone 43N for most of Maharashtra if in meters
+        let sourceProj = '+proj=utm +zone=43 +datum=WGS84 +units=m +no_defs';
+        const destProj = '+proj=longlat +datum=WGS84 +no_defs';
 
-      // UTM Zones for India: Zone 42N (66-72E), Zone 43N (72-78E), Zone 44N (78-84E)
-      let sourceProj = '+proj=utm +zone=43 +datum=WGS84 +units=m +no_defs';
-      if (centroidLon < 72) sourceProj = '+proj=utm +zone=42 +datum=WGS84 +units=m +no_defs';
-      if (centroidLon >= 78) sourceProj = '+proj=utm +zone=44 +datum=WGS84 +units=m +no_defs';
+        const reprojectGeometry = (coords: any): any => {
+          if (Array.isArray(coords) && typeof coords[0] === 'number') {
+            const [x, y] = proj4(sourceProj, destProj, [coords[0], coords[1]]);
+            return [x, y];
+          }
+          return coords.map((c: any) => reprojectGeometry(c));
+        };
 
-      const destProj = '+proj=longlat +datum=WGS84 +no_defs';
-
-      const reprojectGeometry = (coords: any): any => {
-        if (Array.isArray(coords) && typeof coords[0] === 'number') {
-          const [x, y] = proj4(sourceProj, destProj, [coords[0], coords[1]]);
-          return [x, y];
-        }
-        return coords.map((c: any) => reprojectGeometry(c));
-      };
-
-      geometry.coordinates = reprojectGeometry(geometry.coordinates);
+        geometry.coordinates = reprojectGeometry(geometry.coordinates);
+      }
 
       // VALIDATION
       if (!this.validateGeometry(geometry)) {

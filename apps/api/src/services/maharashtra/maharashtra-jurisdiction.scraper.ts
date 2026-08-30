@@ -2,6 +2,7 @@ import axios from 'axios';
 import * as cheerio from 'cheerio';
 import NodeCache from 'node-cache';
 import qs from 'qs';
+import { transliterate } from 'transliteration';
 
 
 export interface JurisdictionItem {
@@ -46,8 +47,21 @@ export class MaharashtraJurisdictionScraper {
 
       $('option').each((i, el) => {
         const id = $(el).attr('value');
-        let name = $(el).text().trim();
-        if (id && id !== '0' && id !== '' && !name.includes('Select')) {
+        let originalName = $(el).text().trim();
+        if (id && id !== '0' && id !== '' && !originalName.includes('Select')) {
+          // Clean up "Up Adhikshak..." from some Taluka names
+          originalName = originalName.replace(/उप अधीक्षक भूमि  अभिलेख,/g, '').trim();
+          
+          // Transliterate Marathi to English
+          let roman = transliterate(originalName);
+          roman = roman.replace(/N/g, 'n').replace(/nn/g, 'n').replace(/tth/g, 'th').replace(/aa/g, 'a').replace(/ii/g, 'i');
+          
+          // Capitalize first letter
+          const englishName = roman.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ');
+          
+          // Show both for clarity if they differ significantly, otherwise just English
+          const name = englishName.length > 0 ? `${englishName} (${originalName})` : originalName;
+
           items.push({
             id: id,
             name: name,

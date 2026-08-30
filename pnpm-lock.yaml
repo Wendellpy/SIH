@@ -62,6 +62,9 @@ importers:
       swagger-ui-express:
         specifier: ^5.0.0
         version: 5.0.1(express@4.22.2(supports-color@8.1.1))
+      transliteration:
+        specifier: ^2.6.1
+        version: 2.6.1
       uuid:
         specifier: ^9.0.1
         version: 9.0.1
@@ -2959,6 +2962,11 @@ packages:
 
   topojson-server@3.0.1:
     resolution: {integrity: sha512-/VS9j/ffKr2XAOjlZ9CgyyeLmgJ9dMwq6Y0YEON8O7p/tGGk+dCWnrE03zEdu7i4L7YsFZLEPZPzCvcB7lEEXw==}
+    hasBin: true
+
+  transliteration@2.6.1:
+    resolution: {integrity: sha512-hJ9BhrQAOnNTbpOr1MxsNjZISkn7ppvF5TKUeFmTE1mG4ZPD/XVxF0L0LUoIUCWmQyxH0gJpVtfYLAWf298U9w==}
+    engines: {node: '>=20.0.0'}
     hasBin: true
 
   tree-kill@1.2.2:
@@ -6675,6 +6683,8 @@ snapshots:
   topojson-server@3.0.1:
     dependencies:
       commander: 2.20.3
+
+  transliteration@2.6.1: {}
 
   tree-kill@1.2.2: {}
 

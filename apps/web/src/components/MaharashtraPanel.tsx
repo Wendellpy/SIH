@@ -145,10 +145,6 @@ export const MaharashtraPanel = () => {
         const res = await fetch(`http://localhost:4000/api/v1/maharashtra/ulpin/${searchVal}`);
         const data = await res.json();
         setResult(data);
-        if (data.success) {
-           setSearchQuery(searchVal);
-           setActiveTab('MAPLIBRE_3D');
-        }
       } else {
         // Assume CTS search
         const res = await fetch(`http://localhost:4000/api/v1/maharashtra/parcel?district=${selectedDistrict}&taluka=${selectedTaluka}&village=${selectedVillage}&cts=${searchVal}`);

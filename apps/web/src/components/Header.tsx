@@ -355,16 +355,6 @@ export const Header: React.FC = () => {
 
 
           <button
-            onClick={() => setActiveTab('AI_STUDIO')}
-            className={`flex items-center gap-1.5 px-3 py-1 rounded-md text-[11px] font-medium transition-all ${
-              activeTab === 'AI_STUDIO' ? 'bg-white/10 text-white shadow-sm' : 'text-slate-400 hover:text-slate-200 hover:bg-white/5'
-            }`}
-          >
-            <Sparkles className="w-3.5 h-3.5" />
-            AI Studio
-          </button>
-
-          <button
             onClick={() => setActiveTab('MAHARASHTRA')}
             className={`flex items-center gap-1.5 px-3 py-1 rounded-md text-[11px] font-medium transition-all ${
               activeTab === 'MAHARASHTRA' ? 'bg-white/10 text-white shadow-sm' : 'text-slate-400 hover:text-slate-200 hover:bg-white/5'
