@@ -3,6 +3,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
+require("dotenv/config");
 const express_1 = __importDefault(require("express"));
 const cors_1 = __importDefault(require("cors"));
 const http_1 = __importDefault(require("http"));
@@ -12,6 +13,8 @@ const swagger_js_1 = require("./swagger.js");
 const cadastre_controller_js_1 = require("./controllers/cadastre.controller.js");
 const jobs_controller_js_1 = require("./controllers/jobs.controller.js");
 const admin_controller_js_1 = require("./controllers/admin.controller.js");
+const maharashtra_controller_js_1 = require("./controllers/maharashtra.controller.js");
+const rera_controller_js_1 = require("./controllers/rera.controller.js");
 const jobs_service_js_1 = require("./services/jobs.service.js");
 const app = (0, express_1.default)();
 const server = http_1.default.createServer(app);
@@ -33,6 +36,8 @@ app.get('/health', (req, res) => {
 app.use('/api/v1', cadastre_controller_js_1.cadastreRouter);
 app.use('/api/v1', jobs_controller_js_1.jobsRouter);
 app.use('/api/v1/admin', admin_controller_js_1.adminRouter);
+app.use('/api/v1/maharashtra', maharashtra_controller_js_1.maharashtraRouter);
+app.use('/api/v1', rera_controller_js_1.reraRouter);
 // WebSocket Real-time Job Progress Streaming
 const clients = new Set();
 wss.on('connection', (ws) => {

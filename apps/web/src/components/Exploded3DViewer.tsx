@@ -155,7 +155,7 @@ function sliceBuildingFootprint(coordinates: any[], numUnits: number) {
     // EXTREMELY CRITICAL: MapLibre polygons are often clockwise.
     // Turf 7 (polyclip) STRICTLY requires CCW (right-hand rule). 
     // If not rewound, intersection will crash or return empty.
-    rawPoly = turf.rewind(rawPoly, { reverse: true, mutate: true });
+    rawPoly = turf.rewind(rawPoly, { reverse: true, mutate: true }) as any;
     
     const centroid = turf.centroid(rawPoly);
     const [cx, cy] = centroid.geometry.coordinates;
@@ -170,7 +170,7 @@ function sliceBuildingFootprint(coordinates: any[], numUnits: number) {
     ]);
 
     let localPoly = turf.polygon([localCoords]);
-    localPoly = turf.rewind(localPoly, { reverse: true, mutate: true });
+    localPoly = turf.rewind(localPoly, { reverse: true, mutate: true }) as any;
 
     const bbox = turf.bbox(localPoly); // [minX, minY, maxX, maxY]
     
@@ -189,7 +189,7 @@ function sliceBuildingFootprint(coordinates: any[], numUnits: number) {
 
       // Expand bounding box slice slightly to prevent precision gaps
       let sliceBbox = turf.polygon([[[minX-0.1, minY-0.1], [maxX+0.1, minY-0.1], [maxX+0.1, maxY+0.1], [minX-0.1, maxY+0.1], [minX-0.1, minY-0.1]]]);
-      sliceBbox = turf.rewind(sliceBbox, { reverse: true, mutate: true });
+      sliceBbox = turf.rewind(sliceBbox, { reverse: true, mutate: true }) as any;
       const intersection = turf.intersect(turf.featureCollection([localPoly, sliceBbox]));
       
       if (intersection && intersection.geometry.type === 'Polygon') {
@@ -549,7 +549,7 @@ const UndergroundTubes: React.FC<{ activeIds: number[], buildingCentroid: [numbe
 
     if (asset.coordinates3D && asset.coordinates3D.type === 'LineStringZ') {
       const coords = asset.coordinates3D.coordinates;
-      const vectors = coords.map(([lng, lat, z]) => {
+      const vectors = coords.map(([lng, lat, z]: any[]) => {
         const dx = (lng - cx) * METERS_PER_DEGREE_LNG;
         const dy = z; // Three.js Y is UP (Elevation)
         const dz = -(lat - cy) * METERS_PER_DEGREE_LAT; // Three.js -Z is North
@@ -763,6 +763,7 @@ export const Exploded3DViewer: React.FC = () => {
 
           {showBuilding && (
             <BuildingScene
+              building={selectedBuilding}
               buildingUnits={bldgUnits}
               explodedDist={explodedDistance}
               selectedUnit={selectedUnit}
@@ -789,7 +790,7 @@ export const Exploded3DViewer: React.FC = () => {
               }
               if (polyCoords.length >= 4) {
                 let rawPoly = turf.polygon([polyCoords]);
-                rawPoly = turf.rewind(rawPoly, { reverse: true, mutate: true });
+                rawPoly = turf.rewind(rawPoly, { reverse: true, mutate: true }) as any;
                 const centroid = turf.centroid(rawPoly);
                 cx = centroid.geometry.coordinates[0];
                 cy = centroid.geometry.coordinates[1];

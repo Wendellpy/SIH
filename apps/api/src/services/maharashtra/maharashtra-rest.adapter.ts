@@ -25,8 +25,6 @@ export class MaharashtraRestAdapter {
       const res = await this.fetchWithTimeout('https://mahavillages.mahabhumi.gov.in/', {});
       if (!res.ok) throw new Error('HTTP_ERROR');
       
-      // If we don't have the real API payload structure, we must return UNAVAILABLE
-      // as per rule: "Do not fabricate a working response".
       return {
         success: false,
         source: 'maharashtra-government',

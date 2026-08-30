@@ -1,12 +1,10 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.cadastreRouter = void 0;
-require("dotenv/config");
 const express_1 = require("express");
 const store_js_1 = require("../database/store.js");
 const ulpin_service_js_1 = require("../services/ulpin.service.js");
 const property_card_service_js_1 = require("../services/property-card.service.js");
-const mahabhumi_service_js_1 = require("../services/mahabhumi.service.js");
 const role_middleware_js_1 = require("../middleware/role.middleware.js");
 exports.cadastreRouter = (0, express_1.Router)();
 /**
@@ -134,33 +132,6 @@ exports.cadastreRouter.post('/certificate', (0, role_middleware_js_1.roleMiddlew
     }
 });
 /**
- * GET /api/v1/integration/mahabhumi/state
- * Proxies LGD Web Service for State Master data
- */
-exports.cadastreRouter.get('/integration/mahabhumi/state', async (req, res) => {
-    try {
-        const data = await mahabhumi_service_js_1.mahabhumiService.getLGDState();
-        res.json({ status: 'success', data });
-    }
-    catch (error) {
-        res.status(500).json({ status: 'error', message: error.message });
-    }
-});
-/**
- * GET /api/v1/integration/mahabhumi/ror
- * Proxies Record of Rights from DSPRoRServiceRest
- */
-exports.cadastreRouter.get('/integration/mahabhumi/ror', async (req, res) => {
-    try {
-        const { dist, tal, vil, sur } = req.query;
-        const data = await mahabhumi_service_js_1.mahabhumiService.getRecordOfRights(dist, tal, vil, sur);
-        res.json({ status: 'success', data });
-    }
-    catch (error) {
-        res.status(500).json({ status: 'error', message: error.message });
-    }
-});
-/**
  * GET /api/v1/search
  * Universal search query across 3D ULPINs, owners, addresses, and utilities
  */
@@ -181,7 +152,7 @@ exports.cadastreRouter.get('/search', (req, res) => {
 exports.cadastreRouter.post('/units/:ulpin/property-card', async (req, res) => {
     try {
         const { ulpin } = req.params;
-        const { thumbnailBase64 } = req.body; // Expect JSON body parsing middleware is enabled
+        const { thumbnailBase64, simulatedData, simulatedType } = req.body; // Expect JSON body parsing middleware is enabled
         // Try finding as VerticalUnit
         let entity = store_js_1.db.getVerticalUnitBy3DUlpin(ulpin);
         let type = 'VerticalUnit';
@@ -194,6 +165,10 @@ exports.cadastreRouter.post('/units/:ulpin/property-card', async (req, res) => {
         if (!entity) {
             entity = store_js_1.db.getUndergroundAssets().find(a => a.ulpin3D.toUpperCase() === ulpin.toUpperCase());
             type = 'UndergroundAsset';
+        }
+        if (!entity && simulatedData) {
+            entity = simulatedData;
+            type = simulatedType;
         }
         if (!entity) {
             return res.status(404).json({ status: 'error', message: `No record found for ULPIN ${ulpin}` });

@@ -743,17 +743,15 @@ export function generateSampleVerticalUnits(): VerticalUnit[] {
           unitCode: `U${f}0${u}`,
           floorNumber: f,
           unitName: `CRCE Room ${f}0${u}`,
-          useType: f === 0 ? 'Admin' : (f === 8 ? 'Lab' : 'Classroom'),
+          useType: 'Institutional',
           ownerName: 'Father Agnel Ashram',
           ownerId: 'ORG-MH-CRCE',
           carpetAreaSqm: f === 0 ? (u === 1 ? 120 : u === 2 ? 95 : u === 3 ? 65 : 45) : (f === 8 ? (u <= 2 ? 110 : 75) : ([55, 65, 72, 48][u - 1])),
           builtupAreaSqm: f === 0 ? (u === 1 ? 142 : u === 2 ? 112 : u === 3 ? 78 : 55) : (f === 8 ? (u <= 2 ? 130 : 90) : ([68, 78, 86, 58][u - 1])),
           zMin,
           zMax,
-          simulated: true,
-          zOffsetFromGroundM: zMin,
-          heightM: 3.8
-        });
+          simulated: true
+        } as unknown as VerticalUnit);
       }
     }
   }

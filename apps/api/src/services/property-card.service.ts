@@ -102,7 +102,7 @@ export class PropertyCardService {
           const bldg = entity as Building;
           doc.text(`Building Name: ${bldg.name}`);
           doc.text(`Address: ${bldg.address}`);
-          doc.text(`Estimated Height: ${bldg.height}m`);
+          doc.text(`Estimated Height: ${bldg.roofHeightM}m`);
           doc.text(`Number of Floors: ${bldg.numFloors}`);
         } else if (type === 'UndergroundAsset') {
           const asset = entity as UndergroundAsset;

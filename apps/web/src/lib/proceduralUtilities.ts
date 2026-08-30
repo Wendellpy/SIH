@@ -71,9 +71,13 @@ export function generateProceduralUtilities(centerLng: number, centerLat: number
       diameterMm: utility.type === 'SEWER_DRAIN' ? 1200 : (utility.type === 'WATER_SUPPLY' ? 800 : 300),
       depthMinM: utility.depthMin,
       depthMaxM: utility.depthMax,
-      status: 'ACTIVE',
+      operationalStatus: 'ACTIVE',
+      parcelId: 'parcel-proc-1',
+      installationYear: 2020,
+      validationStatus: 'UNVERIFIED',
+      simulated: true,
       coordinates3D: {
-        type: 'LineString',
+        type: 'LineStringZ',
         coordinates: coords3D
       },
       owningAgency: utility.agency

@@ -66,6 +66,9 @@ export const MapLibre3DMap: React.FC = () => {
       notFound?: boolean;
     } | null;
     isAnimated: boolean;
+    featureId?: string;
+    featureSource?: string;
+    featureBldgId?: string;
   } | null>(null);
 
   const [isFetchingBmc, setIsFetchingBmc] = useState(false);
@@ -313,7 +316,7 @@ export const MapLibre3DMap: React.FC = () => {
         // Add Live Trains Data Sources & Layers
         map.addSource('train-routes', {
           type: 'geojson',
-          data: WESTERN_LINE_GEOJSON
+          data: WESTERN_LINE_GEOJSON as any
         });
         
         map.addLayer({
@@ -889,7 +892,8 @@ export const MapLibre3DMap: React.FC = () => {
               usage: mlData.is_slope_corrected ? 'Slope Corrected (Satellite)' : 'Planimetric Fallback', 
               name: `True Area: ${mlData.surface_area_sqm} m²`, 
               noOfFloorsStr: '0' 
-            }
+            },
+            isAnimated: false
           });
         } catch (err) {
           console.error("Failed to extract surface parcel data:", err);
@@ -1359,7 +1363,7 @@ export const MapLibre3DMap: React.FC = () => {
             'fill-extrusion-height': floodSimulation.waterLevelM,
             'fill-extrusion-base': 0,
             'fill-extrusion-height-transition': { duration: 300, delay: 0 }
-          }
+          } as any
         }, 'poi-labels');
       } else {
         map.setPaintProperty('flood-layer', 'fill-extrusion-height', floodSimulation.waterLevelM);

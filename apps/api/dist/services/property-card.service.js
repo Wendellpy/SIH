@@ -45,6 +45,8 @@ class PropertyCardService {
                     ulpin = entity.ulpin3D;
                 else if (type === 'UndergroundAsset')
                     ulpin = entity.ulpin3D;
+                else if (type === 'Building')
+                    ulpin = entity.ulpin3D || '';
                 else
                     ulpin = entity.ulpin;
                 const liveUrl = `${appUrl}/unit/${ulpin}`;
@@ -87,6 +89,13 @@ class PropertyCardService {
                     doc.text(`Land Area: ${parcel.areaSqm} sq.m`);
                     doc.text(`Zoning: ${parcel.zoningCategory}`);
                     doc.text(`Owner: ${parcel.ownershipType}`);
+                }
+                else if (type === 'Building') {
+                    const bldg = entity;
+                    doc.text(`Building Name: ${bldg.name}`);
+                    doc.text(`Address: ${bldg.address}`);
+                    doc.text(`Estimated Height: ${bldg.roofHeightM}m`);
+                    doc.text(`Number of Floors: ${bldg.numFloors}`);
                 }
                 else if (type === 'UndergroundAsset') {
                     const asset = entity;
