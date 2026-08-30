@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
+import Link from 'next/link';
 import { 
   Building2, 
   Search, 
@@ -258,9 +259,9 @@ export const Header: React.FC = () => {
   return (
     <header className="sticky top-0 z-50 w-full glass-panel border-b border-white/5 px-6 py-1.5 flex items-center justify-between shadow-sm">
       {/* Brand & Emblem */}
-      <div className="flex items-center gap-3 flex-shrink-0">
+      <Link href="/" className="flex items-center gap-3 flex-shrink-0 hover:opacity-90 transition-opacity">
         <img src="/logo.png" alt="GeoElevate 3D Vector Map" className="h-12 w-auto object-contain" />
-      </div>
+      </Link>
 
       {/* Universal Search Bar */}
       <div className="relative flex-1 max-w-xl mx-auto" ref={searchRef}>
