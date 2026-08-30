@@ -17,7 +17,9 @@ import {
   User, 
   Hash, 
   ChevronRight,
-  Gauge
+  Gauge,
+  X,
+  Search
 } from 'lucide-react';
 import { useAppStore } from '@/lib/store';
 import { parseUlpin3D } from '@sih/shared-types';
@@ -38,6 +40,26 @@ export const InspectorPanel: React.FC = () => {
 
   const [copied, setCopied] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
+  const [showReraModal, setShowReraModal] = useState(false);
+  const [isScraping, setIsScraping] = useState(false);
+  const [floorPlanUrl, setFloorPlanUrl] = useState<string | null>(null);
+
+  const handleOpenMahaRera = async (id: string) => {
+    setShowReraModal(true);
+    setIsScraping(true);
+    setFloorPlanUrl(null);
+    try {
+      const res = await fetch(`http://localhost:4000/api/v1/rera/${id}/floorplan`);
+      const data = await res.json();
+      if (data.success) {
+        setFloorPlanUrl(data.floorPlanUrl);
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setIsScraping(false);
+    }
+  };
 
   const handleDownloadPropertyCard = async (ulpin: string) => {
     try {
@@ -91,6 +113,11 @@ export const InspectorPanel: React.FC = () => {
 
   const currentUlpin = unit ? unit.ulpin3D : (underground ? underground.ulpin3D : (building ? building.ulpin3D : (parcel ? parcel.ulpin : '')));
   const parsedUlpin = currentUlpin ? parseUlpin3D(currentUlpin) : null;
+  const hasRera = Boolean(building?.reraId);
+  const reraId = building?.reraId;
+  const reraProjectName = building?.reraProjectName;
+  const reraPromoter = building?.reraPromoter;
+  const reraStatus = building?.reraStatus;
 
   // Check if current entity has a topology conflict
   const conflictLog = topologyLogs.find(
@@ -277,6 +304,44 @@ export const InspectorPanel: React.FC = () => {
               <span>{unit ? `+${unit.zMax}m` : (underground ? `${underground.depthMaxM}m` : '+68.5m')}</span>
             </div>
           </div>
+          
+          {/* MahaRERA Floor Plan Button */}
+          <div className="bg-white/5 backdrop-blur-md p-3 rounded-2xl border border-white/10 shadow-lg col-span-2 flex flex-col gap-3">
+             <div className="flex items-center justify-between">
+               <div className="flex flex-col">
+                 <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">MahaRERA Integration</span>
+                 <span className="text-[10px] text-slate-500">Live Project Details</span>
+               </div>
+               <button
+                 disabled={!hasRera}
+                 onClick={() => reraId && handleOpenMahaRera(reraId)}
+                 className={`text-[10px] font-medium px-4 py-2 rounded-lg border transition-all ${hasRera ? 'bg-blue-500/20 text-blue-300 border-blue-500/30 hover:bg-blue-500/30 shadow-md' : 'bg-white/5 text-slate-600 border-white/5 cursor-not-allowed'}`}
+               >
+                 {hasRera ? 'View Live Plan' : 'Not Available'}
+               </button>
+             </div>
+             
+             {hasRera && (
+               <div className="bg-black/30 rounded-xl p-3 border border-white/5 space-y-2">
+                 <div className="flex justify-between items-center text-[10px]">
+                   <span className="text-slate-500">Project ID</span>
+                   <span className="font-mono font-medium text-blue-300">{reraId}</span>
+                 </div>
+                 <div className="flex justify-between items-center text-[10px]">
+                   <span className="text-slate-500">Project Name</span>
+                   <span className="font-medium text-slate-200 truncate max-w-[140px]">{reraProjectName}</span>
+                 </div>
+                 <div className="flex justify-between items-center text-[10px]">
+                   <span className="text-slate-500">Promoter</span>
+                   <span className="font-medium text-slate-300 truncate max-w-[140px]">{reraPromoter}</span>
+                 </div>
+                 <div className="flex justify-between items-center text-[10px]">
+                   <span className="text-slate-500">Status</span>
+                   <span className="font-medium text-emerald-400">{reraStatus}</span>
+                 </div>
+               </div>
+             )}
+          </div>
         </div>
       </div>
 
@@ -350,6 +415,68 @@ export const InspectorPanel: React.FC = () => {
           {isDownloading ? 'Generating...' : 'Download Property Card'}
         </button>
       </div>
+
+      {/* MahaRERA Modal Overlay */}
+      {showReraModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+          <div className="bg-slate-900/90 border border-slate-700 w-full max-w-4xl rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+            <div className="flex items-center justify-between p-4 border-b border-slate-700 bg-slate-800/50">
+              <div>
+                <h3 className="text-lg font-semibold text-white">MahaRERA Project Details</h3>
+                <p className="text-xs text-slate-400 font-mono mt-1">Live Scraping Session: {reraId}</p>
+              </div>
+              <button 
+                onClick={() => setShowReraModal(false)}
+                className="p-2 bg-white/5 hover:bg-white/10 rounded-full transition-colors"
+              >
+                <X className="w-5 h-5 text-slate-300" />
+              </button>
+            </div>
+            
+            <div className="p-6 overflow-y-auto flex-1 flex flex-col gap-6">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div className="bg-black/30 p-4 rounded-xl border border-white/5">
+                  <div className="text-xs text-slate-500 mb-1">Project ID</div>
+                  <div className="font-mono text-sm text-blue-400">{reraId}</div>
+                </div>
+                <div className="bg-black/30 p-4 rounded-xl border border-white/5">
+                  <div className="text-xs text-slate-500 mb-1">Project Name</div>
+                  <div className="font-semibold text-sm text-slate-200">{reraProjectName}</div>
+                </div>
+                <div className="bg-black/30 p-4 rounded-xl border border-white/5">
+                  <div className="text-xs text-slate-500 mb-1">Promoter</div>
+                  <div className="font-semibold text-sm text-slate-300">{reraPromoter}</div>
+                </div>
+                <div className="bg-black/30 p-4 rounded-xl border border-white/5">
+                  <div className="text-xs text-slate-500 mb-1">Status</div>
+                  <div className="font-semibold text-sm text-emerald-400">{reraStatus}</div>
+                </div>
+              </div>
+
+              <div className="flex-1 bg-black/40 rounded-xl border border-white/10 flex flex-col items-center justify-center min-h-[400px] relative overflow-hidden">
+                {isScraping ? (
+                  <div className="flex flex-col items-center gap-4">
+                    <div className="w-12 h-12 border-4 border-blue-500/30 border-t-blue-500 rounded-full animate-spin" />
+                    <div className="text-sm text-slate-400 font-mono flex items-center gap-2">
+                      <Search className="w-4 h-4 animate-pulse" />
+                      Scraping MahaRERA Portal...
+                    </div>
+                  </div>
+                ) : floorPlanUrl ? (
+                  <img 
+                    src={floorPlanUrl} 
+                    alt="Floor Plan" 
+                    className="w-full h-full object-contain p-4 rounded-lg"
+                  />
+                ) : (
+                  <div className="text-slate-500">Failed to retrieve floor plan document.</div>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 };

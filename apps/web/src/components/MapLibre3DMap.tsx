@@ -1303,17 +1303,20 @@ export const MapLibre3DMap: React.FC = () => {
           <span className="text-[11px] font-bold text-white tracking-wide">3D MAP</span>
         </div>
         
-        <div className="flex items-center gap-1 px-2 border-r border-white/10">
+        <div className="flex items-center gap-1 px-2">
           <button onClick={() => flyToDistrict(72.8280, 18.9960, 15.2, 45, -30)} className="px-2 py-1 text-[10px] bg-white/5 hover:bg-white/10 rounded-md text-slate-300 font-medium transition-colors">Worli</button>
           <button onClick={() => flyToDistrict(72.8236, 18.9256, 15.5, 45, 10)} className="px-2 py-1 text-[10px] bg-white/5 hover:bg-white/10 rounded-md text-slate-300 font-medium transition-colors">Nariman</button>
           <button onClick={() => flyToDistrict(72.8682, 19.0716, 15.0, 40, -15)} className="px-2 py-1 text-[10px] bg-white/5 hover:bg-white/10 rounded-md text-slate-300 font-medium transition-colors">BKC</button>
           <button onClick={() => flyToDistrict(72.8745, 19.0980, 14.8, 45, 0)} className="px-2 py-1 text-[10px] bg-white/5 hover:bg-white/10 rounded-md text-slate-300 font-medium transition-colors">Airport</button>
         </div>
-        
-        <div className="flex items-center gap-1 pl-2 pr-1">
-          <button onClick={() => setMapPitch(0)} className={`px-2 py-1 text-[10px] font-bold rounded-md transition-colors ${currentPitch === 0 ? 'bg-brand-primary text-white shadow-sm' : 'bg-white/5 text-slate-400 hover:bg-white/10'}`}>2D</button>
-          <button onClick={() => setMapPitch(45)} className={`px-2 py-1 text-[10px] font-bold rounded-md transition-colors ${currentPitch === 45 ? 'bg-brand-primary text-white shadow-sm' : 'bg-white/5 text-slate-400 hover:bg-white/10'}`}>3D</button>
-          <button onClick={() => setMapPitch(60)} className={`px-2 py-1 text-[10px] font-bold rounded-md transition-colors ${currentPitch === 60 ? 'bg-brand-primary text-white shadow-sm' : 'bg-white/5 text-slate-400 hover:bg-white/10'}`}>60°</button>
+      </div>
+
+      {/* Map Pitch Controls (Bottom-Left) */}
+      <div className="absolute bottom-5 left-5 glass-panel rounded-xl p-1.5 pointer-events-auto flex items-center shadow-xl border-white/10 backdrop-blur-md">
+        <div className="flex items-center gap-1">
+          <button onClick={() => setMapPitch(0)} className={`px-3 py-1.5 text-[11px] font-bold rounded-lg transition-colors ${currentPitch === 0 ? 'bg-brand-primary text-white shadow-sm' : 'bg-white/5 text-slate-400 hover:bg-white/10'}`}>2D</button>
+          <button onClick={() => setMapPitch(45)} className={`px-3 py-1.5 text-[11px] font-bold rounded-lg transition-colors ${currentPitch === 45 ? 'bg-brand-primary text-white shadow-sm' : 'bg-white/5 text-slate-400 hover:bg-white/10'}`}>3D</button>
+          <button onClick={() => setMapPitch(60)} className={`px-3 py-1.5 text-[11px] font-bold rounded-lg transition-colors ${currentPitch === 60 ? 'bg-brand-primary text-white shadow-sm' : 'bg-white/5 text-slate-400 hover:bg-white/10'}`}>60°</button>
         </div>
       </div>
 

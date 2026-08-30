@@ -109,6 +109,10 @@ export interface Building {
   totalBuiltupAreaSqm: number;
   address: string;
   simulated: boolean;
+  reraId?: string;
+  reraProjectName?: string;
+  reraPromoter?: string;
+  reraStatus?: string;
 }
 
 export interface VerticalUnit {

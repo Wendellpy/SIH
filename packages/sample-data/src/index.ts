@@ -1308,7 +1308,11 @@ export const SAMPLE_AUDIT_LOGS: AuditLog[] = [
 ];
 
 import { MAHARERA_PARCELS, MAHARERA_BUILDINGS, MAHARERA_UNITS } from './maharera';
+import { applyReraMetadataToBuildings } from './rera-matcher';
 
 export const SAMPLE_PARCELS: Parcel[] = [..._SAMPLE_PARCELS, ...MAHARERA_PARCELS];
-export const SAMPLE_BUILDINGS: Building[] = [..._SAMPLE_BUILDINGS, ...MAHARERA_BUILDINGS];
+
+const baseBuildings = [..._SAMPLE_BUILDINGS, ...MAHARERA_BUILDINGS];
+export const SAMPLE_BUILDINGS: Building[] = applyReraMetadataToBuildings(baseBuildings, SAMPLE_PARCELS);
+
 export const SAMPLE_VERTICAL_UNITS: VerticalUnit[] = [..._SAMPLE_VERTICAL_UNITS, ...MAHARERA_UNITS];

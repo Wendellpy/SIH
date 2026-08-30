@@ -9,6 +9,7 @@ import { cadastreRouter } from './controllers/cadastre.controller.js';
 import { jobsRouter } from './controllers/jobs.controller.js';
 import { adminRouter } from './controllers/admin.controller.js';
 import { maharashtraRouter } from './controllers/maharashtra.controller.js';
+import { reraRouter } from './controllers/rera.controller.js';
 import { jobsService } from './services/jobs.service.js';
 
 const app = express();
@@ -36,6 +37,7 @@ app.use('/api/v1', cadastreRouter);
 app.use('/api/v1', jobsRouter);
 app.use('/api/v1/admin', adminRouter);
 app.use('/api/v1/maharashtra', maharashtraRouter);
+app.use('/api/v1', reraRouter);
 
 // WebSocket Real-time Job Progress Streaming
 const clients = new Set<WebSocket>();
