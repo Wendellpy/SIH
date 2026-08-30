@@ -163,11 +163,11 @@ cadastreRouter.get('/search', (req: Request, res: Response) => {
 cadastreRouter.post('/units/:ulpin/property-card', async (req: Request, res: Response) => {
   try {
     const { ulpin } = req.params;
-    const { thumbnailBase64 } = req.body; // Expect JSON body parsing middleware is enabled
+    const { thumbnailBase64, simulatedData, simulatedType } = req.body; // Expect JSON body parsing middleware is enabled
 
     // Try finding as VerticalUnit
     let entity: any = db.getVerticalUnitBy3DUlpin(ulpin);
-    let type: 'VerticalUnit' | 'Parcel' | 'UndergroundAsset' = 'VerticalUnit';
+    let type: 'VerticalUnit' | 'Parcel' | 'UndergroundAsset' | 'Building' = 'VerticalUnit';
 
     // If not found, try finding as Parcel
     if (!entity) {
@@ -179,6 +179,11 @@ cadastreRouter.post('/units/:ulpin/property-card', async (req: Request, res: Res
     if (!entity) {
       entity = db.getUndergroundAssets().find(a => a.ulpin3D.toUpperCase() === ulpin.toUpperCase());
       type = 'UndergroundAsset';
+    }
+
+    if (!entity && simulatedData) {
+      entity = simulatedData;
+      type = simulatedType;
     }
 
     if (!entity) {

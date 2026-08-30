@@ -7,6 +7,9 @@ const inter = Inter({ subsets: ['latin'] });
 export const metadata: Metadata = {
   title: '3D ULPIN Generation & Vertical Property Mapping System | DoLR #26011',
   description: 'Production-grade 3D Cadastral Registry & Vertical Property Mapping System for Ministry of Rural Development, Dept. of Land Resources (Smart India Hackathon #26011). Built for Mumbai BMC Region.',
+  icons: {
+    icon: '/favicon-v2.png',
+  },
 };
 
 export default function RootLayout({

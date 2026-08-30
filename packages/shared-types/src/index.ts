@@ -97,6 +97,7 @@ export interface Parcel {
 export interface Building {
   id: string;
   parcelId: string;
+  ulpin3D?: string;
   name: string;
   footprint: GeoPolygon2D;
   eavesHeightM: number;

@@ -373,6 +373,28 @@ const _SAMPLE_PARCELS: Parcel[] = [
     simulated: true,
     createdAt: '2026-01-10T08:00:00Z',
     updatedAt: '2026-08-20T10:00:00Z'
+  },
+  {
+    id: 'parcel-bandra-crce',
+    ulpin: 'MH13BOM05521990',
+    state: 'Maharashtra',
+    district: 'Mumbai Suburban',
+    tehsil: 'Bandra',
+    village: 'Bandra West',
+    surveyNumber: 'CTS-CRCE',
+    areaSqm: 8000.0,
+    centroid: [72.82096, 19.04443],
+    boundary: {
+      type: 'Polygon',
+      coordinates: [[
+        [72.8205, 19.0440], [72.8215, 19.0440], [72.8215, 19.0450], [72.8205, 19.0450], [72.8205, 19.0440]
+      ]]
+    },
+    crs: 'EPSG:4326',
+    ownershipType: 'Private',
+    simulated: true,
+    createdAt: '2026-01-10T08:00:00Z',
+    updatedAt: '2026-08-20T10:00:00Z'
   }
 ];
 
@@ -380,6 +402,25 @@ const _SAMPLE_PARCELS: Parcel[] = [
  * Iconic Mumbai 3D Buildings across the metropolis
  */
 const _SAMPLE_BUILDINGS: Building[] = [
+  // --- Bandra West ---
+  {
+    id: 'bldg-bandra-crce',
+    parcelId: 'parcel-bandra-crce',
+    name: 'Fr Conceicao Rodrigues College of Engineering',
+    footprint: {
+      type: 'Polygon',
+      coordinates: [[[72.8208, 19.0443], [72.8211, 19.0443], [72.8211, 19.0446], [72.8208, 19.0446], [72.8208, 19.0443]]]
+    },
+    eavesHeightM: 34.2, // 9 floors * 3.8m
+    roofHeightM: 36.2,
+    numFloors: 9,
+    numBasements: 1,
+    plinthElevationM: 4.5,
+    yearBuilt: 1984,
+    totalBuiltupAreaSqm: 15000,
+    address: 'Father Agnel Ashram, Bandstand, Bandra West, Mumbai 400050',
+    simulated: true
+  },
   // --- BKC ---
   {
     id: 'bldg-bkc-fintech-tower',
@@ -683,9 +724,43 @@ const _SAMPLE_BUILDINGS: Building[] = [
 export function generateSampleVerticalUnits(): VerticalUnit[] {
   const units: VerticalUnit[] = [];
 
-  // 1. BKC FinTech Tower Units (Floors -02 to +16)
-  const bkcParcel = _SAMPLE_PARCELS[0];
-  const bkcBuilding = _SAMPLE_BUILDINGS[0];
+  // 1. CRCE College (Floors 0 to 8)
+  const crceBuilding = _SAMPLE_BUILDINGS.find(b => b.id === 'bldg-bandra-crce');
+  const crceParcel = _SAMPLE_PARCELS.find(p => p.id === 'parcel-bandra-crce');
+  if (crceBuilding && crceParcel) {
+    for (let f = 0; f < 9; f++) {
+      const levelCode = f === 0 ? 'G' : `+0${f}`;
+      for (let u = 1; u <= 4; u++) {
+        const zMin = f * 3.8;
+        const zMax = (f + 1) * 3.8;
+        units.push({
+          id: `unit-crce-${f}0${u}`,
+          buildingId: crceBuilding.id,
+          parcelId: crceParcel.id,
+          ulpin3D: formatUlpin3D(crceParcel.ulpin, 'A', f, `U${f}0${u}`),
+          domainCode: 'A',
+          levelCode,
+          unitCode: `U${f}0${u}`,
+          floorNumber: f,
+          unitName: `CRCE Room ${f}0${u}`,
+          useType: f === 0 ? 'Admin' : (f === 8 ? 'Lab' : 'Classroom'),
+          ownerName: 'Father Agnel Ashram',
+          ownerId: 'ORG-MH-CRCE',
+          carpetAreaSqm: 85.0,
+          builtupAreaSqm: 100.0,
+          zMin,
+          zMax,
+          simulated: true,
+          zOffsetFromGroundM: zMin,
+          heightM: 3.8
+        });
+      }
+    }
+  }
+
+  // 2. BKC FinTech Tower Units (Floors -02 to +16)
+  const bkcParcel = _SAMPLE_PARCELS.find(p => p.id === 'parcel-bkc-fintech') || _SAMPLE_PARCELS[0];
+  const bkcBuilding = _SAMPLE_BUILDINGS.find(b => b.id === 'bldg-bkc-fintech-tower') || _SAMPLE_BUILDINGS[0];
 
   // Basements
   for (let b = 2; b >= 1; b--) {

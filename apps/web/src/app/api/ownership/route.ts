@@ -273,7 +273,7 @@ const OWNERSHIP_DB: Record<string, OwnershipRecord> = {
     totalFloors: 75,
     useType: 'Residential',
     registrationDate: '2018-07-15',
-    mahabhulekhLink: 'https://bhulekh.mahabhumi.gov.in/mumbai/worli/1180',
+    mahabhulekhLink: 'https://bhulekh.mahabhumi.gov.in/',
     source: 'Simulated',
   },
 };
@@ -331,7 +331,7 @@ export async function GET(request: NextRequest) {
       totalFloors: 0,
       useType: 'Mixed',
       registrationDate: '',
-      mahabhulekhLink: `https://bhulekh.mahabhumi.gov.in/mumbai/search?q=${encodeURIComponent(buildingName)}`,
+      mahabhulekhLink: 'https://bhulekh.mahabhumi.gov.in/',
       source: 'Simulated',
     };
   }

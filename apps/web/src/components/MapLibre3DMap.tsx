@@ -3,6 +3,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import * as maplibregl from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
+
 import { 
   Building2, 
   Compass, 
@@ -23,7 +24,7 @@ import { useAppStore } from '@/lib/store';
 import { formatUlpin3D, Building } from '@sih/shared-types';
 import MapboxDraw from '@mapbox/mapbox-gl-draw';
 import * as turf from '@turf/turf';
-import { SAMPLE_BUILDINGS } from '@sih/sample-data';
+import { SAMPLE_BUILDINGS, SAMPLE_VERTICAL_UNITS } from '@sih/sample-data';
 import { ClearanceTool } from './ClearanceTool';
 import { generateProceduralUtilities } from '@/lib/proceduralUtilities';
 
@@ -71,7 +72,7 @@ export const MapLibre3DMap: React.FC = () => {
   const [copied, setCopied] = useState(false);
   const [selectedFloor, setSelectedFloor] = useState<string>('Ground Floor');
   const [selectedUnit, setSelectedUnit] = useState<string>('101');
-  const { layers, setActiveTab, setSelectedBuilding, flyToTarget, setFlyToTarget, activeUndergroundLayerIds, currentRole, temporalYear, floodSimulation, searchedParcelGeoJSON } = useAppStore();
+  const { layers, setActiveTab, setSelectedBuilding, flyToTarget, setFlyToTarget, activeUndergroundLayerIds, currentRole, temporalYear, floodSimulation, searchedParcelGeoJSON, mapViewState, setMapViewState } = useAppStore();
 
   const drawRef = useRef<MapboxDraw | null>(null);
   const dynamicBuildingsRef = useRef<any[]>([]);
@@ -106,6 +107,7 @@ export const MapLibre3DMap: React.FC = () => {
       const map = new maplibregl.Map({
         container: mapContainerRef.current,
         preserveDrawingBuffer: true,
+        attributionControl: false,
         style: {
           version: 8,
           name: 'Mumbai 3D Dark Cadastre',
@@ -133,8 +135,8 @@ export const MapLibre3DMap: React.FC = () => {
               source: 'openmaptiles',
               'source-layer': 'landcover',
               paint: {
-                'fill-color': '#10b981',
-                'fill-opacity': 0.5
+                'fill-color': '#1c3326', // Subtle dark forest green
+                'fill-opacity': 1.0
               }
             },
             // Landuse
@@ -144,8 +146,8 @@ export const MapLibre3DMap: React.FC = () => {
               source: 'openmaptiles',
               'source-layer': 'landuse',
               paint: {
-                'fill-color': '#1e293b',
-                'fill-opacity': 0.7
+                'fill-color': '#111827', // Very dark grey/black ground
+                'fill-opacity': 1.0
               }
             },
             // Water Bodies
@@ -155,8 +157,8 @@ export const MapLibre3DMap: React.FC = () => {
               source: 'openmaptiles',
               'source-layer': 'water',
               paint: {
-                'fill-color': '#3b82f6',
-                'fill-opacity': 0.7
+                'fill-color': '#0f2744', // Subtle dark navy blue
+                'fill-opacity': 1.0
               }
             },
             // Waterways
@@ -166,9 +168,9 @@ export const MapLibre3DMap: React.FC = () => {
               source: 'openmaptiles',
               'source-layer': 'waterway',
               paint: {
-                'line-color': '#10b981',
+                'line-color': '#0f2744',
                 'line-width': 2,
-                'line-opacity': 0.8
+                'line-opacity': 1.0
               }
             },
             // Roads
@@ -178,7 +180,7 @@ export const MapLibre3DMap: React.FC = () => {
               source: 'openmaptiles',
               'source-layer': 'transportation',
               paint: {
-                'line-color': '#475569',
+                'line-color': '#374151', // Medium grey to stand out against dark ground
                 'line-width': [
                   'interpolate', ['linear'], ['zoom'],
                   10, 0.8,
@@ -195,7 +197,7 @@ export const MapLibre3DMap: React.FC = () => {
               source: 'openmaptiles',
               'source-layer': 'transportation',
               paint: {
-                'line-color': '#334155',
+                'line-color': '#4b5563', // Lighter grey for major roads
                 'line-width': [
                   'interpolate', ['linear'], ['zoom'],
                   10, 1.5,
@@ -211,8 +213,8 @@ export const MapLibre3DMap: React.FC = () => {
               source: 'openmaptiles',
               'source-layer': 'building',
               paint: {
-                'fill-color': '#14b8a6',
-                'fill-opacity': 0.65
+                'fill-color': '#94a3b8', // Slate 400 base
+                'fill-opacity': 1.0
               }
             },
             // 3D Building Extrusion Layer (Pitched at 45 Degrees)
@@ -223,26 +225,11 @@ export const MapLibre3DMap: React.FC = () => {
               'source-layer': 'building',
               minzoom: 12,
               paint: {
-                'fill-extrusion-color': [
-                  'case',
-                  ['all', ['has', 'render_height'], ['>', ['get', 'render_height'], 0]],
-                  [
-                    'interpolate',
-                    ['linear'],
-                    ['get', 'render_height'],
-                    0, '#0ea5e9',      // Cyan (Low-rise)
-                    25, '#38bdf8',     // Sky Blue (Mid-rise)
-                    60, '#818cf8',     // Indigo (High-rise)
-                    120, '#c084fc',    // Purple (Skyscraper)
-                    220, '#f43f5e',    // Coral Red (Supertall)
-                    300, '#fbbf24'     // Golden Peak (Ultra-tall)
-                  ],
-                  '#38bdf8' // Default fallback building color
-                ],
+                'fill-extrusion-color': '#94a3b8', // Slate 400 allows directional shading
                 'fill-extrusion-height': [
                   'case',
                   ['all', ['has', 'render_height'], ['>', ['get', 'render_height'], 0]],
-                  ['get', 'render_height'],
+                  ['case', ['>', ['get', 'render_height'], 400], 400, ['get', 'render_height']],
                   18 // Default height in meters if unspecified or 0
                 ],
                 'fill-extrusion-base': [
@@ -251,7 +238,7 @@ export const MapLibre3DMap: React.FC = () => {
                   ['get', 'render_min_height'],
                   0
                 ],
-                'fill-extrusion-opacity': 0.90
+                'fill-extrusion-opacity': 1.0
               }
             },
             // POI Labels (used to extract building/place names on click)
@@ -297,177 +284,29 @@ export const MapLibre3DMap: React.FC = () => {
             }
           ]
         },
-        center: [72.8280, 18.9960], // Worli & Lower Parel dense high-rise centroid
-        zoom: 14.8,
-        pitch: 45, // 45 Degrees Pitch!
-        bearing: -17.5
+        center: mapViewState ? [mapViewState.lng, mapViewState.lat] : [72.8280, 18.9960],
+        zoom: mapViewState ? mapViewState.zoom : 14.8,
+        pitch: mapViewState ? mapViewState.pitch : 45,
+        bearing: mapViewState ? mapViewState.bearing : -17.5
       });
 
-      map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }), 'top-right');
-      map.addControl(new maplibregl.FullscreenControl(), 'top-right');
-
       map.on('load', () => {
-        // Overlay authoritative buildings (MyBMC, MahaRERA, DoLR)
-        const authoritativeFeatures = SAMPLE_BUILDINGS.map((b, i) => ({
-          type: 'Feature' as const,
-          properties: {
-            id: `auth-${i}`,
-            buildingId: b.id,
-            name: b.name,
-            render_height: b.roofHeightM,
-            year_built: b.yearBuilt || 2020,
-            floors: b.numFloors
-          },
-          geometry: b.footprint
-        }));
-
-        map.addSource('authoritative-buildings-source', {
-          type: 'geojson',
-          data: {
-            type: 'FeatureCollection',
-            features: authoritativeFeatures
-          }
-        });
-
-        map.addLayer({
-          id: 'authoritative-buildings-layer',
-          type: 'fill-extrusion',
-          source: 'authoritative-buildings-source',
-          minzoom: 12,
-          paint: {
-            'fill-extrusion-color': [
-              'case',
-              ['<=', ['get', 'year_built'], temporalYear], '#fbbf24', // Show if built by timeline year
-              'transparent'
-            ],
-            'fill-extrusion-height': ['get', 'render_height'],
-            'fill-extrusion-base': 0,
-            'fill-extrusion-opacity': 0.95
-          }
-        });
-
         setMapLoaded(true);
+        
+        // Persist map state on movement to return exactly where we left off
+        map.on('moveend', () => {
+          setMapViewState({
+            lng: parseFloat(map.getCenter().lng.toFixed(5)),
+            lat: parseFloat(map.getCenter().lat.toFixed(5)),
+            zoom: parseFloat(map.getZoom().toFixed(2)),
+            pitch: parseFloat(map.getPitch().toFixed(2)),
+            bearing: parseFloat(map.getBearing().toFixed(2))
+          });
+        });
       });
 
       map.on('error', (e) => {
         console.warn('[MapLibre] Map warning/error event:', e);
-      });
-
-      // OpenStreetMap Nominatim API Fallback for missing buildings
-      map.on('click', async (e) => {
-        // Only trigger if we didn't click an existing 3D building
-        const features = map.queryRenderedFeatures(e.point, { layers: ['authoritative-buildings-layer', '3d-buildings'] });
-        if (features.length > 0) return; 
-
-        const lng = parseFloat(e.lngLat.lng.toFixed(5));
-        const lat = parseFloat(e.lngLat.lat.toFixed(5));
-        
-        try {
-          const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1`, {
-            headers: {
-              'Accept-Language': 'en'
-            }
-          });
-          const data = await res.json();
-          
-          if (data && data.address) {
-            // Extract the name from address components
-            let buildingName = data.address.building || data.address.amenity || data.address.office || data.address.shop || data.address.house || data.name || data.display_name;
-            if (buildingName.length > 30) buildingName = buildingName.split(',')[0];
-            
-            const bldgId = `osm-fallback-${Date.now().toString(36)}`;
-            const dynamicBuilding: Building = {
-              id: bldgId,
-              parcelId: `parcel-${bldgId}`,
-              name: buildingName,
-              footprint: {
-                type: 'Polygon',
-                coordinates: [[
-                  [lng - 0.0001, lat - 0.0001],
-                  [lng + 0.0001, lat - 0.0001],
-                  [lng + 0.0001, lat + 0.0001],
-                  [lng - 0.0001, lat + 0.0001],
-                  [lng - 0.0001, lat - 0.0001],
-                ]]
-              },
-              eavesHeightM: 10,
-              roofHeightM: 12,
-              numFloors: 3,
-              numBasements: 0,
-              plinthElevationM: 0,
-              totalBuiltupAreaSqm: 400,
-              address: data.display_name,
-              city: data.address.city || data.address.town || 'Unknown',
-              state: data.address.state || 'Unknown',
-              pincode: data.address.postcode || '000000',
-              constructionYear: 2000,
-              buildingType: 'Mixed Use',
-              fireSafetyCompliance: true,
-              structuralAuditValidTill: new Date().toISOString()
-            };
-
-            const latStr = Math.round(lat * 1000000).toString(36).padStart(5, '0');
-            const lngStr = Math.round(lng * 1000000).toString(36).padStart(6, '0');
-            const ulpin3D = formatUlpin3D(`MH1${latStr}${lngStr}`.toUpperCase(), 'A', 3, 'U301');
-
-            // Visually add the missing building to the 3D map
-            const newFeature = {
-              type: 'Feature',
-              properties: {
-                height: dynamicBuilding.roofHeightM,
-                color: '#f59e0b' // Amber/Yellow to highlight that it's a fallback building
-              },
-              geometry: dynamicBuilding.footprint
-            };
-            dynamicBuildingsRef.current.push(newFeature);
-            
-            if (!map.getSource('fallback-buildings-source')) {
-              map.addSource('fallback-buildings-source', {
-                type: 'geojson',
-                data: { type: 'FeatureCollection', features: dynamicBuildingsRef.current }
-              });
-              map.addLayer({
-                id: 'fallback-buildings-3d',
-                type: 'fill-extrusion',
-                source: 'fallback-buildings-source',
-                paint: {
-                  'fill-extrusion-color': ['get', 'color'],
-                  'fill-extrusion-height': ['get', 'height'],
-                  'fill-extrusion-base': 0,
-                  'fill-extrusion-opacity': 0.85
-                }
-              }, map.getLayer('poi-labels') ? 'poi-labels' : undefined);
-            } else {
-              const source = map.getSource('fallback-buildings-source') as maplibregl.GeoJSONSource;
-              source.setData({
-                type: 'FeatureCollection',
-                features: dynamicBuildingsRef.current
-              });
-            }
-
-            setSelectedBuildingInfo({
-              id: bldgId,
-              height: 12,
-              minHeight: 0,
-              floors: 3,
-              ulpin3D,
-              coordinates: [lng, lat],
-              building: dynamicBuilding,
-              buildingName,
-              ownership: null,
-              bmcData: {
-                sacNumber: 'OSM-NOMINATIM',
-                usage: 'Sourced from OpenStreetMap',
-                name: buildingName,
-                noOfFloorsStr: '3'
-              },
-              isAnimated: false
-            });
-            setSelectedBuilding(dynamicBuilding);
-          }
-        } catch (err) {
-          console.error('[MapLibre] Nominatim API Fallback failed:', err);
-        }
       });
 
       // Click on 3D Building
@@ -533,11 +372,23 @@ export const MapLibre3DMap: React.FC = () => {
         });
       });
 
-      map.on('click', '3d-buildings', async (e) => {
-        if (!e.features || e.features.length === 0) return;
-        const f = e.features[0];
+      map.on('click', async (e) => {
+        // Expand hit area by 3 pixels for better accuracy
+        let bldgs: any[] = [];
+        try {
+          const availableLayers = ['detailed-landmarks-3d', '3d-buildings'].filter(l => map.getLayer(l));
+          if (availableLayers.length > 0) {
+            bldgs = map.queryRenderedFeatures(e.point, { layers: availableLayers });
+          }
+        } catch (err) {
+          console.warn("Layer query failed", err);
+        }
+        
+        if (bldgs.length === 0) return;
+        
+        const f = bldgs[0];
         const props = f.properties || {};
-        const rawHeight = (props.render_height && props.render_height > 0) ? props.render_height : 18;
+        const rawHeight = (props.render_height && props.render_height > 0) ? props.render_height : (props.height || 18);
         const height = Math.min(rawHeight, 300);
         const minHeight = props.render_min_height || 0;
         const floors = Math.max(1, Math.min(Math.round(height / 3.8), 80));
@@ -586,32 +437,107 @@ export const MapLibre3DMap: React.FC = () => {
         const lngStr = Math.round(lng * 1000000).toString(36).padStart(6, '0');
         const baseUlpin = `MH1${latStr}${lngStr}`.toUpperCase();
         
-        const ulpin3D = formatUlpin3D(baseUlpin, 'A', Math.min(floors, 3), `U${Math.min(floors, 3)}01`);
-        const bldgId = `osm-bldg-${Date.now().toString(36)}`;
+        const ulpin3D = formatUlpin3D(baseUlpin, 'A', 0, 'G01'); // Default to ground floor unit instead of placeholder U301
+        // Check if this click corresponds to a known authoritative building in our mock database
+        let matchedBuilding = null;
+        try {
+          const clickPoint = turf.point([lng, lat]);
+          matchedBuilding = SAMPLE_BUILDINGS.find(b => {
+            if (!b.footprint || !b.footprint.coordinates || b.footprint.coordinates.length === 0) return false;
+            // Ensure polygon is closed for turf
+            let polyCoords = [...b.footprint.coordinates[0]];
+            if (polyCoords[0][0] !== polyCoords[polyCoords.length-1][0] || polyCoords[0][1] !== polyCoords[polyCoords.length-1][1]) {
+              polyCoords.push([...polyCoords[0]]);
+            }
+            if (polyCoords.length < 4) return false;
+            const poly = turf.polygon([polyCoords]);
+            return turf.booleanPointInPolygon(clickPoint, poly);
+          });
+        } catch (e) {
+          console.warn("Geospatial match failed", e);
+        }
 
-        const dynamicBuilding: Building = {
-          id: bldgId,
-          parcelId: `parcel-${bldgId}`,
-          name: buildingName !== 'Unnamed Building' ? buildingName : `Building at ${lng}, ${lat}`,
-          footprint: {
+        // Ensure procedural buildings use their predefined ID instead of thrashing state
+        const bldgId = String(matchedBuilding ? matchedBuilding.id : (props.bldgId || (f.id ? `osm-${f.id}` : `osm-bldg-${Date.now().toString(36)}`)));
+        if (matchedBuilding) {
+           buildingName = matchedBuilding.name;
+        } else if (props.name) {
+           buildingName = props.name;
+        }
+
+        // Extract exact building geometry directly from the hit feature
+        // MapLibre queryRenderedFeatures returns the unprojected 2D ground footprint even for 3D layers.
+        let baseGeometry = f.geometry;
+        
+        if (matchedBuilding && matchedBuilding.footprint) {
+          baseGeometry = matchedBuilding.footprint;
+        } else if (baseGeometry.type === 'MultiPolygon') {
+          // Fix MultiPolygon Chunk Selection:
+          // Break apart the tile-chunked MultiPolygon and isolate the single specific building the user clicked
+          // by finding the constituent polygon closest to the 3D ground hit point.
+          let targetPolygon = null;
+          let minDistance = Infinity;
+          const clickPt = turf.point([lng, lat]);
+
+          (baseGeometry as any).coordinates.forEach((coords: any) => {
+            try {
+              const poly = turf.polygon(coords);
+              const center = turf.centroid(poly);
+              const dist = turf.distance(clickPt, center);
+              if (dist < minDistance) {
+                minDistance = dist;
+                targetPolygon = poly.geometry;
+              }
+            } catch(e) {}
+          });
+
+          if (targetPolygon) {
+             baseGeometry = targetPolygon;
+          }
+        } else if (baseGeometry.type !== 'Polygon') {
+          // Fallback if not a polygon (e.g. Point) and not in our database
+          baseGeometry = {
             type: 'Polygon',
             coordinates: [[
               [lng - 0.0002, lat - 0.0002],
               [lng + 0.0002, lat - 0.0002],
               [lng + 0.0002, lat + 0.0002],
               [lng - 0.0002, lat + 0.0002],
-              [lng - 0.0002, lat - 0.0002],
+              [lng - 0.0002, lat - 0.0002]
             ]]
-          },
+          };
+        }
+
+        // Correct for 3D Perspective Shift:
+        // Clicking a tall 3D roof returns the 'lng/lat' of the ground FAR BEHIND the building.
+        // We must query the MyBMC API using the precise 2D ground centroid of the extracted footprint.
+        let queryLng = lng;
+        let queryLat = lat;
+        try {
+          if (baseGeometry) {
+            const center = turf.centroid(baseGeometry);
+            queryLng = parseFloat(center.geometry.coordinates[0].toFixed(5));
+            queryLat = parseFloat(center.geometry.coordinates[1].toFixed(5));
+          }
+        } catch (e) {
+          console.warn('Centroid calculation failed', e);
+        }
+
+        const dynamicBuilding: Building = {
+          id: bldgId as string,
+          parcelId: `parcel-${bldgId}`,
+          ulpin3D,
+          name: buildingName !== 'Unnamed Building' ? buildingName : `Building at ${queryLng}, ${queryLat}`,
+          footprint: baseGeometry,
           eavesHeightM: Math.round(height * 0.85),
           roofHeightM: Math.round(height),
           numFloors: floors,
           numBasements: 0,
           plinthElevationM: Math.round(minHeight),
           totalBuiltupAreaSqm: floors * 650,
-          address: `Mumbai, Maharashtra (${lng}, ${lat})`,
+          address: `Mumbai, Maharashtra (${queryLng}, ${queryLat})`,
           simulated: true,
-          constructionYear: yearBuilt,
+          yearBuilt: 2000,
         };
 
         // Reset dropdowns
@@ -625,17 +551,20 @@ export const MapLibre3DMap: React.FC = () => {
           minHeight: Math.round(minHeight),
           floors,
           ulpin3D,
-          coordinates: [lng, lat],
+          coordinates: [queryLng, queryLat],
           building: dynamicBuilding,
           buildingName,
           ownership: null,
           bmcData: undefined, // undefined initially
-          isAnimated
+          isAnimated,
+          featureId: f.id,
+          featureSource: f.source,
+          featureBldgId: props.bldgId
         });
 
-        // Step 1.5: Fetch MyBMC Data asynchronously
+        // Step 1.5: Fetch MyBMC Data asynchronously (now enforcing strict MyBMC selection & true geometry)
         setIsFetchingBmc(true);
-        fetch(`https://mybmcid.mcgm.gov.in/server/rest/services/MCGM_UID/IPVS/FeatureServer/1/query?geometry=${lng},${lat}&geometryType=esriGeometryPoint&inSR=4326&spatialRel=esriSpatialRelIntersects&outFields=*&returnGeometry=false&f=json`)
+        fetch(`https://mybmcid.mcgm.gov.in/server/rest/services/MCGM_UID/IPVS/FeatureServer/1/query?geometry=${queryLng},${queryLat}&geometryType=esriGeometryPoint&inSR=4326&spatialRel=esriSpatialRelIntersects&outFields=*&returnGeometry=true&outSR=4326&f=json`)
           .then(res => res.json())
           .then(bmcJson => {
             if (bmcJson && bmcJson.features && bmcJson.features.length > 0) {
@@ -658,12 +587,16 @@ export const MapLibre3DMap: React.FC = () => {
               }
               
               if (parsedFloors > 0) {
-                 const accurateFloors = parsedFloors;
+                 const accurateFloors = Math.max(floors, parsedFloors);
                  const accurateHeight = accurateFloors * 3.5;
                  
                  setSelectedBuildingInfo(prev => {
                    if (!prev) return prev;
                    // Update the dynamic building with accurate heights
+                   let finalName = (bmcData.name && bmcData.name.trim().length > 1) ? bmcData.name : prev.building.name;
+                   if (bmcData.usage && bmcData.usage !== 'Unknown' && !finalName.includes('[')) {
+                      finalName = `${finalName} [${bmcData.usage}]`;
+                   }
                    const updatedBuilding = {
                      ...prev.building,
                      eavesHeightM: Math.round(accurateHeight * 0.85),
@@ -671,7 +604,7 @@ export const MapLibre3DMap: React.FC = () => {
                      numFloors: accurateFloors,
                      numBasements: hasBasement ? 1 : 0,
                      totalBuiltupAreaSqm: accurateFloors * 650,
-                     name: (bmcData.name && bmcData.name.trim().length > 1) ? bmcData.name : prev.building.name
+                     name: finalName
                    };
                    
                    return {
@@ -687,7 +620,7 @@ export const MapLibre3DMap: React.FC = () => {
             } else {
               // Pan-India Fallback: Overpass API
               // Search for any named feature (node, way, relation) within 30 meters, or just any building
-              const overpassQuery = `[out:json];(nwr(around:30,${lat},${lng})["name"];nwr(around:30,${lat},${lng})["building"];);out tags;`;
+              const overpassQuery = `[out:json];(nwr(around:30,${queryLat},${queryLng})["name"];nwr(around:30,${queryLat},${queryLng})["building"];);out tags;`;
               return fetch(`https://overpass-api.de/api/interpreter`, {
                 method: 'POST',
                 body: overpassQuery
@@ -697,17 +630,45 @@ export const MapLibre3DMap: React.FC = () => {
                   const bestElement = osmJson.elements.find((e: any) => e.tags && (e.tags.name || e.tags['name:en'])) || osmJson.elements[0];
                   const tags = bestElement.tags || {};
                   
+                  let fallbackName = tags['building:levels'] ? `OSM Building (${tags['building:levels']} Floors)` : 'Generic OSM Structure';
+                  
                   const osmData = {
                     sacNumber: `OSM-${bestElement.id}`,
                     usage: tags.building || tags.amenity || tags.shop || tags.office || 'Unknown',
-                    name: tags.name || tags['name:en'] || 'Unnamed Building',
+                    name: tags.name || tags['name:en'] || fallbackName,
                     noOfFloorsStr: tags['building:levels'] || '',
                   };
-                  setSelectedBuildingInfo(prev => prev ? { 
-                    ...prev, 
-                    buildingName: osmData.name !== 'Unnamed Building' ? osmData.name : prev.buildingName,
-                    bmcData: osmData 
-                  } : prev);
+                  
+                  const updateState = (data: any) => {
+                    setSelectedBuildingInfo(prev => {
+                      if (!prev) return prev;
+                      let finalName = data.name !== 'Unnamed Building' ? data.name : prev.buildingName;
+                      if (data.usage && data.usage !== 'Unknown' && !finalName.includes('[')) {
+                         finalName = `${finalName} [${data.usage}]`;
+                      }
+                      return { 
+                        ...prev, 
+                        buildingName: finalName,
+                        building: { ...prev.building, name: finalName },
+                        bmcData: data 
+                      };
+                    });
+                  };
+
+                  if (!tags.name && !tags['name:en']) {
+                    // Stitch Layer: Nominatim Reverse Geocoding for nameless buildings
+                    fetch(`https://nominatim.openstreetmap.org/reverse?lat=${queryLat}&lon=${queryLng}&format=json`)
+                      .then(res => res.json())
+                      .then(nomData => {
+                        if (nomData && nomData.display_name) {
+                           osmData.name = nomData.display_name.split(',').slice(0, 2).join(', '); // Get short address
+                        }
+                        updateState(osmData);
+                      })
+                      .catch(() => updateState(osmData));
+                  } else {
+                    updateState(osmData);
+                  }
                 } else {
                   setSelectedBuildingInfo(prev => prev ? { ...prev, bmcData: { sacNumber: '', usage: '', name: '', noOfFloorsStr: '', notFound: true } } : prev);
                 }
@@ -715,7 +676,7 @@ export const MapLibre3DMap: React.FC = () => {
             }
           })
           .catch(err => {
-            console.warn('[MapLibre] Failed to fetch building metadata', err);
+            console.warn('[MapLibre] Failed to fetch data', err);
             setSelectedBuildingInfo(prev => prev ? {
               ...prev,
               bmcData: { sacNumber: '', usage: '', name: '', noOfFloorsStr: '', notFound: true }
@@ -809,7 +770,7 @@ export const MapLibre3DMap: React.FC = () => {
             buildingName: dynamicParcel.name,
             ownership: null,
             bmcData: { 
-              sacNumber: 'SAT-EXTRACT', 
+              sacNumber: `ML-SURF-${baseUlpin.slice(-6)}`, 
               usage: mlData.is_slope_corrected ? 'Slope Corrected (Satellite)' : 'Planimetric Fallback', 
               name: `True Area: ${mlData.surface_area_sqm} m²`, 
               noOfFloorsStr: '0' 
@@ -842,44 +803,99 @@ export const MapLibre3DMap: React.FC = () => {
     };
   }, []);
 
-  // Sync MCGM Underground Layers to MapLibre
+  // Dynamic MCGM Underground Utilities (Update on Pan/Zoom)
   useEffect(() => {
     if (!mapLoaded || !mapRef.current) return;
     const map = mapRef.current;
 
-    // Track active sources so we can remove ones that are toggled off
-    const currentLayerIds = map.getStyle().layers.filter(l => l.id.startsWith('mcgm-underground-')).map(l => l.id.replace('mcgm-underground-layer-', ''));
+    // X-Ray True Underground Mode: Make buildings and the ground transparent
+    const isUndergroundActive = activeUndergroundLayerIds.length > 0;
+    const buildingOpacity = isUndergroundActive ? 0.05 : 1.0;
+    const authOpacity = isUndergroundActive ? 0.1 : 0.95;
+    const groundOpacity = isUndergroundActive ? 0.05 : 0.5;
+    const landuseOpacity = isUndergroundActive ? 0.05 : 0.7;
+    const waterOpacity = isUndergroundActive ? 0.05 : 0.7;
+    const roadOpacity = isUndergroundActive ? 0.1 : 0.9;
+    const baseBuildingOpacity = isUndergroundActive ? 0.0 : 0.65;
 
-    // Remove inactive ones
-    currentLayerIds.forEach(idStr => {
-      const id = parseInt(idStr, 10);
-      if (!activeUndergroundLayerIds.includes(id)) {
-        if (map.getLayer(`mcgm-underground-layer-${id}`)) map.removeLayer(`mcgm-underground-layer-${id}`);
-        if (map.getSource(`mcgm-underground-source-${id}`)) map.removeSource(`mcgm-underground-source-${id}`);
+    try {
+      if (map.getLayer('3d-buildings')) {
+        map.setPaintProperty('3d-buildings', 'fill-extrusion-opacity', buildingOpacity);
       }
-    });
+      if (map.getLayer('authoritative-buildings-layer')) {
+        map.setPaintProperty('authoritative-buildings-layer', 'fill-extrusion-opacity', authOpacity);
+      }
+      if (map.getLayer('landcover')) {
+        map.setPaintProperty('landcover', 'fill-opacity', groundOpacity);
+      }
+      if (map.getLayer('landuse')) {
+        map.setPaintProperty('landuse', 'fill-opacity', landuseOpacity);
+      }
+      if (map.getLayer('water')) {
+        map.setPaintProperty('water', 'fill-opacity', waterOpacity);
+      }
+      if (map.getLayer('background')) {
+        map.setPaintProperty('background', 'background-opacity', isUndergroundActive ? 0.1 : 1.0);
+      }
+      if (map.getLayer('transportation-roads')) {
+        map.setPaintProperty('transportation-roads', 'line-opacity', roadOpacity);
+      }
+      if (map.getLayer('transportation-primary')) {
+        map.setPaintProperty('transportation-primary', 'line-opacity', roadOpacity);
+      }
+      if (map.getLayer('2d-buildings-base')) {
+        map.setPaintProperty('2d-buildings-base', 'fill-opacity', baseBuildingOpacity);
+      }
+    } catch (err) {
+      console.warn('[MapLibre] Failed to set X-Ray opacities', err);
+    }
 
-    // Add new ones
-    activeUndergroundLayerIds.forEach(async (id) => {
-      const sourceId = `mcgm-underground-source-${id}`;
-      const layerId = `mcgm-underground-layer-${id}`;
-      
-      if (!map.getSource(sourceId)) {
-        const bounds = map.getBounds();
-        const bbox = `${bounds.getWest()},${bounds.getSouth()},${bounds.getEast()},${bounds.getNorth()}`;
+    const updateMCGMLayers = async () => {
+      // Remove inactive layers
+      const style = map.getStyle();
+      if (!style || !style.layers) return;
+      const currentLayerIds = style.layers.filter(l => l.id.startsWith('mcgm-underground-')).map(l => l.id.replace('mcgm-underground-layer-', ''));
+      currentLayerIds.forEach(idStr => {
+        const id = parseInt(idStr, 10);
+        if (!activeUndergroundLayerIds.includes(id)) {
+          if (map.getLayer(`mcgm-underground-layer-${id}`)) map.removeLayer(`mcgm-underground-layer-${id}`);
+          if (map.getSource(`mcgm-underground-source-${id}`)) map.removeSource(`mcgm-underground-source-${id}`);
+        }
+      });
+
+      if (activeUndergroundLayerIds.length === 0) return;
+
+      const bounds = map.getBounds();
+      const bbox = `${bounds.getWest()},${bounds.getSouth()},${bounds.getEast()},${bounds.getNorth()}`;
+
+      // Fetch and update active layers
+      activeUndergroundLayerIds.forEach(async (id) => {
+        const sourceId = `mcgm-underground-source-${id}`;
+        const layerId = `mcgm-underground-layer-${id}`;
         
         try {
           const url = `https://prsrvgisapp.mcgm.gov.in/server/rest/services/mcgm/MCGMGIS_Departments_Master_All_Layers/MapServer/${id}/query?geometry=${bbox}&geometryType=esriGeometryEnvelope&inSR=4326&spatialRel=esriSpatialRelIntersects&outFields=*&returnGeometry=true&f=geojson&resultRecordCount=2000`;
           
-          const geojson = await fetch(url).then(r => r.json());
+          let rawGeojson = await fetch(url).then(r => r.json());
+          let geojson = rawGeojson;
           
-          if (!map.getSource(sourceId)) { // check again after async
+          if (rawGeojson && rawGeojson.features && rawGeojson.features.length > 0) {
+            try {
+              // OPTIMIZATION: Simplify the raw lines to reduce vertex count before buffering
+              const simplified = turf.simplify(rawGeojson as any, { tolerance: 0.00005, highQuality: false });
+              // OPTIMIZATION: Use steps: 2 (instead of default 8) to reduce the 3D polygon complexity by 75%
+              geojson = turf.buffer(simplified, 0.0015, { units: 'kilometers', steps: 2 });
+            } catch (err) {
+              console.warn('[MapLibre] Failed to buffer utility lines into 3D pipes:', err);
+            }
+          }
+          
+          if (!map.getSource(sourceId)) {
             map.addSource(sourceId, {
               type: 'geojson',
               data: geojson
             });
 
-            // Assign colors based on typical utility types
             let color = '#38bdf8'; // default cyan
             if ([4, 5].includes(id)) color = '#a855f7'; // Sewer = purple
             if ([6, 7].includes(id)) color = '#10b981'; // SWD = green
@@ -887,25 +903,32 @@ export const MapLibre3DMap: React.FC = () => {
 
             map.addLayer({
               id: layerId,
-              type: 'line',
+              type: 'fill-extrusion',
               source: sourceId,
-              layout: {
-                'line-join': 'round',
-                'line-cap': 'round'
-              },
               paint: {
-                'line-color': color,
-                'line-width': 4,
-                'line-dasharray': [2, 2],
-                'line-opacity': 0.8
+                'fill-extrusion-color': color,
+                'fill-extrusion-height': 2.1, // Visible above Z-culling plane
+                'fill-extrusion-base': 0.1,   // Above Z=0 to prevent maplibre culling
+                'fill-extrusion-opacity': 0.85
               }
             }, 'poi-labels'); // insert below labels
+          } else {
+            // Update the existing source with new data for the new chunk
+            (map.getSource(sourceId) as maplibregl.GeoJSONSource).setData(geojson as any);
           }
         } catch (e) {
           console.warn(`[MapLibre] Failed to load MCGM layer ${id}`, e);
         }
-      }
-    });
+      });
+    };
+
+    updateMCGMLayers(); // Trigger immediately when toggled
+    
+    map.on('moveend', updateMCGMLayers);
+    
+    return () => {
+      map.off('moveend', updateMCGMLayers);
+    };
   }, [activeUndergroundLayerIds, mapLoaded]);
 
   // Procedurally generate Pan-India Underground Utilities
@@ -989,6 +1012,8 @@ export const MapLibre3DMap: React.FC = () => {
     };
   }, [currentRole, mapLoaded]);
 
+
+
   // Sync searched parcel geometry
   useEffect(() => {
     const map = mapRef.current;
@@ -1040,6 +1065,75 @@ export const MapLibre3DMap: React.FC = () => {
       map.setLayoutProperty('mybmc-buildings-layer', 'visibility', layers.mybmc ? 'visible' : 'none');
     }
   }, [layers.mybmc, mapLoaded]);
+
+  // Dynamically overwrite OSM building with authoritative height on click
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !mapLoaded) return;
+
+    if (selectedBuildingInfo) {
+      const { featureId, featureSource, featureBldgId } = selectedBuildingInfo as any;
+      
+      // Highlight for OSM Vector Tile Buildings using pristine 2D geometry in a separate layer
+      if (featureSource === 'openmaptiles' && selectedBuildingInfo.building.footprint) {
+        const geojson = {
+          type: 'FeatureCollection',
+          features: [{
+            type: 'Feature',
+            geometry: selectedBuildingInfo.building.footprint,
+            properties: {
+              height: (selectedBuildingInfo.height || 18) + 0.5,
+              minHeight: selectedBuildingInfo.minHeight || 0
+            }
+          }]
+        };
+
+        if (!map.getSource('selected-osm-source')) {
+          map.addSource('selected-osm-source', {
+            type: 'geojson',
+            data: geojson as any
+          });
+          map.addLayer({
+            id: 'selected-osm-highlight',
+            type: 'fill-extrusion',
+            source: 'selected-osm-source',
+            paint: {
+              'fill-extrusion-color': '#0ea5e9',
+              'fill-extrusion-height': ['get', 'height'],
+              'fill-extrusion-base': ['get', 'minHeight'],
+              'fill-extrusion-opacity': 1.0 // Fully opaque, envelops original building to prevent Z-fighting
+            }
+          }, 'poi-labels');
+        } else {
+          (map.getSource('selected-osm-source') as maplibregl.GeoJSONSource).setData(geojson as any);
+        }
+      } else {
+        if (map.getLayer('selected-osm-highlight')) map.removeLayer('selected-osm-highlight');
+        if (map.getSource('selected-osm-source')) map.removeSource('selected-osm-source');
+      }
+
+      // Highlight for Procedural Landmarks directly on the base layer
+      if (featureSource === 'detailed-landmarks-source' && featureBldgId) {
+        if (map.getLayer('detailed-landmarks-3d')) {
+          map.setPaintProperty('detailed-landmarks-3d', 'fill-extrusion-color', [
+            'case',
+            ['==', ['get', 'bldgId'], featureBldgId], '#0ea5e9',
+            ['get', 'color']
+          ]);
+        }
+      } else {
+        if (map.getLayer('detailed-landmarks-3d')) {
+          map.setPaintProperty('detailed-landmarks-3d', 'fill-extrusion-color', ['get', 'color']);
+        }
+      }
+      
+    } else {
+      // Clear all highlights
+      if (map.getLayer('selected-osm-highlight')) map.removeLayer('selected-osm-highlight');
+      if (map.getSource('selected-osm-source')) map.removeSource('selected-osm-source');
+      if (map.getLayer('detailed-landmarks-3d')) map.setPaintProperty('detailed-landmarks-3d', 'fill-extrusion-color', ['get', 'color']);
+    }
+  }, [selectedBuildingInfo, mapLoaded]);
 
   // Manage Draw Tool based on role
   useEffect(() => {
@@ -1145,12 +1239,13 @@ export const MapLibre3DMap: React.FC = () => {
           type: 'fill-extrusion',
           source: 'flood-source',
           paint: {
-            'fill-extrusion-color': '#0284c7', // Darker water blue
-            'fill-extrusion-opacity': 0.65,
+            'fill-extrusion-color': '#06b6d4', // Sleek holographic cyan
+            'fill-extrusion-opacity': 0.45,
             'fill-extrusion-height': floodSimulation.waterLevelM,
-            'fill-extrusion-base': 0
+            'fill-extrusion-base': 0,
+            'fill-extrusion-height-transition': { duration: 300, delay: 0 }
           }
-        });
+        }, 'poi-labels');
       } else {
         map.setPaintProperty('flood-layer', 'fill-extrusion-height', floodSimulation.waterLevelM);
       }
@@ -1201,108 +1296,31 @@ export const MapLibre3DMap: React.FC = () => {
 
       <ClearanceTool currentFootprintGeoJSON={footprintGeoJSON} />
 
-      {/* Top-Left HUD */}
-      <div className="absolute top-5 left-5 glass-panel rounded-2xl p-4 max-w-sm pointer-events-auto space-y-3 transition-all duration-300 hover:bg-[#0b0f19]/80 group">
-        <div className="flex items-center justify-between border-b border-white/10 pb-2">
-          <div className="flex items-center gap-2">
-            <div className="p-1.5 rounded-lg bg-brand-primary/20 text-brand-primary">
-              <Building2 className="w-4 h-4" />
-            </div>
-            <div>
-              <h3 className="text-xs font-bold text-white leading-tight">
-                MapLibre 3D Vector Map
-              </h3>
-              <p className="text-[10px] text-cyan-300 font-mono">
-                osm-2020-02-10-v3.11_india_mumbai.mbtiles
-              </p>
-            </div>
-          </div>
-          <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300 font-semibold">
-            PITCH {currentPitch}°
-          </span>
+      {/* Top-Left HUD (Minimal Action Bar) */}
+      <div className="absolute top-5 left-5 glass-panel rounded-xl p-1.5 pointer-events-auto flex items-center shadow-xl border-white/10 backdrop-blur-md">
+        <div className="flex items-center gap-1.5 px-2.5 border-r border-white/10">
+          <Building2 className="w-3.5 h-3.5 text-brand-primary" />
+          <span className="text-[11px] font-bold text-white tracking-wide">3D MAP</span>
         </div>
-
-        {/* District Quick-Fly Buttons */}
-        <div className="space-y-1">
-          <div className="text-[9px] uppercase font-semibold text-slate-400">Jump to Mumbai District:</div>
-          <div className="grid grid-cols-2 gap-1.5 font-mono text-[10px]">
-            <button
-              onClick={() => flyToDistrict(72.8280, 18.9960, 15.2, 45, -30)}
-              className="px-2.5 py-1.5 bg-white/5 hover:bg-white/10 text-slate-200 rounded-lg text-left truncate border border-white/5 transition-all duration-200 font-bold text-cyan-300 hover:-translate-y-0.5 hover:shadow-lg"
-            >
-              🏙️ Worli Supertalls
-            </button>
-            <button
-              onClick={() => flyToDistrict(72.8236, 18.9256, 15.5, 45, 10)}
-              className="px-2.5 py-1.5 bg-white/5 hover:bg-white/10 text-slate-200 rounded-lg text-left truncate border border-white/5 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg"
-            >
-              🌊 Nariman Point
-            </button>
-            <button
-              onClick={() => flyToDistrict(72.8682, 19.0716, 15.0, 40, -15)}
-              className="px-2.5 py-1.5 bg-white/5 hover:bg-white/10 text-slate-200 rounded-lg text-left truncate border border-white/5 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg"
-            >
-              🏢 BKC Financial Hub
-            </button>
-            <button
-              onClick={() => flyToDistrict(72.8745, 19.0980, 14.8, 45, 0)}
-              className="px-2 py-1 bg-surface-100 hover:bg-surface-200 text-slate-200 rounded text-left truncate border border-white/5 transition-all"
-            >
-              ✈️ Airport T2 & Sahar
-            </button>
-          </div>
+        
+        <div className="flex items-center gap-1 px-2 border-r border-white/10">
+          <button onClick={() => flyToDistrict(72.8280, 18.9960, 15.2, 45, -30)} className="px-2 py-1 text-[10px] bg-white/5 hover:bg-white/10 rounded-md text-slate-300 font-medium transition-colors">Worli</button>
+          <button onClick={() => flyToDistrict(72.8236, 18.9256, 15.5, 45, 10)} className="px-2 py-1 text-[10px] bg-white/5 hover:bg-white/10 rounded-md text-slate-300 font-medium transition-colors">Nariman</button>
+          <button onClick={() => flyToDistrict(72.8682, 19.0716, 15.0, 40, -15)} className="px-2 py-1 text-[10px] bg-white/5 hover:bg-white/10 rounded-md text-slate-300 font-medium transition-colors">BKC</button>
+          <button onClick={() => flyToDistrict(72.8745, 19.0980, 14.8, 45, 0)} className="px-2 py-1 text-[10px] bg-white/5 hover:bg-white/10 rounded-md text-slate-300 font-medium transition-colors">Airport</button>
         </div>
-
-        {/* Pitch Angle Presets */}
-        <div className="flex items-center justify-between pt-1 border-t border-white/5 text-[10px]">
-          <span className="text-slate-400">Camera Pitch:</span>
-          <div className="flex gap-1">
-            <button
-              onClick={() => setMapPitch(45)}
-              className={`px-2 py-0.5 rounded font-mono font-medium transition-all ${
-                currentPitch === 45 ? 'bg-brand-primary text-white font-bold shadow' : 'bg-surface-100 text-slate-300'
-              }`}
-            >
-              45° (3D Extrusion)
-            </button>
-            <button
-              onClick={() => setMapPitch(60)}
-              className={`px-2 py-0.5 rounded font-mono font-medium transition-all ${
-                currentPitch === 60 ? 'bg-brand-primary text-white font-bold shadow' : 'bg-surface-100 text-slate-300'
-              }`}
-            >
-              60° (Perspective)
-            </button>
-            <button
-              onClick={() => setMapPitch(0)}
-              className={`px-2 py-0.5 rounded font-mono font-medium transition-all ${
-                currentPitch === 0 ? 'bg-brand-primary text-white font-bold shadow' : 'bg-surface-100 text-slate-300'
-              }`}
-            >
-              0° (2D Plan)
-            </button>
-          </div>
+        
+        <div className="flex items-center gap-1 pl-2 pr-1">
+          <button onClick={() => setMapPitch(0)} className={`px-2 py-1 text-[10px] font-bold rounded-md transition-colors ${currentPitch === 0 ? 'bg-brand-primary text-white shadow-sm' : 'bg-white/5 text-slate-400 hover:bg-white/10'}`}>2D</button>
+          <button onClick={() => setMapPitch(45)} className={`px-2 py-1 text-[10px] font-bold rounded-md transition-colors ${currentPitch === 45 ? 'bg-brand-primary text-white shadow-sm' : 'bg-white/5 text-slate-400 hover:bg-white/10'}`}>3D</button>
+          <button onClick={() => setMapPitch(60)} className={`px-2 py-1 text-[10px] font-bold rounded-md transition-colors ${currentPitch === 60 ? 'bg-brand-primary text-white shadow-sm' : 'bg-white/5 text-slate-400 hover:bg-white/10'}`}>60°</button>
         </div>
       </div>
 
-      {/* Building Height Color Ramp Legend (Bottom-Left) */}
-      <div className="absolute bottom-4 left-4 glass-panel rounded-xl p-2.5 border border-white/10 pointer-events-auto space-y-1.5 text-[10px] shadow-2xl">
-        <div className="font-semibold text-slate-200 flex items-center gap-1">
-          <Layers className="w-3.5 h-3.5 text-cyan-400" />
-          3D Building Height Gradient (m)
-        </div>
-        <div className="flex items-center gap-1 font-mono text-[9px]">
-          <span className="px-1.5 py-0.5 rounded bg-[#0ea5e9] text-white">0-25m</span>
-          <span className="px-1.5 py-0.5 rounded bg-[#38bdf8] text-black">25-60m</span>
-          <span className="px-1.5 py-0.5 rounded bg-[#818cf8] text-white">60-120m</span>
-          <span className="px-1.5 py-0.5 rounded bg-[#c084fc] text-black">120-220m</span>
-          <span className="px-1.5 py-0.5 rounded bg-[#f43f5e] text-white">220-300m+</span>
-        </div>
-      </div>
 
       {/* Clicked 3D Building Inspector Card (Bottom-Right) */}
       {selectedBuildingInfo && (
-        <div className="absolute bottom-5 right-5 glass-panel-glow rounded-3xl p-5 w-80 pointer-events-auto space-y-4 shadow-2xl animate-in slide-in-from-right-4 fade-in duration-300 overflow-y-auto max-h-[calc(100vh-480px)] custom-scrollbar">
+        <div className="absolute bottom-5 right-5 glass-panel-glow rounded-3xl p-5 w-80 pointer-events-auto space-y-4 shadow-2xl animate-in slide-in-from-right-4 fade-in duration-300 overflow-y-auto max-h-[85vh] custom-scrollbar">
           <div className="flex items-center justify-between pb-2 border-b border-white/10">
             <div className="flex items-center gap-2">
               <div className="p-1.5 rounded-lg bg-brand-primary/20 text-brand-primary">
@@ -1346,11 +1364,51 @@ export const MapLibre3DMap: React.FC = () => {
 
           {selectedBuildingInfo.bmcData && !selectedBuildingInfo.bmcData.notFound && (() => {
             // Helper for units
-            let unitPrefix = '';
-            if (selectedFloor === 'Ground Floor') unitPrefix = 'G';
-            else if (selectedFloor === 'Basement') unitPrefix = 'B';
-            else unitPrefix = selectedFloor.replace(/\D/g, '');
-            const availableUnits = [1, 2, 3, 4, 5, 6].map(u => `${unitPrefix}0${u}`);
+            let availableUnits: string[] = [];
+            let floorNumStr = 'F0';
+            
+            // Check if building has hardcoded sample units
+            const existingBldgUnits = SAMPLE_VERTICAL_UNITS.filter(u => u.buildingId === selectedBuildingInfo.id);
+            
+            let floorNumber = 0;
+            if (selectedFloor === 'Ground Floor') floorNumber = 0;
+            else if (selectedFloor === 'Basement') floorNumber = -1;
+            else floorNumber = parseInt(selectedFloor.replace(/\D/g, '')) || 0;
+            
+            if (selectedFloor === 'Ground Floor') floorNumStr = 'F0';
+            else if (selectedFloor === 'Basement') floorNumStr = 'B1';
+            else floorNumStr = `F${floorNumber}`;
+
+            if (existingBldgUnits.length > 0) {
+              // Real data exists! Use it.
+              const floorUnits = existingBldgUnits.filter(u => u.floorNumber === floorNumber);
+              availableUnits = floorUnits.map(u => u.unitCode);
+              if (availableUnits.length === 0) availableUnits = ['NO_UNITS_FOUND'];
+            } else {
+              // Dynamic fallback generator simulating real live data variations (1 to 5 flats per floor)
+              let hash = 0;
+              const idStr = selectedBuildingInfo.id || 'default';
+              for (let i = 0; i < idStr.length; i++) {
+                hash = idStr.charCodeAt(i) + ((hash << 5) - hash);
+              }
+              const unitsPerFloor = 1 + (Math.abs(hash) % 5);
+
+              availableUnits = Array.from({ length: unitsPerFloor }).map((_, i) => {
+                const idx = i + 1;
+                if (selectedFloor === 'Ground Floor') return `0${idx}`;
+                if (selectedFloor === 'Basement') return `B0${idx}`;
+                return `${floorNumber}${idx}`;
+              });
+            }
+            
+            // Ensure selectedUnit is valid for this floor
+            if (!availableUnits.includes(selectedUnit)) {
+              setTimeout(() => setSelectedUnit(availableUnits[0]), 0);
+            }
+
+            // Generate accurate dynamic ULPIN based on selection
+            const baseUlpin = selectedBuildingInfo.ulpin3D.split('.')[0] || selectedBuildingInfo.ulpin3D;
+            const dynamicUlpin3D = `${baseUlpin}.${floorNumStr}.${selectedUnit}`;
 
             // Helper for ordinals
             const getOrdinal = (n: number) => {
@@ -1453,21 +1511,42 @@ export const MapLibre3DMap: React.FC = () => {
           )}
 
           {/* Synthesized 3D ULPIN */}
-          <div className="glass-card p-3 rounded-2xl border border-white/5 bg-black/40 space-y-1.5">
-            <div className="flex justify-between text-[10px] text-slate-400">
-              <span>Synthesized 3D ULPIN</span>
-              <button
-                onClick={() => handleCopy(selectedBuildingInfo.ulpin3D)}
-                className="text-cyan-300 hover:text-white flex items-center gap-0.5 font-mono"
-              >
-                {copied ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3" />}
-                {copied ? 'Copied' : 'Copy'}
-              </button>
-            </div>
-            <div className="font-mono font-bold text-xs text-white break-all">
-              {selectedBuildingInfo.ulpin3D}
-            </div>
-          </div>
+          {(() => {
+            const baseUlpin = selectedBuildingInfo.ulpin3D.split('.')[0] || selectedBuildingInfo.ulpin3D;
+            let domainCode: 'G' | 'A' | 'U' = 'A';
+            let levelNum = 0;
+            
+            if (selectedFloor === 'Ground Floor') {
+              domainCode = 'G';
+              levelNum = 0;
+            } else if (selectedFloor === 'Basement') {
+              domainCode = 'U';
+              levelNum = -1;
+            } else {
+              domainCode = 'A';
+              levelNum = parseInt(selectedFloor.replace(/\D/g, '')) || 1;
+            }
+            
+            const computedDynamicUlpin = formatUlpin3D(baseUlpin, domainCode, levelNum, selectedUnit);
+
+            return (
+              <div className="glass-card p-3 rounded-2xl border border-white/5 bg-black/40 space-y-1.5">
+                <div className="flex justify-between text-[10px] text-slate-400">
+                  <span>Synthesized 3D ULPIN</span>
+                  <button
+                    onClick={() => handleCopy(computedDynamicUlpin)}
+                    className="text-cyan-300 hover:text-white flex items-center gap-0.5 font-mono"
+                  >
+                    {copied ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3" />}
+                    {copied ? 'Copied' : 'Copy'}
+                  </button>
+                </div>
+                <div className="font-mono font-bold text-xs text-white break-all">
+                  {computedDynamicUlpin}
+                </div>
+              </div>
+            );
+          })()}
 
           {/* Building Measurements */}
           {(() => {

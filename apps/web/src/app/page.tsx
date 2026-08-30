@@ -3,8 +3,6 @@
 import React from 'react';
 import dynamic from 'next/dynamic';
 import { Header } from '@/components/Header';
-import { LayerControl } from '@/components/LayerControl';
-import { FloorScrubber } from '@/components/FloorScrubber';
 import { UndergroundControl } from '@/components/UndergroundControl';
 import { UndergroundTestPanel } from '@/components/UndergroundTestPanel';
 import { InspectorPanel } from '@/components/InspectorPanel';
@@ -30,18 +28,6 @@ const MapLibre3DMap = dynamic(
   }
 );
 
-const City3DMap = dynamic(
-  () => import('@/components/City3DMap').then((mod) => mod.City3DMap),
-  {
-    ssr: false,
-    loading: () => (
-      <div className="w-full h-full flex flex-col items-center justify-center bg-[#070b14] text-slate-400 gap-3">
-        <Loader2 className="w-8 h-8 text-brand-primary animate-spin" />
-        <span className="text-xs font-mono">Initializing 3D Cadastral WebGL Engine...</span>
-      </div>
-    ),
-  }
-);
 
 const Exploded3DViewer = dynamic(
   () => import('@/components/Exploded3DViewer').then((mod) => mod.Exploded3DViewer),
@@ -82,30 +68,13 @@ export default function HomePage() {
             </div>
           )}
 
-          {activeTab === 'MAP_3D' && (
-            <div className="relative w-full h-full">
-              <City3DMap />
-              
-              {/* Floating Layer Control on Top-Right */}
-              <div className="absolute top-4 right-4 z-20 pointer-events-auto">
-                <LayerControl />
-              </div>
-
-              {/* Floating Vertical Scrubber on Bottom-Left */}
-              <div className="absolute bottom-4 left-4 z-20 pointer-events-auto">
-                <FloorScrubber />
-              </div>
-
-              {/* 4D Temporal Slider on Bottom-Center */}
-              <div className="absolute bottom-4 left-1/2 -translate-x-1/2 w-full max-w-2xl z-20 pointer-events-auto">
-                <TimelineSlider />
-              </div>
-            </div>
-          )}
 
           {activeTab === 'EXPLODED_3D' && (
-            <div className="w-full h-full">
+            <div className="w-full h-full relative">
               <Exploded3DViewer />
+              <div className="absolute top-4 right-4 h-[calc(100%-2rem)] z-20 pointer-events-auto">
+                <InspectorPanel />
+              </div>
             </div>
           )}
 
@@ -127,13 +96,6 @@ export default function HomePage() {
             </div>
           )}
         </div>
-
-        {/* Right Inspector Panel (Visible in 3D views) */}
-        {(activeTab === 'MAP_3D' || activeTab === 'EXPLODED_3D') && (
-          <aside className="h-full flex-shrink-0 z-20">
-            <InspectorPanel />
-          </aside>
-        )}
       </main>
 
       <UndergroundTestPanel />

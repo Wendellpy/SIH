@@ -23,7 +23,7 @@ export function generateProceduralUtilities(centerLng: number, centerLat: number
   let assetCounter = 1;
 
   // Generate a random intersecting grid of lines to simulate city utility mains
-  for (let i = 0; i < 8; i++) {
+  for (let i = 0; i < 40; i++) {
     const angle1 = (Math.random() * 360);
     const angle2 = (angle1 + 180 + (Math.random() * 20 - 10)) % 360;
     
@@ -32,17 +32,25 @@ export function generateProceduralUtilities(centerLng: number, centerLat: number
     const endPoint = turf.destination(centerPoint, radiusKm * (Math.random() + 0.5), angle2);
     
     // Add some random zig-zags to make it look like a street grid
-    const midPoint = turf.destination(
+    const midPoint1 = turf.destination(
       turf.midpoint(startPoint, endPoint), 
       radiusKm * 0.2, 
-      angle1 + 90
+      angle1 + 45
+    );
+    const midPoint2 = turf.destination(
+      turf.midpoint(startPoint, endPoint), 
+      radiusKm * 0.2, 
+      angle1 - 45
     );
 
-    const line = turf.lineString([
+    const rawLine = turf.lineString([
       startPoint.geometry.coordinates,
-      midPoint.geometry.coordinates,
+      midPoint1.geometry.coordinates,
+      midPoint2.geometry.coordinates,
       endPoint.geometry.coordinates
     ]);
+    
+    const line = turf.bezierSpline(rawLine, { resolution: 10000 });
 
     // Pick a random utility type
     const utility = types[Math.floor(Math.random() * types.length)];

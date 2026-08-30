@@ -21,7 +21,9 @@ import {
 import { useAppStore } from '@/lib/store';
 import { SAMPLE_PARCELS, SAMPLE_BUILDINGS, SAMPLE_VERTICAL_UNITS, SAMPLE_UNDERGROUND_ASSETS } from '@sih/sample-data';
 import { parseUlpin3D } from '@sih/shared-types';
-import { RoleToggle } from './RoleToggle';
+import { BorderBeam } from '@/components/ui/border-beam-search';
+import { DropdownMenu } from '@/components/ui/dropdown-menu';
+import { HardHat, Bolt } from 'lucide-react';
 
 export const Header: React.FC = () => {
   const { 
@@ -33,7 +35,9 @@ export const Header: React.FC = () => {
     setSelectedUnderground,
     searchQuery,
     setSearchQuery,
-    setFlyToTarget
+    setFlyToTarget,
+    currentRole,
+    setCurrentRole
   } = useAppStore();
 
   const [isSearchOpen, setIsSearchOpen] = useState(false);
@@ -249,47 +253,44 @@ export const Header: React.FC = () => {
       
     } else if (result.type === 'UNDERGROUND') {
       setSelectedUnderground(result.raw);
-      setActiveTab('MAP_3D');
+      setActiveTab('MAPLIBRE_3D');
     }
   };
 
   return (
-    <header className="sticky top-0 z-50 w-full glass-panel border-b border-white/5 px-6 py-2.5 flex items-center justify-between shadow-sm">
+    <header className="sticky top-0 z-50 w-full glass-panel border-b border-white/5 px-6 py-1.5 flex items-center justify-between shadow-sm">
       {/* Brand & Emblem */}
-      <div className="flex items-center gap-3 w-64 flex-shrink-0">
-        <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-emerald-500/10 border border-emerald-500/20">
-          <Building2 className="w-4 h-4 text-emerald-400" />
-        </div>
-        <div>
-          <h1 className="text-sm font-semibold tracking-tight text-slate-100 flex items-center gap-1.5">
-            Bhu-Aadhaar <span className="text-slate-500 font-normal">| 3D Engine</span>
-          </h1>
-        </div>
+      <div className="flex items-center gap-3 flex-shrink-0">
+        <img src="/logo.png" alt="GeoElevate 3D Vector Map" className="h-12 w-auto object-contain" />
       </div>
 
       {/* Universal Search Bar */}
       <div className="relative flex-1 max-w-xl mx-auto" ref={searchRef}>
-        <div className="relative flex items-center group">
-          <Search className="absolute left-3 w-4 h-4 text-slate-500 group-focus-within:text-brand-primary transition-colors pointer-events-none" />
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={(e) => {
-              setSearchQuery(e.target.value);
-              setIsSearchOpen(true);
-            }}
-            onFocus={() => setIsSearchOpen(true)}
-            placeholder="Search 3D ULPIN (e.g. MH13BOM04521873.A+03-B302), owner, address..."
-            className="w-full pl-9 pr-4 py-1.5 text-sm bg-white/[0.03] hover:bg-white/[0.05] focus:bg-white/[0.08] border border-white/10 rounded-lg text-slate-200 placeholder-slate-500 focus:outline-none focus:border-brand-primary/40 focus:ring-1 focus:ring-brand-primary/40 transition-all"
-          />
-          {searchQuery && (
-            <button
-              onClick={() => setSearchQuery('')}
-              className="absolute right-2 text-xs text-slate-400 hover:text-white"
-            >
-              &times;
-            </button>
-          )}
+        <div className="w-full relative group">
+          <BorderBeam size="md" colorVariant="ocean" duration={3.1} borderRadius={9999}>
+            <div className="w-full h-10 bg-black/40 border border-white/10 shadow-inner flex items-center px-4 gap-2 rounded-full relative z-10 backdrop-blur-md">
+              <Search className="w-4 h-4 text-slate-400 group-focus-within:text-brand-primary transition-colors pointer-events-none shrink-0" />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => {
+                  setSearchQuery(e.target.value);
+                  setIsSearchOpen(true);
+                }}
+                onFocus={() => setIsSearchOpen(true)}
+                placeholder="Search 3D ULPIN, owner, address..."
+                className="w-full bg-transparent text-[14px] text-slate-200 placeholder-slate-500 focus:outline-none transition-all"
+              />
+              {searchQuery && (
+                <button
+                  onClick={() => setSearchQuery('')}
+                  className="text-lg text-slate-400 hover:text-white shrink-0 ml-1"
+                >
+                  &times;
+                </button>
+              )}
+            </div>
+          </BorderBeam>
         </div>
 
         {/* Dropdown Results */}
@@ -352,15 +353,6 @@ export const Header: React.FC = () => {
             Exploded View
           </button>
 
-          <button
-            onClick={() => setActiveTab('MAP_3D')}
-            className={`flex items-center gap-1.5 px-3 py-1 rounded-md text-[11px] font-medium transition-all ${
-              activeTab === 'MAP_3D' ? 'bg-white/10 text-white shadow-sm' : 'text-slate-400 hover:text-slate-200 hover:bg-white/5'
-            }`}
-          >
-            <Compass className="w-3.5 h-3.5" />
-            Globe
-          </button>
 
           <button
             onClick={() => setActiveTab('AI_STUDIO')}
@@ -395,7 +387,35 @@ export const Header: React.FC = () => {
 
         {/* Role Selector */}
         <div className="flex items-center gap-2 pl-4 border-l border-white/10">
-          <RoleToggle />
+          <DropdownMenu
+            align="right"
+            options={[
+              {
+                label: "Revenue Dept",
+                onClick: () => setCurrentRole('revenue'),
+                Icon: <ShieldCheck className="h-4 w-4 text-brand-primary" />,
+              },
+              {
+                label: "City Engineer",
+                onClick: () => setCurrentRole('engineer'),
+                Icon: <HardHat className="h-4 w-4 text-amber-400" />,
+              },
+              {
+                label: "Utility Agency",
+                onClick: () => setCurrentRole('utility'),
+                Icon: <Bolt className="h-4 w-4 text-blue-400" />,
+              },
+            ]}
+          >
+            <div className="flex items-center gap-2 text-xs">
+              {currentRole === 'revenue' && <ShieldCheck className="h-4 w-4 text-brand-primary" />}
+              {currentRole === 'engineer' && <HardHat className="h-4 w-4 text-amber-400" />}
+              {currentRole === 'utility' && <Bolt className="h-4 w-4 text-blue-400" />}
+              <span className="font-semibold text-white">
+                {currentRole === 'revenue' ? 'Revenue Dept' : currentRole === 'engineer' ? 'City Engineer' : 'Utility Agency'}
+              </span>
+            </div>
+          </DropdownMenu>
         </div>
       </div>
     </header>

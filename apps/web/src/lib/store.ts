@@ -123,11 +123,17 @@ export interface AppState {
 
   // Mock Change Events
   changeEvents: ChangeEvent[];
+  // Map State Persistence
+  mapViewState: { lng: number; lat: number; zoom: number; pitch: number; bearing: number } | null;
+  setMapViewState: (state: { lng: number; lat: number; zoom: number; pitch: number; bearing: number } | null) => void;
 }
 
 export const useAppStore = create<AppState>((set, get) => ({
   activeTab: 'MAPLIBRE_3D', // Default to the requested MapLibre 3D Vector view!
   setActiveTab: (tab) => set({ activeTab: tab }),
+
+  mapViewState: null,
+  setMapViewState: (state) => set({ mapViewState: state }),
 
   currentRole: 'revenue',
   setCurrentRole: (role) => set({ currentRole: role }),

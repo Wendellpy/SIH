@@ -32,8 +32,8 @@ export class PropertyCardService {
    * Returns a Promise that resolves with a Buffer containing the PDF data.
    */
   static async generateCard(
-    entity: VerticalUnit | Parcel | UndergroundAsset, 
-    type: 'VerticalUnit' | 'Parcel' | 'UndergroundAsset',
+    entity: VerticalUnit | Parcel | UndergroundAsset | Building, 
+    type: 'VerticalUnit' | 'Parcel' | 'UndergroundAsset' | 'Building',
     thumbnailBase64?: string
   ): Promise<{ pdfBuffer: Buffer, recordHash: string }> {
     
@@ -48,6 +48,7 @@ export class PropertyCardService {
         let ulpin = '';
         if (type === 'VerticalUnit') ulpin = (entity as VerticalUnit).ulpin3D;
         else if (type === 'UndergroundAsset') ulpin = (entity as UndergroundAsset).ulpin3D;
+        else if (type === 'Building') ulpin = (entity as Building).ulpin3D || '';
         else ulpin = (entity as Parcel).ulpin;
 
         const liveUrl = `${appUrl}/unit/${ulpin}`;
@@ -97,6 +98,12 @@ export class PropertyCardService {
           doc.text(`Land Area: ${parcel.areaSqm} sq.m`);
           doc.text(`Zoning: ${parcel.zoningCategory}`);
           doc.text(`Owner: ${parcel.ownershipType}`);
+        } else if (type === 'Building') {
+          const bldg = entity as Building;
+          doc.text(`Building Name: ${bldg.name}`);
+          doc.text(`Address: ${bldg.address}`);
+          doc.text(`Estimated Height: ${bldg.height}m`);
+          doc.text(`Number of Floors: ${bldg.numFloors}`);
         } else if (type === 'UndergroundAsset') {
           const asset = entity as UndergroundAsset;
           doc.text(`Asset Type: ${asset.assetType}`);
