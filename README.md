@@ -101,6 +101,11 @@ graph TD
 - **3D Solid Topology Conflict Detection**: Real Shapely 3D intersection algorithm detecting the seeded vertical overlap conflict between Unit `A+02-201` and Unit `A+02-202`.
 - **DoLR Verifier & Immutable Audit Trail**: Officers can review, clip, or reject unauthorized mezzanines with SHA-256 cryptographic audit logs.
 
+### Latest Hackathon Enhancements
+- **Dynamic 3D Carpet Area Estimator**: Automatically calculates realistic flat/unit carpet areas for any building clicked on the map based on its footprint polygon (Turf.js area calculation), floor level, use-type loading factors, and common area deductions.
+- **MahaBhunakasha / Maharashtra Land Records Integration**: A dedicated, searchable glassmorphic interface to filter property data by District, Taluka, and Village, connecting directly to local cadastral systems.
+- **UI/UX Polish**: Upgraded all native HTML `<select>` elements to custom searchable, frosted-glass dropdowns. Optimized scrolling performance by removing GPU-heavy backdrop blurs in large lists. Removed redundant Role Selectors to streamline the pitch experience.
+
 ### Production Scaling Path (Documented Architecture)
 1. **Distributed Point Cloud Processing**: Deploy PDAL & Apache Sedona on Kubernetes for distributed processing of multi-gigabyte airborne LiDAR and drone photogrammetry.
 2. **City-Scale 3D Tiles Streaming**: Generation of OGC 3D Tiles (b3dm / 3D Tiles 1.1) served via CDN for seamless navigation over entire municipal corporations (BMC, DDA, BBMP).
