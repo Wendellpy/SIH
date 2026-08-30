@@ -22,8 +22,7 @@ import { useAppStore } from '@/lib/store';
 import { SAMPLE_PARCELS, SAMPLE_BUILDINGS, SAMPLE_VERTICAL_UNITS, SAMPLE_UNDERGROUND_ASSETS } from '@sih/sample-data';
 import { parseUlpin3D } from '@sih/shared-types';
 import { BorderBeam } from '@/components/ui/border-beam-search';
-import { DropdownMenu } from '@/components/ui/dropdown-menu';
-import { HardHat, Bolt } from 'lucide-react';
+
 
 export const Header: React.FC = () => {
   const { 
@@ -36,8 +35,7 @@ export const Header: React.FC = () => {
     searchQuery,
     setSearchQuery,
     setFlyToTarget,
-    currentRole,
-    setCurrentRole
+
   } = useAppStore();
 
   const [isSearchOpen, setIsSearchOpen] = useState(false);
@@ -375,38 +373,7 @@ export const Header: React.FC = () => {
           </button>
         </nav>
 
-        {/* Role Selector */}
-        <div className="flex items-center gap-2 pl-4 border-l border-white/10">
-          <DropdownMenu
-            align="right"
-            options={[
-              {
-                label: "Revenue Dept",
-                onClick: () => setCurrentRole('revenue'),
-                Icon: <ShieldCheck className="h-4 w-4 text-brand-primary" />,
-              },
-              {
-                label: "City Engineer",
-                onClick: () => setCurrentRole('engineer'),
-                Icon: <HardHat className="h-4 w-4 text-amber-400" />,
-              },
-              {
-                label: "Utility Agency",
-                onClick: () => setCurrentRole('utility'),
-                Icon: <Bolt className="h-4 w-4 text-blue-400" />,
-              },
-            ]}
-          >
-            <div className="flex items-center gap-2 text-xs">
-              {currentRole === 'revenue' && <ShieldCheck className="h-4 w-4 text-brand-primary" />}
-              {currentRole === 'engineer' && <HardHat className="h-4 w-4 text-amber-400" />}
-              {currentRole === 'utility' && <Bolt className="h-4 w-4 text-blue-400" />}
-              <span className="font-semibold text-white">
-                {currentRole === 'revenue' ? 'Revenue Dept' : currentRole === 'engineer' ? 'City Engineer' : 'Utility Agency'}
-              </span>
-            </div>
-          </DropdownMenu>
-        </div>
+
       </div>
     </header>
   );

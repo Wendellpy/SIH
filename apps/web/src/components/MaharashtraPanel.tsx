@@ -1,10 +1,113 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import { Compass, Search, Loader2 } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { Compass, Search, Loader2, ChevronDown, Check, MapPin } from 'lucide-react';
 import { useAppStore } from '@/lib/store';
 import { parseUlpin3D } from '@sih/shared-types';
 
+/* ─── Custom Glassmorphism Select ─── */
+interface SelectOption { id: string; name: string }
+const CustomSelect: React.FC<{
+  options: SelectOption[];
+  value: string;
+  onChange: (val: string) => void;
+  placeholder: string;
+  disabled?: boolean;
+  loading?: boolean;
+  icon?: React.ReactNode;
+}> = ({ options, value, onChange, placeholder, disabled, loading, icon }) => {
+  const [open, setOpen] = useState(false);
+  const [search, setSearch] = useState('');
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, []);
+
+  const selectedLabel = options.find(o => o.id === value)?.name;
+  const filtered = options.filter(o =>
+    o.name.toLowerCase().includes(search.toLowerCase())
+  );
+
+  return (
+    <div ref={ref} className="relative">
+      <button
+        type="button"
+        disabled={disabled || loading}
+        onClick={() => { setOpen(o => !o); setSearch(''); }}
+        className={`
+          w-full flex items-center justify-between gap-2 px-4 py-3 rounded-xl text-sm font-medium
+          bg-black/40 border backdrop-blur-md transition-all
+          ${open ? 'border-cyan-500/50 ring-1 ring-cyan-500/30 shadow-[0_0_15px_rgba(6,182,212,0.1)]' : 'border-white/10 hover:border-white/20'}
+          ${disabled ? 'opacity-40 cursor-not-allowed' : 'cursor-pointer'}
+        `}
+      >
+        <span className="flex items-center gap-2 truncate">
+          {icon}
+          {loading ? (
+            <span className="flex items-center gap-2 text-slate-500">
+              <Loader2 className="w-3.5 h-3.5 animate-spin" /> Loading...
+            </span>
+          ) : selectedLabel ? (
+            <span className="text-slate-100">{selectedLabel}</span>
+          ) : (
+            <span className="text-slate-500">{placeholder}</span>
+          )}
+        </span>
+        <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform duration-200 ${open ? 'rotate-180' : ''}`} />
+      </button>
+
+      {open && !disabled && (
+        <div className="absolute z-50 mt-2 w-full bg-[#0f1219] border border-white/10 rounded-xl shadow-2xl overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
+          {/* Search */}
+          <div className="p-2 border-b border-white/5">
+            <div className="flex items-center gap-2 px-3 py-2 bg-black/40 rounded-lg border border-white/5">
+              <Search className="w-3.5 h-3.5 text-slate-500 shrink-0" />
+              <input
+                autoFocus
+                type="text"
+                placeholder="Search..."
+                value={search}
+                onChange={e => setSearch(e.target.value)}
+                className="flex-1 bg-transparent text-sm text-slate-200 placeholder:text-slate-600 focus:outline-none"
+              />
+            </div>
+          </div>
+          {/* Options */}
+          <div className="max-h-60 overflow-y-auto py-1" style={{ willChange: 'transform' }}>
+            {filtered.length === 0 ? (
+              <div className="px-4 py-3 text-xs text-slate-500 text-center">No results found</div>
+            ) : (
+              filtered.map(o => (
+                <button
+                  key={o.id}
+                  type="button"
+                  onClick={() => { onChange(o.id); setOpen(false); }}
+                  className={`
+                    w-full flex items-center justify-between px-4 py-2.5 text-sm text-left transition-colors
+                    ${o.id === value
+                      ? 'bg-cyan-500/10 text-cyan-300'
+                      : 'text-slate-300 hover:bg-white/5 hover:text-slate-100'
+                    }
+                  `}
+                >
+                  <span className="truncate">{o.name}</span>
+                  {o.id === value && <Check className="w-3.5 h-3.5 text-cyan-400 shrink-0" />}
+                </button>
+              ))
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+/* ─── Main Panel ─── */
 export const MaharashtraPanel = () => {
   const [districts, setDistricts] = useState<any[]>([]);
   const [selectedDistrict, setSelectedDistrict] = useState('');
@@ -98,63 +201,59 @@ export const MaharashtraPanel = () => {
 
   useEffect(() => {
     setSelectedTaluka('');
-    setSelectedVillage('');
     setTalukas([]);
+    setSelectedVillage('');
     setVillages([]);
-    
     if (!selectedDistrict) return;
     setLoadingTalukas(true);
-    fetch(`http://localhost:4000/api/v1/maharashtra/talukas/${selectedDistrict}`)
+    fetch(`http://localhost:4000/api/v1/maharashtra/districts/${selectedDistrict}/talukas`)
       .then(res => res.json())
       .then(data => {
         if (data.success) {
           setTalukas(data.data || []);
           handleDataSourceInfo(data);
-        } else {
-          setApiError(data.error?.message || 'Error loading talukas');
         }
       })
+      .catch(() => {})
       .finally(() => setLoadingTalukas(false));
   }, [selectedDistrict]);
 
   useEffect(() => {
     setSelectedVillage('');
     setVillages([]);
-
     if (!selectedTaluka) return;
     setLoadingVillages(true);
-    fetch(`http://localhost:4000/api/v1/maharashtra/villages/${selectedTaluka}?district=${selectedDistrict}`)
+    fetch(`http://localhost:4000/api/v1/maharashtra/districts/${selectedDistrict}/talukas/${selectedTaluka}/villages`)
       .then(res => res.json())
       .then(data => {
         if (data.success) {
           setVillages(data.data || []);
           handleDataSourceInfo(data);
-        } else {
-          setApiError(data.error?.message || 'Error loading villages');
         }
       })
+      .catch(() => {})
       .finally(() => setLoadingVillages(false));
-  }, [selectedTaluka, selectedDistrict]);
+  }, [selectedTaluka]);
 
-  const handleSearch = async () => {
+  const handleSearch = () => {
+    if (!searchVal && !selectedVillage) return;
     setLoading(true);
     setResult(null);
-    try {
-      // If it's a ULPIN
-      if (searchVal.length >= 14) {
-        const res = await fetch(`http://localhost:4000/api/v1/maharashtra/ulpin/${searchVal}`);
-        const data = await res.json();
+
+    let url = 'http://localhost:4000/api/v1/maharashtra/search?';
+    if (selectedDistrict) url += `districtId=${selectedDistrict}&`;
+    if (selectedTaluka) url += `talukaId=${selectedTaluka}&`;
+    if (selectedVillage) url += `villageId=${selectedVillage}&`;
+    if (searchVal) url += `surveyNo=${encodeURIComponent(searchVal)}&`;
+
+    fetch(url)
+      .then(res => res.json())
+      .then(data => {
         setResult(data);
-      } else {
-        // Assume CTS search
-        const res = await fetch(`http://localhost:4000/api/v1/maharashtra/parcel?district=${selectedDistrict}&taluka=${selectedTaluka}&village=${selectedVillage}&cts=${searchVal}`);
-        setResult(await res.json());
-      }
-    } catch (e) {
-      setResult({ success: false, error: { message: 'Network Error' } });
-    } finally {
-      setLoading(false);
-    }
+        handleDataSourceInfo(data);
+      })
+      .catch(err => setResult({ success: false, error: { message: 'Backend not responding' } }))
+      .finally(() => setLoading(false));
   };
 
   return (
@@ -182,42 +281,49 @@ export const MaharashtraPanel = () => {
           </div>
         )}
 
+        {/* ── Custom Dropdowns ── */}
         <div className="grid grid-cols-3 gap-4">
           <div>
-            <label className="block text-[11px] font-semibold mb-2 text-slate-400 uppercase tracking-wider">District {loadingDistricts && <Loader2 className="w-3 h-3 inline animate-spin"/>}</label>
-            <select 
-              value={selectedDistrict} 
-              onChange={e => setSelectedDistrict(e.target.value)}
-              className="w-full bg-black/40 border border-white/10 backdrop-blur-md rounded-xl p-2.5 text-sm focus:ring-1 focus:ring-brand-primary focus:outline-none transition-all"
+            <label className="block text-[11px] font-semibold mb-2 text-slate-400 uppercase tracking-wider">
+              District {loadingDistricts && <Loader2 className="w-3 h-3 inline animate-spin"/>}
+            </label>
+            <CustomSelect
+              options={districts}
+              value={selectedDistrict}
+              onChange={setSelectedDistrict}
+              placeholder="Select District"
               disabled={loadingDistricts}
-            >
-              <option value="">{loadingDistricts ? 'Loading districts...' : 'Select District'}</option>
-              {districts.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
-            </select>
+              loading={loadingDistricts}
+              icon={<MapPin className="w-3.5 h-3.5 text-cyan-400 shrink-0" />}
+            />
           </div>
           <div>
-            <label className="block text-[11px] font-semibold mb-2 text-slate-400 uppercase tracking-wider">Taluka {loadingTalukas && <Loader2 className="w-3 h-3 inline animate-spin"/>}</label>
-            <select 
-              value={selectedTaluka} 
-              onChange={e => setSelectedTaluka(e.target.value)}
-              className="w-full bg-black/40 border border-white/10 backdrop-blur-md rounded-xl p-2.5 text-sm focus:ring-1 focus:ring-brand-primary focus:outline-none transition-all"
+            <label className="block text-[11px] font-semibold mb-2 text-slate-400 uppercase tracking-wider">
+              Taluka {loadingTalukas && <Loader2 className="w-3 h-3 inline animate-spin"/>}
+            </label>
+            <CustomSelect
+              options={talukas}
+              value={selectedTaluka}
+              onChange={setSelectedTaluka}
+              placeholder="Select Taluka"
               disabled={!selectedDistrict || loadingTalukas}
-            >
-              <option value="">{loadingTalukas ? 'Loading talukas...' : 'Select Taluka'}</option>
-              {talukas.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
-            </select>
+              loading={loadingTalukas}
+              icon={<MapPin className="w-3.5 h-3.5 text-blue-400 shrink-0" />}
+            />
           </div>
           <div>
-            <label className="block text-[11px] font-semibold mb-2 text-slate-400 uppercase tracking-wider">Village {loadingVillages && <Loader2 className="w-3 h-3 inline animate-spin"/>}</label>
-            <select 
-              value={selectedVillage} 
-              onChange={e => setSelectedVillage(e.target.value)}
-              className="w-full bg-black/40 border border-white/10 backdrop-blur-md rounded-xl p-2.5 text-sm focus:ring-1 focus:ring-brand-primary focus:outline-none transition-all"
+            <label className="block text-[11px] font-semibold mb-2 text-slate-400 uppercase tracking-wider">
+              Village {loadingVillages && <Loader2 className="w-3 h-3 inline animate-spin"/>}
+            </label>
+            <CustomSelect
+              options={villages}
+              value={selectedVillage}
+              onChange={setSelectedVillage}
+              placeholder="Select Village"
               disabled={!selectedTaluka || loadingVillages}
-            >
-              <option value="">{loadingVillages ? 'Loading villages...' : 'Select Village'}</option>
-              {villages.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
-            </select>
+              loading={loadingVillages}
+              icon={<MapPin className="w-3.5 h-3.5 text-emerald-400 shrink-0" />}
+            />
           </div>
         </div>
 

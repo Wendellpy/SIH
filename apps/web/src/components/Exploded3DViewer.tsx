@@ -20,10 +20,103 @@ import {
   Building2,
   ArrowLeft,
   MapPin,
-  AlertCircle
+  AlertCircle,
+  ChevronDown,
+  Check,
+  Search
 } from 'lucide-react';
 
 import * as turf from '@turf/turf';
+
+/* ─── Custom Building Select (Glassmorphism) ─── */
+const BuildingSelect: React.FC<{
+  buildings: any[];
+  value: string;
+  onChange: (id: string) => void;
+}> = ({ buildings, value, onChange }) => {
+  const [open, setOpen] = useState(false);
+  const [search, setSearch] = useState('');
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, []);
+
+  const selectedLabel = buildings.find(b => b.id === value)?.name;
+  const filtered = buildings.filter(b =>
+    b.name.toLowerCase().includes(search.toLowerCase())
+  );
+
+  return (
+    <div ref={ref} className="relative mt-1.5">
+      <button
+        type="button"
+        onClick={() => { setOpen(o => !o); setSearch(''); }}
+        className={`
+          w-full flex items-center justify-between gap-2 px-3 py-2.5 rounded-xl text-sm font-medium
+          bg-black/40 border backdrop-blur-md transition-all
+          ${open ? 'border-cyan-500/50 ring-1 ring-cyan-500/30 shadow-[0_0_15px_rgba(6,182,212,0.1)]' : 'border-white/10 hover:border-white/20'}
+          cursor-pointer
+        `}
+      >
+        <span className="flex items-center gap-2 truncate">
+          <Building2 className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
+          {selectedLabel ? (
+            <span className="text-slate-200 truncate">{selectedLabel}</span>
+          ) : (
+            <span className="text-slate-500">Select Building</span>
+          )}
+        </span>
+        <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform duration-200 shrink-0 ${open ? 'rotate-180' : ''}`} />
+      </button>
+
+      {open && (
+        <div className="absolute z-50 mt-2 w-full bg-[#0f1219] border border-white/10 rounded-xl shadow-2xl overflow-hidden" style={{ minWidth: '320px' }}>
+          <div className="p-2 border-b border-white/5">
+            <div className="flex items-center gap-2 px-3 py-2 bg-black/40 rounded-lg border border-white/5">
+              <Search className="w-3.5 h-3.5 text-slate-500 shrink-0" />
+              <input
+                autoFocus
+                type="text"
+                placeholder="Search buildings..."
+                value={search}
+                onChange={e => setSearch(e.target.value)}
+                className="flex-1 bg-transparent text-sm text-slate-200 placeholder:text-slate-600 focus:outline-none"
+              />
+            </div>
+          </div>
+          <div className="max-h-60 overflow-y-auto py-1" style={{ willChange: 'transform' }}>
+            {filtered.length === 0 ? (
+              <div className="px-4 py-3 text-xs text-slate-500 text-center">No buildings found</div>
+            ) : (
+              filtered.map(b => (
+                <button
+                  key={b.id}
+                  type="button"
+                  onClick={() => { onChange(b.id); setOpen(false); }}
+                  className={`
+                    w-full flex items-center justify-between px-4 py-2.5 text-sm text-left transition-colors
+                    ${b.id === value
+                      ? 'bg-cyan-500/10 text-cyan-300'
+                      : 'text-slate-300 hover:bg-white/5 hover:text-slate-100'
+                    }
+                  `}
+                >
+                  <span className="truncate">{b.name} <span className="text-slate-500 text-xs">({b.roofHeightM}m, {b.numFloors}F)</span></span>
+                  {b.id === value && <Check className="w-3.5 h-3.5 text-cyan-400 shrink-0" />}
+                </button>
+              ))
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
 
 function sliceBuildingFootprint(coordinates: any[], numUnits: number) {
   // Fallback generic square if invalid
@@ -540,6 +633,8 @@ export const Exploded3DViewer: React.FC = () => {
 
       // Calculate footprint area to dynamically estimate realistic number of flats
       let estimatedUnits = 2; // Default fallback
+      let footprintAreaSqm = 150; // Default fallback footprint
+      
       if (bldg.footprint && bldg.footprint.coordinates) {
         try {
            // We ensure the polygon is closed for Turf.js
@@ -552,8 +647,9 @@ export const Exploded3DViewer: React.FC = () => {
            
            if (polyCoords.length >= 4) {
              const poly = turf.polygon([polyCoords]);
-             const areaSqm = turf.area(poly);             // Assume an average flat + common area is ~65 sqm. 
-             estimatedUnits = Math.max(1, Math.round(areaSqm / 65));
+             footprintAreaSqm = turf.area(poly);
+             // Assume an average flat + common area is ~65 sqm. 
+             estimatedUnits = Math.max(1, Math.round(footprintAreaSqm / 65));
              
              // Cap at 12 to prevent extreme subdivision on massive commercial buildings
              estimatedUnits = Math.min(12, estimatedUnits);
@@ -584,7 +680,29 @@ export const Exploded3DViewer: React.FC = () => {
           else useType = 'Residential';
         }
 
-        const carpetArea = i === 1 ? 520 + Math.floor(Math.abs(f) * 15) : 480 + Math.floor(Math.abs(f) * 12);
+        // Determine realistic carpet area
+        // 1. Start with the footprint area divided by number of units
+        // 2. Adjust for common areas (loading factor): usually 30-40% of footprint is common area
+        // 3. For commercial, add some variability. For higher floors, add a small premium.
+        let baseUnitArea = footprintAreaSqm / unitsPerFloor;
+        const loadingFactor = useType === 'Commercial' ? 0.65 : 0.70; // Carpet area is ~65-70% of footprint slice
+        
+        // Give slight variance to unit sizes on the same floor (e.g. Unit 1 might be 10% larger)
+        const sizeVariance = i % 2 === 0 ? 0.95 : 1.05;
+        
+        let carpetArea = Math.round(baseUnitArea * loadingFactor * sizeVariance);
+        
+        // Add a premium for higher floors (+2 sqm per floor)
+        carpetArea += Math.max(0, f * 2);
+        
+        // Enforce realistic bounds
+        if (useType === 'Residential') {
+           carpetArea = Math.max(25, Math.min(carpetArea, 300));
+        } else if (useType === 'Commercial') {
+           carpetArea = Math.max(40, carpetArea);
+        } else {
+           carpetArea = Math.max(15, carpetArea);
+        }
 
         // Use building footprint coordinates if available
         const coords = bldg.footprint?.coordinates?.[0]?.[0] || [72.8280, 18.9960];
@@ -728,28 +846,17 @@ export const Exploded3DViewer: React.FC = () => {
           {/* Quick Switch Building Dropdown */}
           <div className="pt-3 border-t border-white/5">
             <label className="text-[11px] font-medium text-slate-500">Switch Drill-Down</label>
-            <select
+            <BuildingSelect
+              buildings={[
+                ...(bldg.id.startsWith('osm-') ? [bldg] : []),
+                ...SAMPLE_BUILDINGS.filter(b => b.id !== bldg.id)
+              ]}
               value={bldg.id}
-              onChange={(e) => {
-                const found = SAMPLE_BUILDINGS.find(b => b.id === e.target.value);
+              onChange={(id) => {
+                const found = SAMPLE_BUILDINGS.find(b => b.id === id);
                 if (found) setSelectedBuilding(found);
-                // Also check if it's the current selected (dynamic) building
-                if (selectedBuilding && selectedBuilding.id === e.target.value) return;
               }}
-              className="mt-1.5 w-full bg-white/[0.03] text-slate-300 text-sm rounded-lg border border-white/10 px-3 py-2 focus:outline-none focus:ring-1 focus:ring-blue-500/50 cursor-pointer transition-colors hover:bg-white/[0.06]"
-            >
-              {/* Show current dynamic building first if it's not in SAMPLE_BUILDINGS */}
-              {bldg.id.startsWith('osm-') && (
-                <option value={bldg.id} className="bg-[#111] text-slate-200 py-1">
-                  📍 {bldg.name} ({bldg.roofHeightM}m, {bldg.numFloors}F)
-                </option>
-              )}
-              {SAMPLE_BUILDINGS.map(b => (
-                <option key={b.id} value={b.id} className="bg-[#111] text-slate-200 py-1">
-                  {b.name} ({b.roofHeightM}m, {b.numFloors}F)
-                </option>
-              ))}
-            </select>
+            />
           </div>
           
           {/* Toggle View Mode */}

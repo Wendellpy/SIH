@@ -78,7 +78,7 @@ export const UndergroundControl: React.FC = () => {
 
   return (
     <div className="relative glass-panel rounded-2xl p-4 shadow-2xl w-72 border border-amber-500/20 backdrop-blur-2xl overflow-hidden animate-in slide-in-from-right-4 fade-in">
-      <BorderBeam size={150} duration={12} delay={0} colorFrom="#f59e0b" colorTo="#ef4444" />
+
       <div className="relative z-10 flex items-center justify-between border-b border-white/10 pb-3">
         <div className="flex items-center gap-2.5">
           <div className="p-1.5 rounded-lg bg-indigo-500/20 text-indigo-400">
@@ -170,11 +170,6 @@ export const UndergroundControl: React.FC = () => {
           ))}
         </div>
         
-        {/* Other Categories (Empty visually represented) */}
-        <div className="flex items-center gap-2.5 p-3 rounded-xl bg-white/5 border border-white/5 text-slate-500 opacity-60 cursor-not-allowed transition-all">
-          <AlertTriangle className="w-4 h-4" />
-          <span className="text-[10px] font-semibold tracking-wide uppercase">Underground Spaces (No Data)</span>
-        </div>
       </div>
     </div>
   );
