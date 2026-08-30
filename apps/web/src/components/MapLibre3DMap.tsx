@@ -22,6 +22,8 @@ import {
 import { useAppStore } from '@/lib/store';
 import { formatUlpin3D, Building } from '@sih/shared-types';
 import MapboxDraw from '@mapbox/mapbox-gl-draw';
+import * as turf from '@turf/turf';
+import { SAMPLE_BUILDINGS } from '@sih/sample-data';
 import { ClearanceTool } from './ClearanceTool';
 import { generateProceduralUtilities } from '@/lib/proceduralUtilities';
 
@@ -61,6 +63,7 @@ export const MapLibre3DMap: React.FC = () => {
       noOfFloorsStr: string;
       notFound?: boolean;
     } | null;
+    isAnimated: boolean;
   } | null>(null);
 
   const [isFetchingBmc, setIsFetchingBmc] = useState(false);
@@ -304,6 +307,45 @@ export const MapLibre3DMap: React.FC = () => {
       map.addControl(new maplibregl.FullscreenControl(), 'top-right');
 
       map.on('load', () => {
+        // Overlay authoritative buildings (MyBMC, MahaRERA, DoLR)
+        const authoritativeFeatures = SAMPLE_BUILDINGS.map((b, i) => ({
+          type: 'Feature' as const,
+          properties: {
+            id: `auth-${i}`,
+            buildingId: b.id,
+            name: b.name,
+            render_height: b.roofHeightM,
+            year_built: b.yearBuilt || 2020,
+            floors: b.numFloors
+          },
+          geometry: b.footprint
+        }));
+
+        map.addSource('authoritative-buildings-source', {
+          type: 'geojson',
+          data: {
+            type: 'FeatureCollection',
+            features: authoritativeFeatures
+          }
+        });
+
+        map.addLayer({
+          id: 'authoritative-buildings-layer',
+          type: 'fill-extrusion',
+          source: 'authoritative-buildings-source',
+          minzoom: 12,
+          paint: {
+            'fill-extrusion-color': [
+              'case',
+              ['<=', ['get', 'year_built'], temporalYear], '#fbbf24', // Show if built by timeline year
+              'transparent'
+            ],
+            'fill-extrusion-height': ['get', 'render_height'],
+            'fill-extrusion-base': 0,
+            'fill-extrusion-opacity': 0.95
+          }
+        });
+
         setMapLoaded(true);
       });
 
@@ -314,7 +356,7 @@ export const MapLibre3DMap: React.FC = () => {
       // OpenStreetMap Nominatim API Fallback for missing buildings
       map.on('click', async (e) => {
         // Only trigger if we didn't click an existing 3D building
-        const features = map.queryRenderedFeatures(e.point, { layers: ['3d-buildings'] });
+        const features = map.queryRenderedFeatures(e.point, { layers: ['authoritative-buildings-layer', '3d-buildings'] });
         if (features.length > 0) return; 
 
         const lng = parseFloat(e.lngLat.lng.toFixed(5));
@@ -418,7 +460,8 @@ export const MapLibre3DMap: React.FC = () => {
                 usage: 'Sourced from OpenStreetMap',
                 name: buildingName,
                 noOfFloorsStr: '3'
-              }
+              },
+              isAnimated: false
             });
             setSelectedBuilding(dynamicBuilding);
           }
@@ -428,6 +471,68 @@ export const MapLibre3DMap: React.FC = () => {
       });
 
       // Click on 3D Building
+      map.on('click', 'authoritative-buildings-layer', (e) => {
+        if (!e.features || e.features.length === 0) return;
+        const f = e.features[0];
+        const props = f.properties || {};
+        
+        const rawHeight = props.render_height || props.height || 18;
+        const height = Math.min(rawHeight, 300);
+        const minHeight = props.render_min_height || 0;
+        const floors = Math.max(1, Math.min(Math.round(height / 3.8), 80));
+        
+        const seed = (typeof f.id === 'number') ? (f.id % 10) : 0;
+        const isAnimated = height > 40 || (seed % 2 === 1);
+        
+        const lngLat = e.lngLat;
+        const lng = parseFloat(lngLat.lng.toFixed(5));
+        const lat = parseFloat(lngLat.lat.toFixed(5));
+        
+        const bldgId = f.id || `osm-bldg-${Date.now().toString(36)}`;
+        
+        // Geospatially encode coordinates into the 14-char ULPIN so search can fly back precisely
+        const latStr = Math.round(lat * 1000000).toString(36).padStart(5, '0');
+        const lngStr = Math.round(lng * 1000000).toString(36).padStart(6, '0');
+        const baseUlpin = `MH1${latStr}${lngStr}`.toUpperCase();
+        
+        const ulpin3D = formatUlpin3D(baseUlpin, 'A', Math.min(floors, 3), `U${Math.min(floors, 3)}01`);
+        
+        const dynamicBuilding: Building = {
+          id: bldgId as string,
+          parcelId: `parcel-${bldgId}`,
+          name: props.name || 'Authoritative Building',
+          footprint: {
+            type: 'Polygon',
+            coordinates: []
+          },
+          eavesHeightM: height,
+          roofHeightM: height,
+          numFloors: props.floors || floors,
+          numBasements: 0,
+          plinthElevationM: minHeight,
+          yearBuilt: props.year_built || 2020,
+          totalBuiltupAreaSqm: (props.floors || floors) * 150,
+          address: 'Mumbai, Maharashtra',
+          simulated: false
+        };
+
+        const buildingName = dynamicBuilding.name;
+
+        setSelectedBuildingInfo({
+          id: bldgId as string,
+          height: Math.round(height),
+          minHeight: Math.round(minHeight),
+          floors,
+          ulpin3D,
+          coordinates: [lng, lat],
+          building: dynamicBuilding,
+          buildingName,
+          ownership: null,
+          bmcData: undefined, // undefined initially
+          isAnimated
+        });
+      });
+
       map.on('click', '3d-buildings', async (e) => {
         if (!e.features || e.features.length === 0) return;
         const f = e.features[0];
@@ -436,6 +541,10 @@ export const MapLibre3DMap: React.FC = () => {
         const height = Math.min(rawHeight, 300);
         const minHeight = props.render_min_height || 0;
         const floors = Math.max(1, Math.min(Math.round(height / 3.8), 80));
+        
+        const seed = (typeof f.id === 'number') ? (f.id % 10) : 0;
+        const isAnimated = height > 40 || (seed % 2 === 1);
+        
         const lngLat = e.lngLat;
         const lng = parseFloat(lngLat.lng.toFixed(5));
         const lat = parseFloat(lngLat.lat.toFixed(5));
@@ -502,6 +611,7 @@ export const MapLibre3DMap: React.FC = () => {
           totalBuiltupAreaSqm: floors * 650,
           address: `Mumbai, Maharashtra (${lng}, ${lat})`,
           simulated: true,
+          constructionYear: yearBuilt,
         };
 
         // Reset dropdowns
@@ -519,7 +629,8 @@ export const MapLibre3DMap: React.FC = () => {
           building: dynamicBuilding,
           buildingName,
           ownership: null,
-          bmcData: undefined // undefined initially
+          bmcData: undefined, // undefined initially
+          isAnimated
         });
 
         // Step 1.5: Fetch MyBMC Data asynchronously
@@ -972,22 +1083,37 @@ export const MapLibre3DMap: React.FC = () => {
     const map = mapRef.current;
     if (!map.getLayer('3d-buildings')) return;
 
-    let progress = 1.0;
-    if (temporalYear < 2018) progress = 0.05;
-    else if (temporalYear === 2018) progress = 0.08;
-    else if (temporalYear === 2019) progress = 0.14;
-    else if (temporalYear === 2020) progress = 0.20;
-    else if (temporalYear === 2021) progress = 0.35;
-    else if (temporalYear === 2022) progress = 0.55;
-    else if (temporalYear === 2023) progress = 0.75;
-    else if (temporalYear >= 2024) progress = 1.0;
+    let global_progress = 1.0;
+    if (temporalYear < 2018) global_progress = 0.05;
+    else if (temporalYear === 2018) global_progress = 0.08;
+    else if (temporalYear === 2019) global_progress = 0.14;
+    else if (temporalYear === 2020) global_progress = 0.20;
+    else if (temporalYear === 2021) global_progress = 0.35;
+    else if (temporalYear === 2022) global_progress = 0.55;
+    else if (temporalYear === 2023) global_progress = 0.75;
+    else if (temporalYear >= 2024) global_progress = 1.0;
 
     map.setPaintProperty('3d-buildings', 'fill-extrusion-height', [
-      'case',
-      ['has', 'render_height'],
-      ['*', ['get', 'render_height'], progress],
-      ['*', 18, progress]
+      'let',
+      'render_ht', ['case', ['has', 'render_height'], ['get', 'render_height'], 18],
+      
+      'seed', ['%', ['coalesce', ['id'], 0], 10],
+      
+      ['case',
+        ['>', ['var', 'render_ht'], 40], ['*', ['var', 'render_ht'], global_progress],
+        ['==', ['%', ['var', 'seed'], 2], 1], ['*', ['var', 'render_ht'], global_progress],
+        ['var', 'render_ht']
+      ]
     ]);
+
+    if (map.getLayer('authoritative-buildings-layer')) {
+      map.setPaintProperty('authoritative-buildings-layer', 'fill-extrusion-height', [
+        'case',
+        ['<', temporalYear, ['get', 'year_built']], 0,
+        ['==', temporalYear, ['get', 'year_built']], ['*', ['get', 'render_height'], 0.5],
+        ['get', 'render_height']
+      ]);
+    }
   }, [temporalYear, mapLoaded]);
 
   // Flood Simulation 
@@ -1355,9 +1481,11 @@ export const MapLibre3DMap: React.FC = () => {
             else if (temporalYear === 2023) progress = 0.75;
             else if (temporalYear >= 2024) progress = 1.0;
 
-            const isUnderConstruction = progress < 1.0;
-            const displayHeight = Math.max(1, Math.round(selectedBuildingInfo.height * progress));
-            const displayFloors = Math.max(1, Math.round(selectedBuildingInfo.floors * progress));
+            if (!selectedBuildingInfo.isAnimated) progress = 1.0;
+
+            const isUnderConstruction = progress > 0.0 && progress < 1.0;
+            const displayHeight = Math.max(0, Math.round(selectedBuildingInfo.height * progress));
+            const displayFloors = Math.max(0, Math.round(selectedBuildingInfo.floors * progress));
             
             return (
               <div className="grid grid-cols-3 gap-2 text-center font-mono text-[10px]">

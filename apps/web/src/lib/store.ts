@@ -265,7 +265,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   searchedParcelGeoJSON: null,
   setSearchedParcelGeoJSON: (geo) => set({ searchedParcelGeoJSON: geo }),
 
-  temporalYear: 2024,
+  temporalYear: 2026,
   setTemporalYear: (year) => set({ temporalYear: year }),
 
   floodSimulation: {
