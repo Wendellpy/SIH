@@ -172,7 +172,7 @@ export const MaharashtraPanel = () => {
     setApiError(null);
     setLoadingDistricts(true);
     if (refresh) {
-      fetch('http://localhost:4000/api/v1/maharashtra/cache/refresh', { method: 'POST', body: JSON.stringify({ scope: 'districts' }), headers: { 'Content-Type': 'application/json' } })
+      fetch('http://127.0.0.1:4000/api/v1/maharashtra/cache/refresh', { method: 'POST', body: JSON.stringify({ scope: 'districts' }), headers: { 'Content-Type': 'application/json' } })
         .then(() => fetchDistricts())
         .catch(() => setApiError('Unable to refresh Maharashtra government data.'));
     } else {
@@ -181,17 +181,38 @@ export const MaharashtraPanel = () => {
   };
 
   const fetchDistricts = () => {
-    fetch('http://localhost:4000/api/v1/maharashtra/districts')
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 8000);
+    
+    fetch('http://127.0.0.1:4000/api/v1/maharashtra/districts', { signal: controller.signal })
       .then(res => res.json())
       .then(data => {
+        clearTimeout(timeoutId);
         if (data.success) {
           setDistricts(data.data || []);
           handleDataSourceInfo(data);
+          setApiError(null);
         } else {
           setApiError(data.error?.message || 'Upstream service unavailable');
         }
       })
-      .catch(err => setApiError('Network Error: Backend not responding'))
+      .catch(err => {
+        clearTimeout(timeoutId);
+        console.error('[Maharashtra] District fetch error:', err);
+        // Retry once after 2 seconds
+        setTimeout(() => {
+          fetch('http://127.0.0.1:4000/api/v1/maharashtra/districts')
+            .then(res => res.json())
+            .then(data => {
+              if (data.success) {
+                setDistricts(data.data || []);
+                handleDataSourceInfo(data);
+                setApiError(null);
+              }
+            })
+            .catch(() => setApiError('Network Error: Backend not responding. Check that the API server is running on port 4000.'));
+        }, 2000);
+      })
       .finally(() => setLoadingDistricts(false));
   };
 
@@ -206,7 +227,7 @@ export const MaharashtraPanel = () => {
     setVillages([]);
     if (!selectedDistrict) return;
     setLoadingTalukas(true);
-    fetch(`http://localhost:4000/api/v1/maharashtra/districts/${selectedDistrict}/talukas`)
+    fetch(`http://127.0.0.1:4000/api/v1/maharashtra/talukas/${selectedDistrict}`)
       .then(res => res.json())
       .then(data => {
         if (data.success) {
@@ -223,7 +244,7 @@ export const MaharashtraPanel = () => {
     setVillages([]);
     if (!selectedTaluka) return;
     setLoadingVillages(true);
-    fetch(`http://localhost:4000/api/v1/maharashtra/districts/${selectedDistrict}/talukas/${selectedTaluka}/villages`)
+    fetch(`http://127.0.0.1:4000/api/v1/maharashtra/villages/${selectedTaluka}?district=${selectedDistrict}`)
       .then(res => res.json())
       .then(data => {
         if (data.success) {
@@ -240,11 +261,11 @@ export const MaharashtraPanel = () => {
     setLoading(true);
     setResult(null);
 
-    let url = 'http://localhost:4000/api/v1/maharashtra/search?';
-    if (selectedDistrict) url += `districtId=${selectedDistrict}&`;
-    if (selectedTaluka) url += `talukaId=${selectedTaluka}&`;
-    if (selectedVillage) url += `villageId=${selectedVillage}&`;
-    if (searchVal) url += `surveyNo=${encodeURIComponent(searchVal)}&`;
+    let url = 'http://127.0.0.1:4000/api/v1/maharashtra/parcel?';
+    if (selectedDistrict) url += `district=${selectedDistrict}&`;
+    if (selectedTaluka) url += `taluka=${selectedTaluka}&`;
+    if (selectedVillage) url += `village=${selectedVillage}&`;
+    if (searchVal) url += `cts=${encodeURIComponent(searchVal)}&`;
 
     fetch(url)
       .then(res => res.json())

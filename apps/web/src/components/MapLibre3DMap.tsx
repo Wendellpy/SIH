@@ -27,6 +27,7 @@ import * as turf from '@turf/turf';
 import { SAMPLE_BUILDINGS, SAMPLE_VERTICAL_UNITS } from '@sih/sample-data';
 import { ClearanceTool } from './ClearanceTool';
 import { generateProceduralUtilities } from '@/lib/proceduralUtilities';
+import { WESTERN_LINE_GEOJSON, generateInitialTrains, updateTrains, getTrainsGeoJSON, TrainState } from '@/lib/trainRoutes';
 
 export const MapLibre3DMap: React.FC = () => {
   const mapContainerRef = useRef<HTMLDivElement>(null);
@@ -77,6 +78,11 @@ export const MapLibre3DMap: React.FC = () => {
   const drawRef = useRef<MapboxDraw | null>(null);
   const dynamicBuildingsRef = useRef<any[]>([]);
   const [footprintGeoJSON, setFootprintGeoJSON] = useState<any>(null);
+
+  // Train animation state
+  const trainsRef = useRef<TrainState[]>([]);
+  const lastTimeRef = useRef<number>(0);
+  const animationRef = useRef<number>(0);
 
   useEffect(() => {
     if (flyToTarget && mapRef.current && mapLoaded) {
@@ -303,6 +309,115 @@ export const MapLibre3DMap: React.FC = () => {
             bearing: parseFloat(map.getBearing().toFixed(2))
           });
         });
+        
+        // Add Live Trains Data Sources & Layers
+        map.addSource('train-routes', {
+          type: 'geojson',
+          data: WESTERN_LINE_GEOJSON
+        });
+        
+        map.addLayer({
+          id: 'train-routes-layer',
+          type: 'line',
+          source: 'train-routes',
+          layout: { visibility: 'none' },
+          paint: {
+            'line-color': '#06b6d4',
+            'line-width': 2,
+            'line-opacity': 0.3,
+            'line-dasharray': [2, 2]
+          }
+        });
+
+        map.addSource('live-trains', {
+          type: 'geojson',
+          data: getTrainsGeoJSON([])
+        });
+
+        // Glowing halo for trains
+        map.addLayer({
+          id: 'live-trains-halo',
+          type: 'circle',
+          source: 'live-trains',
+          layout: { visibility: 'none' },
+          paint: {
+            'circle-radius': 12,
+            'circle-color': '#06b6d4',
+            'circle-opacity': 0.2,
+            'circle-blur': 1
+          }
+        });
+
+        // Core train point
+        map.addLayer({
+          id: 'live-trains-layer',
+          type: 'circle',
+          source: 'live-trains',
+          layout: { visibility: 'none' },
+          paint: {
+            'circle-radius': 5,
+            'circle-color': '#06b6d4',
+            'circle-stroke-width': 2,
+            'circle-stroke-color': '#ffffff'
+          }
+        });
+
+        // Train Click Handler
+        map.on('click', 'live-trains-layer', (e) => {
+          if (!e.features || e.features.length === 0) return;
+          const props = e.features[0].properties;
+          
+          new maplibregl.Popup({ className: 'glass-popup', closeButton: false })
+            .setLngLat(e.lngLat)
+            .setHTML(`
+              <div class="p-3 text-slate-200">
+                <div class="flex items-center gap-2 mb-2 border-b border-white/10 pb-2">
+                  <div class="w-2 h-2 rounded-full bg-cyan-400 animate-pulse"></div>
+                  <span class="font-bold tracking-wider text-xs">${props.name}</span>
+                  <span class="px-1.5 py-0.5 rounded text-[9px] font-mono bg-cyan-900/50 text-cyan-300 border border-cyan-800">${props.type}</span>
+                </div>
+                <div class="grid grid-cols-2 gap-x-4 gap-y-1 text-[11px]">
+                  <div class="text-slate-400">Heading</div>
+                  <div class="font-medium text-white">${props.direction} towards ${props.destination}</div>
+                  <div class="text-slate-400">Origin</div>
+                  <div>${props.source}</div>
+                  <div class="text-slate-400">Speed</div>
+                  <div class="text-cyan-300">${props.speed} km/h</div>
+                </div>
+              </div>
+            `)
+            .addTo(map);
+        });
+
+        map.on('mouseenter', 'live-trains-layer', () => {
+          map.getCanvas().style.cursor = 'pointer';
+        });
+        map.on('mouseleave', 'live-trains-layer', () => {
+          map.getCanvas().style.cursor = '';
+        });
+
+        // Initialize trains
+        trainsRef.current = generateInitialTrains(8);
+        lastTimeRef.current = performance.now();
+        
+        // Start animation loop
+        const animate = (time: number) => {
+          if (!mapRef.current) return;
+          
+          const deltaTime = time - lastTimeRef.current;
+          lastTimeRef.current = time;
+          
+          trainsRef.current = updateTrains(trainsRef.current, deltaTime);
+          
+          const source = mapRef.current.getSource('live-trains') as maplibregl.GeoJSONSource;
+          if (source) {
+            source.setData(getTrainsGeoJSON(trainsRef.current));
+          }
+          
+          animationRef.current = requestAnimationFrame(animate);
+        };
+        animationRef.current = requestAnimationFrame(animate);
+
       });
 
       map.on('error', (e) => {
