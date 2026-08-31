@@ -24,7 +24,7 @@ import { useAppStore } from '@/lib/store';
 import { formatUlpin3D, Building } from '@sih/shared-types';
 import MapboxDraw from '@mapbox/mapbox-gl-draw';
 import * as turf from '@turf/turf';
-import { SAMPLE_BUILDINGS, SAMPLE_VERTICAL_UNITS } from '@sih/sample-data';
+import { SAMPLE_BUILDINGS, SAMPLE_VERTICAL_UNITS, SAMPLE_MINING_AREAS } from '@sih/sample-data';
 import { ClearanceTool } from './ClearanceTool';
 import { generateProceduralUtilities } from '@/lib/proceduralUtilities';
 import { WESTERN_LINE_GEOJSON, generateInitialTrains, updateTrains, getTrainsGeoJSON, TrainState } from '@/lib/trainRoutes';
@@ -76,7 +76,7 @@ export const MapLibre3DMap: React.FC = () => {
   const [copied, setCopied] = useState(false);
   const [selectedFloor, setSelectedFloor] = useState<string>('Ground Floor');
   const [selectedUnit, setSelectedUnit] = useState<string>('101');
-  const { layers, setActiveTab, setSelectedBuilding, flyToTarget, setFlyToTarget, activeUndergroundLayerIds, currentRole, temporalYear, floodSimulation, searchedParcelGeoJSON, mapViewState, setMapViewState } = useAppStore();
+  const { activeTab, layers, setActiveTab, setSelectedBuilding, setSelectedMiningArea, flyToTarget, setFlyToTarget, activeUndergroundLayerIds, currentRole, temporalYear, floodSimulation, searchedParcelGeoJSON, mapViewState, setMapViewState } = useAppStore();
 
   const drawRef = useRef<MapboxDraw | null>(null);
   const dynamicBuildingsRef = useRef<any[]>([]);
@@ -318,6 +318,178 @@ export const MapLibre3DMap: React.FC = () => {
           type: 'geojson',
           data: WESTERN_LINE_GEOJSON as any
         });
+
+        // Add Mining Areas Source
+        map.addSource('mining-areas', {
+          type: 'geojson',
+          data: {
+            type: 'FeatureCollection',
+            features: SAMPLE_MINING_AREAS.map(m => ({
+              type: 'Feature',
+              geometry: m.boundary,
+              properties: { id: m.id, name: m.name, status: m.operationalStatus, mineral: m.mineral, risk: m.analyticalRiskIndicator }
+            }))
+          }
+        });
+
+        map.addLayer({
+          id: 'mining-areas-fill',
+          type: 'fill',
+          source: 'mining-areas',
+          layout: { visibility: 'visible' },
+          paint: {
+            'fill-color': [
+              'match',
+              ['get', 'status'],
+              'ACTIVE', '#fb923c', // orange-400
+              'INACTIVE', '#9ca3af', // gray-400
+              '#fb923c'
+            ],
+            'fill-opacity': 0.4
+          }
+        }, 'poi-labels');
+
+        map.addLayer({
+          id: 'mining-areas-line',
+          type: 'line',
+          source: 'mining-areas',
+          layout: { visibility: 'visible' },
+          paint: {
+            'line-color': '#f97316', // orange-500
+            'line-width': 2,
+            'line-dasharray': [2, 1]
+          }
+        });
+
+        // Add Mining Underground Network Source
+        const undergroundFeatures: any[] = [];
+        SAMPLE_MINING_AREAS.forEach(m => {
+          if (m.undergroundNetwork) {
+            m.undergroundNetwork.segments.forEach(seg => {
+              undergroundFeatures.push({
+                type: 'Feature',
+                geometry: seg.geometry,
+                properties: { id: seg.uldpn, mineId: m.id, type: 'tunnel', depth: seg.depthBelowSurfaceM }
+              });
+            });
+            m.undergroundNetwork.nodes.forEach(node => {
+              undergroundFeatures.push({
+                type: 'Feature',
+                geometry: node.geometry,
+                properties: { id: node.uldpn, mineId: m.id, type: 'node', nodeType: node.featureType }
+              });
+            });
+          }
+        });
+
+        map.addSource('mining-underground', {
+          type: 'geojson',
+          data: {
+            type: 'FeatureCollection',
+            features: undergroundFeatures
+          }
+        });
+
+        map.addLayer({
+          id: 'mining-tunnels-line',
+          type: 'line',
+          source: 'mining-underground',
+          filter: ['==', 'type', 'tunnel'],
+          layout: { visibility: 'visible' },
+          paint: {
+            'line-color': '#a855f7', // purple-500
+            'line-width': 3,
+            'line-dasharray': [2, 1]
+          }
+        });
+
+        map.addLayer({
+          id: 'mining-nodes-circle',
+          type: 'circle',
+          source: 'mining-underground',
+          filter: ['==', 'type', 'node'],
+          layout: { visibility: 'visible' },
+          paint: {
+            'circle-color': '#d946ef', // fuchsia-500
+            'circle-radius': 4,
+            'circle-stroke-width': 1,
+            'circle-stroke-color': '#ffffff'
+          }
+        });
+
+        map.on('click', 'mining-tunnels-line', (e) => {
+          if (!e.features || e.features.length === 0) return;
+          const props = e.features[0].properties;
+          const area = SAMPLE_MINING_AREAS.find(m => m.id === props.mineId);
+          if (area) {
+            setSelectedMiningArea(area);
+            setActiveTab('MINING');
+          }
+        });
+
+        map.on('click', 'mining-areas-fill', (e) => {
+          if (!e.features || e.features.length === 0) return;
+          const props = e.features[0].properties;
+          const area = SAMPLE_MINING_AREAS.find(m => m.id === props.id);
+          if (area) {
+            setSelectedMiningArea(area);
+            setActiveTab('MINING');
+          }
+        });
+        
+        map.on('mouseenter', 'mining-areas-fill', () => { map.getCanvas().style.cursor = 'pointer'; });
+        map.on('mouseleave', 'mining-areas-fill', () => { map.getCanvas().style.cursor = ''; });
+
+        // Add Mock InSAR Deformation Source (Jharia region)
+        const insarFeatures: any[] = [];
+        for (let i = 0; i < 800; i++) {
+          const lng = 86.415 + (Math.random() - 0.5) * 0.015;
+          const lat = 23.755 + (Math.random() - 0.5) * 0.015;
+          const dist = Math.sqrt(Math.pow(lng - 86.415, 2) + Math.pow(lat - 23.755, 2));
+          
+          if (dist > 0.007) continue;
+          
+          // Generate a hotspot center
+          const losDeformation = -120 * Math.pow((1 - dist / 0.007), 2) * (0.8 + Math.random() * 0.2);
+          const coherence = dist < 0.002 ? 0.4 + Math.random() * 0.3 : 0.6 + Math.random() * 0.4;
+          
+          if (coherence > 0.5) {
+            insarFeatures.push({
+              type: 'Feature',
+              geometry: { type: 'Point', coordinates: [lng, lat] },
+              properties: { losDeformation, coherence }
+            });
+          }
+        }
+
+        map.addSource('insar-points', {
+          type: 'geojson',
+          data: { type: 'FeatureCollection', features: insarFeatures }
+        });
+
+        map.addLayer({
+          id: 'insar-points-heatmap',
+          type: 'heatmap',
+          source: 'insar-points',
+          layout: { visibility: 'none' }, // Toggled independently later or tied to MINING tab with sub-toggle
+          paint: {
+            'heatmap-weight': ['interpolate', ['linear'], ['get', 'losDeformation'], -120, 1, 0, 0],
+            'heatmap-intensity': 1,
+            'heatmap-color': [
+              'interpolate',
+              ['linear'],
+              ['heatmap-density'],
+              0, 'rgba(0,0,255,0)',
+              0.2, 'royalblue',
+              0.4, 'cyan',
+              0.6, 'yellow',
+              0.8, 'orange',
+              1, 'red'
+            ],
+            'heatmap-radius': 25,
+            'heatmap-opacity': 0.6
+          }
+        });
         
         map.addLayer({
           id: 'train-routes-layer',
@@ -386,6 +558,8 @@ export const MapLibre3DMap: React.FC = () => {
                   <div>${props.source}</div>
                   <div class="text-slate-400">Speed</div>
                   <div class="text-cyan-300">${props.speed} km/h</div>
+                  <div class="text-slate-400">Progress</div>
+                  <div class="text-emerald-300">${Math.round(props.progress * 100)}% Complete</div>
                 </div>
               </div>
             `)
@@ -425,6 +599,58 @@ export const MapLibre3DMap: React.FC = () => {
 
       map.on('error', (e) => {
         console.warn('[MapLibre] Map warning/error event:', e);
+      });
+
+      // Global click handler for utility popups
+      map.on('click', (e) => {
+        const renderedFeatures = map.queryRenderedFeatures(e.point);
+        const mcgmFeature = renderedFeatures.find(f => f.layer.id.startsWith('mcgm-underground-layer-'));
+        if (mcgmFeature) {
+          const props = mcgmFeature.properties || {};
+          new maplibregl.Popup({ className: 'glass-popup', closeButton: true })
+            .setLngLat(e.lngLat)
+            .setHTML(`
+              <div class="p-3 text-slate-200 text-xs max-w-xs">
+                <div class="font-bold text-white mb-1 border-b border-white/10 pb-1 flex items-center gap-2">
+                  <div class="w-2 h-2 rounded-full bg-cyan-400"></div>
+                  MCGM Underground Asset
+                </div>
+                <div class="grid grid-cols-2 gap-x-2 gap-y-1 mt-2">
+                  <div class="text-slate-400">Type</div>
+                  <div>${props.ASSET_TYPE || props.TYPE || 'Unknown'}</div>
+                  <div class="text-slate-400">Agency</div>
+                  <div>${props.OWNER || props.AGENCY || 'MCGM'}</div>
+                  <div class="text-slate-400">Depth</div>
+                  <div>${props.DEPTH || 'N/A'}</div>
+                </div>
+              </div>
+            `)
+            .addTo(map);
+          return; 
+        }
+
+        const procFeature = renderedFeatures.find(f => f.layer.id === 'procedural-utilities-layer');
+        if (procFeature) {
+          const props = procFeature.properties || {};
+          new maplibregl.Popup({ className: 'glass-popup', closeButton: true })
+            .setLngLat(e.lngLat)
+            .setHTML(`
+              <div class="p-3 text-slate-200 text-xs max-w-xs">
+                <div class="font-bold text-white mb-1 border-b border-white/10 pb-1 flex items-center gap-2">
+                  <div class="w-2 h-2 rounded-full bg-emerald-400"></div>
+                  Procedural Utility
+                </div>
+                <div class="grid grid-cols-2 gap-x-2 gap-y-1 mt-2">
+                  <div class="text-slate-400">Type</div>
+                  <div>${props.assetType || 'Unknown'}</div>
+                  <div class="text-slate-400">Agency</div>
+                  <div>${props.owningAgency || 'Unknown'}</div>
+                </div>
+              </div>
+            `)
+            .addTo(map);
+          return;
+        }
       });
 
       // Click on 3D Building
@@ -908,6 +1134,36 @@ export const MapLibre3DMap: React.FC = () => {
       map.on('mouseenter', 'landcover', () => { map.getCanvas().style.cursor = 'crosshair'; });
       map.on('mouseleave', 'landcover', () => { map.getCanvas().style.cursor = ''; });
 
+      // Highlight Polygon Click Handler -> Inspector
+      map.on('click', 'searched-parcel-fill', (e) => {
+        // Reuse already loaded data in the Zustand store
+        const state = useAppStore.getState();
+        const bldg = state.selectedBuilding;
+        if (!bldg) return;
+        
+        setSelectedBuildingInfo({
+          id: bldg.id,
+          height: bldg.roofHeightM,
+          minHeight: bldg.plinthElevationM,
+          floors: bldg.numFloors,
+          ulpin3D: bldg.ulpin3D || '',
+          coordinates: [e.lngLat.lng, e.lngLat.lat],
+          building: bldg,
+          buildingName: bldg.name,
+          ownership: null,
+          bmcData: {
+            sacNumber: 'SEARCH_RESULT',
+            usage: 'Known',
+            name: bldg.name,
+            noOfFloorsStr: String(bldg.numFloors),
+          },
+          isAnimated: false,
+        });
+      });
+      
+      map.on('mouseenter', 'searched-parcel-fill', () => { map.getCanvas().style.cursor = 'pointer'; });
+      map.on('mouseleave', 'searched-parcel-fill', () => { map.getCanvas().style.cursor = ''; });
+
       mapRef.current = map;
     } catch (err: any) {
       console.error('[MapLibre] Initialization error:', err);
@@ -1183,7 +1439,20 @@ export const MapLibre3DMap: React.FC = () => {
     if (map.getLayer('mybmc-buildings-layer')) {
       map.setLayoutProperty('mybmc-buildings-layer', 'visibility', layers.mybmc ? 'visible' : 'none');
     }
-  }, [layers.mybmc, mapLoaded]);
+
+    if (map.getLayer('mining-areas-fill')) {
+      const showMining = activeTab === 'MINING';
+      map.setLayoutProperty('mining-areas-fill', 'visibility', showMining ? 'visible' : 'none');
+      map.setLayoutProperty('mining-areas-line', 'visibility', showMining ? 'visible' : 'none');
+      if (map.getLayer('mining-tunnels-line')) {
+        map.setLayoutProperty('mining-tunnels-line', 'visibility', showMining ? 'visible' : 'none');
+        map.setLayoutProperty('mining-nodes-circle', 'visibility', showMining ? 'visible' : 'none');
+      }
+      if (map.getLayer('insar-points-heatmap')) {
+        map.setLayoutProperty('insar-points-heatmap', 'visibility', showMining ? 'visible' : 'none');
+      }
+    }
+  }, [layers.mybmc, layers.mining, activeTab, mapLoaded]);
 
   // Dynamically overwrite OSM building with authoritative height on click
   useEffect(() => {

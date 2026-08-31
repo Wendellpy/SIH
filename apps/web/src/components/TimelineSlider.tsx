@@ -8,6 +8,31 @@ export const TimelineSlider: React.FC = () => {
   const { temporalYear, setTemporalYear, floodSimulation, setFloodSimulation } = useAppStore();
 
   const years = [2018, 2020, 2022, 2024, 2026];
+  const [affectedCount, setAffectedCount] = React.useState<number | null>(null);
+
+  React.useEffect(() => {
+    if (floodSimulation.active && floodSimulation.polygon) {
+      fetch('http://localhost:4000/api/v1/buildings')
+        .then(res => res.json())
+        .then(data => {
+          if (data.status === 'success') {
+            import('@turf/turf').then(turf => {
+              const floodPoly = floodSimulation.polygon.features[0];
+              const affected = data.data.filter((b: any) => {
+                if (!b.footprint) return false;
+                try {
+                  return turf.booleanIntersects(b.footprint, floodPoly);
+                } catch(e) { return false; }
+              });
+              setAffectedCount(affected.length);
+            });
+          }
+        })
+        .catch(err => console.error("Failed to calculate flood intersections", err));
+    } else {
+      setAffectedCount(null);
+    }
+  }, [floodSimulation.active, floodSimulation.polygon]);
 
   return (
     <div className="glass-panel-glow rounded-full px-4 py-2 w-full max-w-2xl mx-auto border border-white/10 shadow-2xl flex items-center gap-4 bg-[#0b0f19]/90 backdrop-blur-md">
@@ -58,19 +83,29 @@ export const TimelineSlider: React.FC = () => {
 
       {/* Flood Level Sub-Slider (Absolute position popover if active) */}
       {floodSimulation.active && (
-        <div className="absolute bottom-full left-4 mb-2 p-2 bg-blue-950/80 rounded-xl border border-blue-500/30 animate-in fade-in slide-in-from-bottom-2 flex items-center gap-3 shadow-xl backdrop-blur-md">
-          <div className="text-[10px] font-mono font-bold text-blue-300 whitespace-nowrap">
-            Flood Level: {floodSimulation.waterLevelM.toFixed(1)}m MSL
+        <div className="absolute bottom-full left-4 mb-2 p-3 bg-blue-950/90 rounded-xl border border-blue-500/40 animate-in fade-in slide-in-from-bottom-2 flex items-center gap-4 shadow-xl backdrop-blur-md">
+          <div className="flex flex-col gap-2">
+            <div className="text-[10px] font-mono font-bold text-blue-300 whitespace-nowrap">
+              Flood Level: {floodSimulation.waterLevelM.toFixed(1)}m MSL
+            </div>
+            <input
+              type="range"
+              min="0"
+              max="15"
+              step="0.5"
+              value={floodSimulation.waterLevelM}
+              onChange={(e) => setFloodSimulation(true, parseFloat(e.target.value))}
+              className="w-32 h-1 bg-blue-900 rounded-lg appearance-none cursor-pointer accent-blue-400"
+            />
           </div>
-          <input
-            type="range"
-            min="0"
-            max="15"
-            step="0.5"
-            value={floodSimulation.waterLevelM}
-            onChange={(e) => setFloodSimulation(true, parseFloat(e.target.value))}
-            className="w-32 h-1 bg-blue-900 rounded-lg appearance-none cursor-pointer accent-blue-400"
-          />
+          {affectedCount !== null && (
+            <div className="border-l border-blue-500/30 pl-4 py-1 flex flex-col">
+              <span className="text-[9px] font-mono text-slate-400 uppercase">Affected Buildings</span>
+              <span className="text-sm font-bold text-rose-400 font-mono">
+                {affectedCount} <span className="text-[10px] text-rose-400/70 font-sans">Identified</span>
+              </span>
+            </div>
+          )}
         </div>
       )}
     </div>

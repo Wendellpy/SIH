@@ -52,168 +52,39 @@ export const Header: React.FC = () => {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const getResults = () => {
-    const q = searchQuery.trim().toLowerCase();
-    if (!q) return [];
+  const [results, setResults] = useState<any[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
 
-    const results: Array<{
-      type: '3D_UNIT' | 'PARCEL' | 'BUILDING' | 'UNDERGROUND';
-      title: string;
-      subtitle: string;
-      raw: any;
-    }> = [];
-
-    SAMPLE_VERTICAL_UNITS.forEach(u => {
-      if (u.ulpin3D.toLowerCase().includes(q) || u.unitName.toLowerCase().includes(q) || u.ownerName.toLowerCase().includes(q)) {
-        results.push({
-          type: '3D_UNIT',
-          title: u.unitName,
-          subtitle: `3D ULPIN: ${u.ulpin3D} | Level: ${u.levelCode} | ${u.ownerName}`,
-          raw: u
-        });
-      }
-    });
-
-    SAMPLE_PARCELS.forEach(p => {
-      if (p.ulpin.toLowerCase().includes(q) || p.village.toLowerCase().includes(q) || p.surveyNumber.toLowerCase().includes(q)) {
-        results.push({
-          type: 'PARCEL',
-          title: `Parcel ${p.ulpin} (${p.village})`,
-          subtitle: `Survey No: ${p.surveyNumber} | Area: ${p.areaSqm} sqm`,
-          raw: p
-        });
-      }
-    });
-
-    SAMPLE_BUILDINGS.forEach(b => {
-      if (b.name.toLowerCase().includes(q) || b.address.toLowerCase().includes(q)) {
-        results.push({
-          type: 'BUILDING',
-          title: b.name,
-          subtitle: `${b.numFloors} Floors | ${b.address}`,
-          raw: b
-        });
-      }
-    });
-
-    SAMPLE_UNDERGROUND_ASSETS.forEach(a => {
-      if (a.ulpin3D.toLowerCase().includes(q) || a.assetType.toLowerCase().includes(q) || a.owningAgency.toLowerCase().includes(q)) {
-        results.push({
-          type: 'UNDERGROUND',
-          title: `3D Utility: ${a.assetType}`,
-          subtitle: `${a.ulpin3D} | Depth: ${a.depthMinM}m to ${a.depthMaxM}m`,
-          raw: a
-        });
-      }
-    });
-
-    if (results.length === 0) {
-      const parsed = parseUlpin3D(searchQuery.trim());
-      if (parsed) {
-        let baseLng = 72.8280;
-        let baseLat = 18.9960;
-        let address = 'Simulated Address, Mumbai';
-
-        const matchingParcel = SAMPLE_PARCELS.find(p => p.ulpin === parsed.baseUlpin);
-        if (matchingParcel) {
-          baseLng = matchingParcel.centroid[0];
-          baseLat = matchingParcel.centroid[1];
-          address = `${matchingParcel.village}, ${matchingParcel.tehsil}, ${matchingParcel.district}`;
-        } else if (parsed.baseUlpin.startsWith('MH1') && parsed.baseUlpin.length === 14) {
-          // Geospatially decode the Base36 embedded coordinates
-          const latStr = parsed.baseUlpin.substring(3, 8).toLowerCase();
-          const lngStr = parsed.baseUlpin.substring(8, 14).toLowerCase();
-          const parsedLat = parseInt(latStr, 36) / 1000000;
-          const parsedLng = parseInt(lngStr, 36) / 1000000;
-          
-          if (!isNaN(parsedLat) && !isNaN(parsedLng)) {
-            baseLat = parsedLat;
-            baseLng = parsedLng;
-            address = `Decoded Coordinate (${baseLat.toFixed(4)}, ${baseLng.toFixed(4)})`;
-          } else {
-            // Fallback deterministic hash if malformed
-            let hash = 0;
-            for (let i = 0; i < parsed.baseUlpin.length; i++) {
-              hash = parsed.baseUlpin.charCodeAt(i) + ((hash << 5) - hash);
-            }
-            baseLng = 72.80 + (Math.abs(Math.sin(hash)) * 10000 % 1) * 0.15;
-            baseLat = 18.90 + (Math.abs(Math.cos(hash)) * 10000 % 1) * 0.35;
-            address = `Extrapolated Location from ULPIN, Mumbai`;
-          }
-        } else {
-          // Hackathon Mockup: Deterministically pseudo-decode unknown ULPINs to a coordinate in Mumbai
-          let hash = 0;
-          for (let i = 0; i < parsed.baseUlpin.length; i++) {
-            hash = parsed.baseUlpin.charCodeAt(i) + ((hash << 5) - hash);
-          }
-          const randLng = Math.abs(Math.sin(hash)) * 10000 % 1;
-          const randLat = Math.abs(Math.cos(hash)) * 10000 % 1;
-          
-          baseLng = 72.80 + randLng * (72.95 - 72.80);
-          baseLat = 18.90 + randLat * (19.25 - 18.90);
-          address = `Extrapolated Location from ULPIN, Mumbai`;
-        }
-
-        results.push({
-          type: '3D_UNIT',
-          title: `Simulated Unit ${parsed.unitCode}`,
-          subtitle: `3D ULPIN: ${parsed.rawString} | Simulated Record`,
-          raw: {
-            unit: {
-              id: `sim-${Date.now()}`,
-              buildingId: 'simulated-building',
-              parcelId: 'simulated-parcel',
-              ulpin3D: parsed.rawString,
-              domainCode: parsed.domainCode,
-              levelCode: parsed.levelCode,
-              unitCode: parsed.unitCode,
-              floorNumber: parsed.levelNumber,
-              unitName: `Simulated Unit ${parsed.unitCode}`,
-              useType: 'Mixed',
-              ownerName: 'Simulated Owner (MyBMC)',
-              ownerId: 'SIM-MH-9999',
-              carpetAreaSqm: 500.0,
-              builtupAreaSqm: 575.0,
-              volumeCum: 2000.0,
-              zMin: parsed.levelNumber * 3.8,
-              zMax: (parsed.levelNumber + 1) * 3.8,
-              verticalDatum: 'WGS84 MSL',
-              bounds: { minLng: baseLng, maxLng: baseLng + 0.0002, minLat: baseLat, maxLat: baseLat + 0.0002, minZ: 0, maxZ: 10 },
-              validationStatus: 'VALID',
-              provenance: 'DRONE_LIDAR',
-              taxStatus: 'PAID',
-              simulated: true,
-              createdAt: new Date().toISOString(),
-              updatedAt: new Date().toISOString()
-            },
-            building: {
-              id: 'simulated-building',
-              parcelId: 'simulated-parcel',
-              name: `Simulated Building (${parsed.baseUlpin})`,
-              footprint: { 
-                type: 'Polygon', 
-                coordinates: [[[baseLng, baseLat], [baseLng + 0.0002, baseLat], [baseLng + 0.0002, baseLat + 0.0002], [baseLng, baseLat + 0.0002], [baseLng, baseLat]]] 
-              },
-              eavesHeightM: (Math.max(4, parsed.levelNumber + 2)) * 3.8,
-              roofHeightM: (Math.max(4, parsed.levelNumber + 2)) * 3.8 + 2,
-              numFloors: Math.max(4, parsed.levelNumber + 2),
-              numBasements: 0,
-              plinthElevationM: 0,
-              totalBuiltupAreaSqm: 10000,
-              address: address,
-              simulated: true
-            }
-          }
-        });
-      }
+  useEffect(() => {
+    const q = searchQuery.trim();
+    if (!q) {
+      setResults([]);
+      return;
     }
+    
+    setIsSearching(true);
+    const timeoutId = setTimeout(() => {
+      fetch(`/api/v1/search?q=${encodeURIComponent(q)}`)
+        .then(res => res.json())
+        .then(data => {
+          if (data.status === 'success' && data.data) {
+            // Map 'metadata' from API to 'raw' so handleSelectResult works seamlessly
+            setResults(data.data.slice(0, 8).map((r: any) => ({ ...r, raw: r.metadata })));
+          } else {
+            setResults([]);
+          }
+        })
+        .catch(err => {
+          console.error('Search API failed', err);
+          setResults([]);
+        })
+        .finally(() => setIsSearching(false));
+    }, 300);
 
-    return results.slice(0, 8);
-  };
+    return () => clearTimeout(timeoutId);
+  }, [searchQuery]);
 
-  const results = getResults();
-
-  const handleSelectResult = (result: ReturnType<typeof getResults>[0]) => {
+  const handleSelectResult = (result: any) => {
     setIsSearchOpen(false);
     setSearchQuery('');
 
@@ -361,6 +232,19 @@ export const Header: React.FC = () => {
           >
             <Compass className="w-3.5 h-3.5" />
             Maharashtra
+          </button>
+
+          <button
+            onClick={() => {
+              setActiveTab('MINING');
+              setFlyToTarget({ lng: 80.0, lat: 22.0, zoom: 4.5, pitch: 0 }); // India-wide default
+            }}
+            className={`flex items-center gap-1.5 px-3 py-1 rounded-md text-[11px] font-medium transition-all ${
+              activeTab === 'MINING' ? 'bg-white/10 text-white shadow-sm' : 'text-slate-400 hover:text-slate-200 hover:bg-white/5'
+            }`}
+          >
+            <Box className="w-3.5 h-3.5" />
+            Mining
           </button>
 
           <button

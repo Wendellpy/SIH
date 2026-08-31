@@ -7,7 +7,8 @@ import {
   TopologyValidationLog, 
   AuditLog, 
   AIJob,
-  ChangeEvent
+  ChangeEvent,
+  MiningArea
 } from '@sih/shared-types';
 import { 
   SAMPLE_PARCELS, 
@@ -15,15 +16,16 @@ import {
   SAMPLE_VERTICAL_UNITS, 
   SAMPLE_UNDERGROUND_ASSETS, 
   SAMPLE_TOPOLOGY_LOGS, 
-  SAMPLE_AUDIT_LOGS 
+  SAMPLE_AUDIT_LOGS,
+  SAMPLE_MINING_AREAS
 } from '@sih/sample-data';
 
 export type MumbaiRegionKey = 'ALL' | 'BKC' | 'NARIMAN' | 'WORLI' | 'ANDHERI' | 'POWAI';
 
 export interface AppState {
   // Navigation & View Modes
-  activeTab: 'MAP_3D' | 'MAPLIBRE_3D' | 'EXPLODED_3D' | 'AI_STUDIO' | 'ADMIN_PORTAL' | 'AUDIT_LEDGER' | 'MAHARASHTRA';
-  setActiveTab: (tab: 'MAP_3D' | 'MAPLIBRE_3D' | 'EXPLODED_3D' | 'AI_STUDIO' | 'ADMIN_PORTAL' | 'AUDIT_LEDGER' | 'MAHARASHTRA') => void;
+  activeTab: 'MAP_3D' | 'MAPLIBRE_3D' | 'EXPLODED_3D' | 'AI_STUDIO' | 'ADMIN_PORTAL' | 'AUDIT_LEDGER' | 'MAHARASHTRA' | 'MINING';
+  setActiveTab: (tab: 'MAP_3D' | 'MAPLIBRE_3D' | 'EXPLODED_3D' | 'AI_STUDIO' | 'ADMIN_PORTAL' | 'AUDIT_LEDGER' | 'MAHARASHTRA' | 'MINING') => void;
 
   // Role-Based Access Views
   currentRole: 'revenue' | 'engineer' | 'utility';
@@ -41,6 +43,9 @@ export interface AppState {
 
   selectedUnderground: UndergroundAsset | null;
   setSelectedUnderground: (asset: UndergroundAsset | null) => void;
+
+  selectedMiningArea: MiningArea | null;
+  setSelectedMiningArea: (area: MiningArea | null) => void;
 
   // Region & Category Filters
   selectedRegion: MumbaiRegionKey;
@@ -60,6 +65,7 @@ export interface AppState {
     satellite: boolean;
     terrain: boolean;
     mybmc: boolean;
+    mining: boolean;
   };
   activeUndergroundLayerIds: number[];
   toggleLayer: (layer: keyof AppState['layers']) => void;
@@ -118,8 +124,9 @@ export interface AppState {
   floodSimulation: {
     active: boolean;
     waterLevelM: number;
+    polygon?: any;
   };
-  setFloodSimulation: (active: boolean, waterLevelM?: number) => void;
+  setFloodSimulation: (active: boolean, waterLevelM?: number, polygon?: any) => void;
 
   // Mock Change Events
   changeEvents: ChangeEvent[];
@@ -156,6 +163,9 @@ export const useAppStore = create<AppState>((set, get) => ({
   selectedUnderground: null,
   setSelectedUnderground: (asset) => set({ selectedUnderground: asset }),
 
+  selectedMiningArea: null,
+  setSelectedMiningArea: (area) => set({ selectedMiningArea: area }),
+
   selectedRegion: 'ALL',
   setSelectedRegion: (region) => set({ selectedRegion: region }),
 
@@ -172,6 +182,7 @@ export const useAppStore = create<AppState>((set, get) => ({
     satellite: false,
     terrain: false,
     mybmc: true,
+    mining: true,
   },
   activeUndergroundLayerIds: [],
   toggleLayer: (layer) =>
@@ -264,6 +275,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       selectedBuilding: null,
       selectedUnit: null,
       selectedUnderground: null,
+      selectedMiningArea: null,
       selectedRegion: 'ALL',
       searchedParcelGeoJSON: null,
     }),
@@ -277,12 +289,29 @@ export const useAppStore = create<AppState>((set, get) => ({
   floodSimulation: {
     active: false,
     waterLevelM: 0,
+    polygon: {
+      type: 'FeatureCollection',
+      features: [{
+        type: 'Feature',
+        geometry: {
+          type: 'Polygon',
+          coordinates: [[
+            [72.7, 18.8],
+            [73.1, 18.8],
+            [73.1, 19.3],
+            [72.7, 19.3],
+            [72.7, 18.8]
+          ]]
+        }
+      }]
+    },
   },
-  setFloodSimulation: (active, waterLevelM) => 
+  setFloodSimulation: (active, waterLevelM, polygon) => 
     set((state) => ({ 
       floodSimulation: { 
         active, 
-        waterLevelM: waterLevelM ?? state.floodSimulation.waterLevelM 
+        waterLevelM: waterLevelM ?? state.floodSimulation.waterLevelM,
+        polygon: polygon !== undefined ? polygon : state.floodSimulation.polygon
       } 
     })),
 

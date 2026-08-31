@@ -5,7 +5,8 @@ import {
   UndergroundAsset, 
   TopologyValidationLog, 
   AuditLog, 
-  formatUlpin3D 
+  formatUlpin3D,
+  MiningArea
 } from '@sih/shared-types';
 
 /**
@@ -1302,6 +1303,306 @@ export const SAMPLE_AUDIT_LOGS: AuditLog[] = [
     entityId: 'topologylog-bkc-conflict-01',
     summary: 'Flagged CRITICAL 3D vertical collision ERR_3D_Z_OVERLAP between Units 201 & 202.',
     hashSignature: '4b227777d4dd1fc61c6f884f48641d02b4d121d3fd328cb08b5531fcacdabf8a'
+  }
+];
+
+export const SAMPLE_MINING_AREAS: MiningArea[] = [
+  {
+    id: 'mine-jharia-001',
+    name: 'Jharia Coalfield Demo (Jharkhand)',
+    coordinates: [86.41, 23.75],
+    boundary: {
+      type: 'Polygon',
+      coordinates: [[
+        [86.40, 23.74], [86.42, 23.74], [86.42, 23.76], [86.40, 23.76], [86.40, 23.74]
+      ]]
+    },
+    district: 'Dhanbad',
+    state: 'Jharkhand',
+    tehsil: 'Jharia',
+    mineral: 'Coal',
+    miningType: 'UNDERGROUND',
+    operationalStatus: 'ACTIVE',
+    areaSqm: 2500000,
+    incidentCount: 0,
+    analyticalRiskIndicator: 80,
+    dataSource: 'demo',
+    lastUpdated: '2026-08-31T00:00:00Z',
+    isSynthetic: true,
+    undergroundNetwork: {
+      nodes: [
+        {
+          uldpn: 'IND-JH-DHN-JHR01-SHF-0001',
+          mineId: 'mine-jharia-001',
+          state: 'Jharkhand',
+          district: 'Dhanbad',
+          featureType: 'shaft',
+          dataSource: 'demo',
+          crs: 'EPSG:4326',
+          geometry: { type: 'Point', coordinates: [86.41, 23.75, 200] },
+          connectedSegments: ['IND-JH-DHN-JHR01-TUN-0001']
+        },
+        {
+          uldpn: 'IND-JH-DHN-JHR01-JNC-0001',
+          mineId: 'mine-jharia-001',
+          state: 'Jharkhand',
+          district: 'Dhanbad',
+          featureType: 'junction',
+          dataSource: 'demo',
+          crs: 'EPSG:4326',
+          geometry: { type: 'Point', coordinates: [86.415, 23.75, 50] },
+          connectedSegments: ['IND-JH-DHN-JHR01-TUN-0001', 'IND-JH-DHN-JHR01-TUN-0002']
+        }
+      ],
+      segments: [
+        {
+          uldpn: 'IND-JH-DHN-JHR01-TUN-0001',
+          mineId: 'mine-jharia-001',
+          state: 'Jharkhand',
+          district: 'Dhanbad',
+          featureType: 'tunnel_segment',
+          dataSource: 'demo',
+          crs: 'EPSG:4326',
+          geometry: { type: 'LineString', coordinates: [[86.41, 23.75, 200], [86.415, 23.75, 50]] },
+          startCoordinate: [86.41, 23.75, 200],
+          endCoordinate: [86.415, 23.75, 50],
+          lengthM: 600,
+          surfaceElevationM: 200,
+          undergroundElevationM: 50,
+          depthBelowSurfaceM: 150,
+          connectsTo: ['IND-JH-DHN-JHR01-SHF-0001', 'IND-JH-DHN-JHR01-JNC-0001'],
+          deformationCorrelation: {
+            uldpn: 'IND-JH-DHN-JHR01-TUN-0001',
+            analysisZoneRadiusM: 100,
+            meanLosDeformationMm: -15.4,
+            maxLosDeformationMm: -22.1,
+            velocityMmPerYear: -8.5,
+            cumulativeDisplacementMm: -45.0,
+            distanceToHotspotM: 12,
+            meanCoherence: 0.85,
+            analyticalStatus: 'deformation_detected',
+            lastObservationDate: '2026-08-15T00:00:00Z',
+            dataSources: {
+              sensor: 'Sentinel-1A',
+              processingMethod: 'DInSAR',
+              demSource: 'Copernicus 30m',
+              coherenceThreshold: 0.5
+            }
+          }
+        },
+        {
+          uldpn: 'IND-JH-DHN-JHR01-TUN-0002',
+          mineId: 'mine-jharia-001',
+          state: 'Jharkhand',
+          district: 'Dhanbad',
+          featureType: 'tunnel_segment',
+          dataSource: 'demo',
+          crs: 'EPSG:4326',
+          geometry: { type: 'LineString', coordinates: [[86.415, 23.75, 50], [86.415, 23.755, 50]] },
+          startCoordinate: [86.415, 23.75, 50],
+          endCoordinate: [86.415, 23.755, 50],
+          lengthM: 400,
+          surfaceElevationM: 205,
+          undergroundElevationM: 50,
+          depthBelowSurfaceM: 155,
+          connectsTo: ['IND-JH-DHN-JHR01-JNC-0001'],
+          deformationCorrelation: {
+            uldpn: 'IND-JH-DHN-JHR01-TUN-0002',
+            analysisZoneRadiusM: 100,
+            meanLosDeformationMm: -42.8,
+            maxLosDeformationMm: -65.2,
+            velocityMmPerYear: -25.0,
+            cumulativeDisplacementMm: -120.5,
+            distanceToHotspotM: 0,
+            meanCoherence: 0.78,
+            analyticalStatus: 'high_deformation_investigation_recommended',
+            lastObservationDate: '2026-08-15T00:00:00Z'
+          }
+        }
+      ]
+    },
+    insarTimeSeries: {
+      locationId: 'jharia-hotspot-1',
+      geometry: { type: 'Point', coordinates: [86.415, 23.755] },
+      trend: 'accelerating',
+      velocityMmPerYear: -25.0,
+      observations: [
+        { date: '2026-06-01T00:00:00Z', cumulativeDisplacementMm: 0, coherence: 0.8 },
+        { date: '2026-06-13T00:00:00Z', cumulativeDisplacementMm: -12.5, coherence: 0.85 },
+        { date: '2026-06-25T00:00:00Z', cumulativeDisplacementMm: -28.0, coherence: 0.79 },
+        { date: '2026-07-07T00:00:00Z', cumulativeDisplacementMm: -45.2, coherence: 0.82 },
+        { date: '2026-07-19T00:00:00Z', cumulativeDisplacementMm: -65.5, coherence: 0.75 },
+        { date: '2026-07-31T00:00:00Z', cumulativeDisplacementMm: -92.0, coherence: 0.88 },
+        { date: '2026-08-15T00:00:00Z', cumulativeDisplacementMm: -120.5, coherence: 0.78 }
+      ]
+    }
+  },
+  {
+    id: 'mine-korba-001',
+    name: 'Korba Deep Excavation Demo (Chhattisgarh)',
+    coordinates: [82.68, 22.35],
+    boundary: {
+      type: 'Polygon',
+      coordinates: [[
+        [82.67, 22.34], [82.69, 22.34], [82.69, 22.36], [82.67, 22.36], [82.67, 22.34]
+      ]]
+    },
+    district: 'Korba',
+    state: 'Chhattisgarh',
+    tehsil: 'Korba',
+    mineral: 'Coal',
+    miningType: 'UNDERGROUND',
+    operationalStatus: 'ACTIVE',
+    areaSqm: 3000000,
+    incidentCount: 0,
+    analyticalRiskIndicator: 75,
+    dataSource: 'demo',
+    lastUpdated: '2026-08-31T00:00:00Z',
+    isSynthetic: true,
+    undergroundNetwork: {
+      nodes: [
+        {
+          uldpn: 'IND-CG-KRB-KRB01-SHF-0001',
+          mineId: 'mine-korba-001',
+          state: 'Chhattisgarh',
+          district: 'Korba',
+          featureType: 'shaft',
+          dataSource: 'demo',
+          crs: 'EPSG:4326',
+          geometry: { type: 'Point', coordinates: [82.68, 22.35, 300] },
+          connectedSegments: ['IND-CG-KRB-KRB01-TUN-0001']
+        }
+      ],
+      segments: [
+        {
+          uldpn: 'IND-CG-KRB-KRB01-TUN-0001',
+          mineId: 'mine-korba-001',
+          state: 'Chhattisgarh',
+          district: 'Korba',
+          featureType: 'tunnel_segment',
+          dataSource: 'demo',
+          crs: 'EPSG:4326',
+          geometry: { type: 'LineString', coordinates: [[82.68, 22.35, 300], [82.685, 22.355, 100]] },
+          startCoordinate: [82.68, 22.35, 300],
+          endCoordinate: [82.685, 22.355, 100],
+          lengthM: 800,
+          surfaceElevationM: 300,
+          undergroundElevationM: 100,
+          depthBelowSurfaceM: 200,
+          connectsTo: ['IND-CG-KRB-KRB01-SHF-0001'],
+          deformationCorrelation: {
+            uldpn: 'IND-CG-KRB-KRB01-TUN-0001',
+            analysisZoneRadiusM: 150,
+            meanLosDeformationMm: -1.2,
+            maxLosDeformationMm: -3.5,
+            velocityMmPerYear: -0.5,
+            cumulativeDisplacementMm: -2.1,
+            distanceToHotspotM: 1500,
+            meanCoherence: 0.92,
+            analyticalStatus: 'stable',
+            lastObservationDate: '2026-08-20T00:00:00Z',
+            dataSources: {
+              sensor: 'Sentinel-1A',
+              processingMethod: 'PS-InSAR',
+              demSource: 'Copernicus 30m',
+              coherenceThreshold: 0.7
+            }
+          }
+        }
+      ]
+    },
+    insarTimeSeries: {
+      locationId: 'korba-stable-1',
+      geometry: { type: 'Point', coordinates: [82.682, 22.352] },
+      trend: 'stable',
+      velocityMmPerYear: -0.5,
+      observations: [
+        { date: '2026-06-05T00:00:00Z', cumulativeDisplacementMm: 0, coherence: 0.9 },
+        { date: '2026-07-15T00:00:00Z', cumulativeDisplacementMm: -1.0, coherence: 0.92 },
+        { date: '2026-08-20T00:00:00Z', cumulativeDisplacementMm: -2.1, coherence: 0.95 }
+      ]
+    }
+  },
+  {
+    id: 'mine-khetri-001',
+    name: 'Khetri Copper Complex Demo (Rajasthan)',
+    coordinates: [75.78, 28.00],
+    boundary: {
+      type: 'Polygon',
+      coordinates: [[
+        [75.77, 27.99], [75.79, 27.99], [75.79, 28.01], [75.77, 28.01], [75.77, 27.99]
+      ]]
+    },
+    district: 'Jhunjhunu',
+    state: 'Rajasthan',
+    tehsil: 'Khetri',
+    mineral: 'Copper',
+    miningType: 'UNDERGROUND',
+    operationalStatus: 'ACTIVE',
+    areaSqm: 1500000,
+    incidentCount: 0,
+    analyticalRiskIndicator: 60,
+    dataSource: 'demo',
+    lastUpdated: '2026-08-31T00:00:00Z',
+    isSynthetic: true,
+    undergroundNetwork: {
+      nodes: [
+        {
+          uldpn: 'IND-RJ-JHJ-KHT01-ENT-0001',
+          mineId: 'mine-khetri-001',
+          state: 'Rajasthan',
+          district: 'Jhunjhunu',
+          featureType: 'entrance',
+          dataSource: 'demo',
+          crs: 'EPSG:4326',
+          geometry: { type: 'Point', coordinates: [75.78, 28.00, 350] },
+          connectedSegments: ['IND-RJ-JHJ-KHT01-TUN-0001']
+        }
+      ],
+      segments: [
+        {
+          uldpn: 'IND-RJ-JHJ-KHT01-TUN-0001',
+          mineId: 'mine-khetri-001',
+          state: 'Rajasthan',
+          district: 'Jhunjhunu',
+          featureType: 'tunnel_segment',
+          dataSource: 'demo',
+          crs: 'EPSG:4326',
+          geometry: { type: 'LineString', coordinates: [[75.78, 28.00, 350], [75.78, 27.995, 200]] },
+          startCoordinate: [75.78, 28.00, 350],
+          endCoordinate: [75.78, 27.995, 200],
+          lengthM: 750,
+          surfaceElevationM: 350,
+          undergroundElevationM: 200,
+          depthBelowSurfaceM: 150,
+          connectsTo: ['IND-RJ-JHJ-KHT01-ENT-0001']
+        }
+      ]
+    }
+  },
+  {
+    id: 'mine-sundargarh-001',
+    name: 'Sundargarh Iron Demo (Odisha)',
+    coordinates: [84.05, 22.12],
+    boundary: {
+      type: 'Polygon',
+      coordinates: [[
+        [84.04, 22.11], [84.06, 22.11], [84.06, 22.13], [84.04, 22.13], [84.04, 22.11]
+      ]]
+    },
+    district: 'Sundargarh',
+    state: 'Odisha',
+    tehsil: 'Koira',
+    mineral: 'Iron Ore',
+    miningType: 'OPEN_CAST',
+    operationalStatus: 'INACTIVE',
+    areaSqm: 4000000,
+    incidentCount: 0,
+    analyticalRiskIndicator: 45,
+    dataSource: 'demo',
+    lastUpdated: '2026-08-31T00:00:00Z',
+    isSynthetic: true,
+    // Note: No underground network for this open cast mine.
   }
 ];
 

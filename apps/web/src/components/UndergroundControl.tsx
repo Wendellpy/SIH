@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { useAppStore } from '../lib/store';
-import { Layers, Zap, Truck, AlertTriangle, Eye, EyeOff, Loader2, Box } from 'lucide-react';
+import { Layers, Zap, Truck, AlertTriangle, Eye, EyeOff, Loader2, Box, Mountain } from 'lucide-react';
 import { BorderBeam } from './ui/BorderBeam';
 
 interface UndergroundLayer {
@@ -168,6 +168,24 @@ export const UndergroundControl: React.FC = () => {
               <span className="text-[9px] text-slate-500 font-mono">ID:{l.id}</span>
             </div>
           ))}
+        </div>
+
+        {/* Mining Areas */}
+        <div className="space-y-2">
+          <button 
+            onClick={() => toggleLayer('mining')}
+            className={`w-full flex items-center justify-between p-2.5 rounded-xl border transition-all duration-300 group ${
+              layers.mining 
+                ? 'bg-orange-900/30 border-orange-500/40 text-orange-100 shadow-[0_0_15px_rgba(249,115,22,0.15)]' 
+                : 'bg-white/5 border-white/5 text-slate-400 hover:bg-white/10 hover:text-slate-300'
+            }`}
+          >
+            <div className="flex items-center gap-2.5">
+              <Mountain className={`w-4 h-4 ${layers.mining ? 'text-orange-400' : 'text-slate-500 group-hover:text-orange-400/50 transition-colors'}`} />
+              <span className="text-[11px] font-bold tracking-wide">Mining Intelligence</span>
+            </div>
+            {layers.mining ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
+          </button>
         </div>
         
       </div>

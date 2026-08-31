@@ -6,6 +6,7 @@ import { Header } from '@/components/Header';
 import { UndergroundControl } from '@/components/UndergroundControl';
 import { UndergroundTestPanel } from '@/components/UndergroundTestPanel';
 import { InspectorPanel } from '@/components/InspectorPanel';
+import { MiningInfoPanel } from '@/components/MiningInfoPanel';
 import { AdminPortal } from '@/components/AdminPortal';
 import { TimelineSlider } from '@/components/TimelineSlider';
 import { useAppStore } from '@/lib/store';
@@ -52,7 +53,7 @@ export default function WorkspacePage() {
       <main className="relative flex-1 flex overflow-hidden p-3 gap-3">
         {/* Active Workspace Viewport */}
         <div className="relative flex-1 h-full rounded-2xl overflow-hidden shadow-2xl border border-white/5 bg-[#030712]">
-          {activeTab === 'MAPLIBRE_3D' && (
+          {(activeTab === 'MAPLIBRE_3D' || activeTab === 'MINING') && (
             <div className="relative w-full h-full">
               <MapLibre3DMap />
               <div className="absolute top-4 right-4 z-20 pointer-events-auto">
@@ -63,6 +64,9 @@ export default function WorkspacePage() {
               <div className="absolute bottom-4 left-1/2 -translate-x-1/2 w-full max-w-2xl z-20 pointer-events-auto">
                 <TimelineSlider />
               </div>
+
+              {/* Mining Information Panel - Only on MINING tab */}
+              {activeTab === 'MINING' && <MiningInfoPanel />}
             </div>
           )}
 

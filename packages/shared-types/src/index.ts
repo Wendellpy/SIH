@@ -163,6 +163,167 @@ export interface UndergroundAsset {
   visibleTo?: string[];
 }
 
+export interface GNSSMetaData {
+  surveyId: string;
+  horizontalAccuracyM: number;
+  verticalAccuracyM: number;
+  fixType: 'RTK_FIXED' | 'RTK_FLOAT' | 'DGPS' | 'SPS';
+  corsReferenceStation: string;
+  correctionMethod: string;
+  operator: string;
+  dataSource: string;
+  observationTimestamp: string;
+  satellitesUsed: number;
+  crs: string; // e.g. WGS84
+  isProposed?: boolean; // Label for features not yet built live
+}
+
+export interface TerrainMetrics {
+  minElevationM: number;
+  maxElevationM: number;
+  meanElevationM: number;
+  minSlopeDeg: number;
+  maxSlopeDeg: number;
+  meanSlopeDeg: number;
+  slopeClassification: 'Flat' | 'Gentle' | 'Moderate' | 'Steep' | 'Very Steep';
+  predominantAspect: string; // e.g. North, North-East
+  dataSource: string; // e.g. Synthetic DEM
+  isSynthetic?: boolean;
+}
+
+export interface EnvironmentalProximity {
+  nearestWaterBodyDistM: number;
+  nearestSettlementDistM: number;
+  nearestRoadDistM: number;
+  nearestForestDistM: number;
+  ecoSensitiveZoneIntersection: boolean;
+  protectedAreaIntersection: boolean;
+  isSynthetic?: boolean;
+}
+
+export interface UndergroundFeatureBase {
+  uldpn: string;
+  mineId: string;
+  state: string;
+  district: string;
+  miningRegion?: string;
+  featureType: 'shaft' | 'entrance' | 'tunnel_segment' | 'gallery' | 'chamber' | 'junction' | 'ventilation_shaft';
+  mineral?: string;
+  miningMethod?: string;
+  level?: number;
+  status?: 'active' | 'inactive' | 'abandoned' | 'unknown';
+  surveyDate?: string;
+  dataSource: 'verified' | 'demo' | 'proposed';
+  sourceName?: string;
+  positionalAccuracyM?: number;
+  verticalAccuracyM?: number;
+  crs: string;
+}
+
+export interface TunnelSegment extends UndergroundFeatureBase {
+  featureType: 'tunnel_segment';
+  geometry: GeoLineString3D | { type: 'LineString'; coordinates: number[][] };
+  startCoordinate: [number, number, number?];
+  endCoordinate: [number, number, number?];
+  lengthM: number;
+  surfaceElevationM?: number;
+  undergroundElevationM?: number;
+  depthBelowSurfaceM?: number;
+  azimuthDeg?: number;
+  tunnelType?: string;
+  connectsTo: string[]; // ULDPNs
+  deformationCorrelation?: TunnelDeformationCorrelation;
+}
+
+export interface UndergroundNode extends UndergroundFeatureBase {
+  featureType: 'shaft' | 'entrance' | 'chamber' | 'junction' | 'ventilation_shaft';
+  geometry: { type: 'Point'; coordinates: [number, number, number?] };
+  connectedSegments: string[]; // ULDPNs
+}
+
+export interface UndergroundNetwork {
+  nodes: UndergroundNode[];
+  segments: TunnelSegment[];
+}
+
+export interface DeformationObservation {
+  id: string;
+  acquisitionDate: string;
+  sensor: 'Sentinel-1A' | 'Sentinel-1B' | 'Sentinel-1C';
+  productType: 'SLC';
+  processingMethod: 'DInSAR' | 'PS-InSAR' | 'SBAS';
+  geometry: 'ascending' | 'descending';
+  losDisplacementMm: number;
+  coherence: number;
+  crs: string;
+  demSource: string;
+  processingChain: string[];
+  dataSource: 'verified' | 'demo' | 'proposed';
+}
+
+export interface DeformationTimeSeries {
+  locationId: string;
+  geometry: { type: 'Point' | 'Polygon'; coordinates: any };
+  observations: { date: string; cumulativeDisplacementMm: number; coherence: number }[];
+  velocityMmPerYear?: number;
+  trend: 'stable' | 'gradual' | 'accelerating' | 'sudden' | 'insufficient_data';
+}
+
+export interface TunnelDeformationCorrelation {
+  uldpn: string;
+  analysisZoneRadiusM: number;
+  meanLosDeformationMm?: number;
+  maxLosDeformationMm?: number;
+  minLosDeformationMm?: number;
+  velocityMmPerYear?: number;
+  cumulativeDisplacementMm?: number;
+  affectedPixelPercent?: number;
+  distanceToHotspotM?: number;
+  meanCoherence?: number;
+  analyticalStatus: 'stable' | 'monitor' | 'deformation_detected' | 'high_deformation_investigation_recommended' | 'insufficient_data';
+  lastObservationDate?: string;
+  
+  // Expose the raw data sources this was derived from
+  dataSources?: {
+    sensor: string;
+    processingMethod: string;
+    demSource: string;
+    coherenceThreshold: number;
+  };
+}
+
+export interface MiningArea {
+  id: string;
+  name: string;
+  coordinates: [number, number]; // [lng, lat]
+  boundary: GeoPolygon2D;
+  district: string;
+  state: string;
+  tehsil: string;
+  mineral: string;
+  miningType: 'OPEN_CAST' | 'UNDERGROUND' | 'PLACER';
+  operationalStatus: 'ACTIVE' | 'INACTIVE' | 'ABANDONED';
+  areaSqm: number;
+  
+  // Intelligence Metrics
+  gnssMetaData?: GNSSMetaData;
+  terrainMetrics?: TerrainMetrics;
+  environmentalProximity?: EnvironmentalProximity;
+  
+  incidentCount: number; // Will be 0 or marked as future scope
+  analyticalRiskIndicator: number | null; // e.g., 0-100 system generated score
+  
+  dataSource: string;
+  lastUpdated: string;
+  isSynthetic?: boolean;
+  
+  // Revised V2 Hierarchy
+  undergroundNetwork?: UndergroundNetwork;
+  
+  // Revised V3 InSAR Module
+  insarTimeSeries?: DeformationTimeSeries;
+}
+
 export type JobType = 
   | 'FOOTPRINT_EXTRACTION' 
   | 'FLOORPLAN_VECTORIZATION' 

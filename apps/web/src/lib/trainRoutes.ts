@@ -105,7 +105,8 @@ export function getTrainsGeoJSON(trains: TrainState[]): any {
     type: 'FeatureCollection',
     features: trains.map(t => {
       // Get point along line
-      const dist = t.progress * lineLength;
+      // Clamp distance to avoid Turf "coord is required" error if progress goes out of bounds
+      const dist = Math.max(0, Math.min(t.progress * lineLength, lineLength));
       const point = turf.along(lineStr, dist, { units: 'kilometers' });
       
       return {
@@ -117,7 +118,8 @@ export function getTrainsGeoJSON(trains: TrainState[]): any {
           direction: t.direction,
           source: t.source,
           destination: t.destination,
-          speed: Math.round(t.speedKmH)
+          speed: Math.round(t.speedKmH),
+          progress: t.progress
         },
         geometry: point.geometry
       };
