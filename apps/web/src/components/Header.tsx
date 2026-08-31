@@ -128,15 +128,15 @@ export const Header: React.FC = () => {
   };
 
   return (
-    <header className="sticky top-0 z-50 w-full glass-panel border-b border-white/5 px-6 py-1.5 flex items-center justify-between shadow-sm">
+    <header className="sticky top-0 z-50 w-full glass-panel border-b border-white/5 px-6 py-1.5 flex items-center justify-between shadow-sm" suppressHydrationWarning>
       {/* Brand & Emblem */}
       <Link href="/" className="flex items-center gap-3 flex-shrink-0 hover:opacity-90 transition-opacity">
         <img src="/logo.png" alt="GeoElevate 3D Vector Map" className="h-12 w-auto object-contain" />
       </Link>
 
       {/* Universal Search Bar */}
-      <div className="relative flex-1 max-w-xl mx-auto" ref={searchRef}>
-        <div className="w-full relative group">
+      <div className="relative flex-1 max-w-xl mx-auto" ref={searchRef} suppressHydrationWarning>
+        <div className="w-full relative group" suppressHydrationWarning>
           <BorderBeam size="md" colorVariant="ocean" duration={3.1} borderRadius={9999}>
             <div className="w-full h-10 bg-black/40 border border-white/10 shadow-inner flex items-center px-4 gap-2 rounded-full relative z-10 backdrop-blur-md">
               <Search className="w-4 h-4 text-slate-400 group-focus-within:text-brand-primary transition-colors pointer-events-none shrink-0" />

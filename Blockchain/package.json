@@ -1,0 +1,23 @@
+{
+  "name": "@sih/blockchain",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Blockchain workspace for 3D ULPIN cadastral ledger and audit anchor",
+  "scripts": {
+    "compile": "hardhat compile",
+    "test": "hardhat test"
+  },
+  "devDependencies": {
+    "@nomicfoundation/hardhat-toolbox": "^5.0.0",
+    "@types/chai": "^4.3.20",
+    "@types/mocha": "^10.0.10",
+    "chai": "^4.5.0",
+    "dotenv": "^17.4.2",
+    "hardhat": "^2.29.1",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.9.3"
+  },
+  "dependencies": {
+    "ethers": "^6.17.0"
+  }
+}

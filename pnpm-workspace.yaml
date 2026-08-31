@@ -1,6 +1,7 @@
 packages:
   - 'apps/*'
   - 'packages/*'
+  - 'blockchain'
 allowBuilds:
   '@scarf/scarf': true
   esbuild: true

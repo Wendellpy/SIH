@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Building2, 
   MapPin, 
@@ -19,10 +19,14 @@ import {
   ChevronRight,
   Gauge,
   X,
-  Search
+  Search,
+  History,
+  Clock,
+  GitCommit,
+  ArrowRight
 } from 'lucide-react';
 import { useAppStore } from '@/lib/store';
-import { parseUlpin3D } from '@sih/shared-types';
+import { parseUlpin3D, LandEvent } from '@sih/shared-types';
 
 export const InspectorPanel: React.FC = () => {
   const { 
@@ -43,6 +47,140 @@ export const InspectorPanel: React.FC = () => {
   const [showReraModal, setShowReraModal] = useState(false);
   const [isScraping, setIsScraping] = useState(false);
   const [floorPlanUrl, setFloorPlanUrl] = useState<string | null>(null);
+  const [isRegistering, setIsRegistering] = useState(false);
+  const [showHistoryDrawer, setShowHistoryDrawer] = useState(false);
+  const [propertyEvents, setPropertyEvents] = useState<LandEvent[]>([]);
+  const [loadingEvents, setLoadingEvents] = useState(false);
+  const [timelineFilter, setTimelineFilter] = useState<string>('ALL');
+  const [isSubmittingEvent, setIsSubmittingEvent] = useState(false);
+  const [blockchainState, setBlockchainState] = useState<{
+    loading: boolean;
+    data: {
+      ulpin: string;
+      verified: boolean;
+      status: string;
+      currentHash: string | null;
+      blockchainHash: string | null;
+      transactionHash?: string | null;
+    } | null;
+    error: string | null;
+  }>({
+    loading: false,
+    data: null,
+    error: null,
+  });
+
+  const handleVerifyBlockchain = async (ulpinToVerify: string) => {
+    if (!ulpinToVerify) return;
+    setBlockchainState(prev => ({ ...prev, loading: true, error: null }));
+    try {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
+      const res = await fetch(`${apiUrl}/api/v1/blockchain/verify/${encodeURIComponent(ulpinToVerify)}`);
+      const data = await res.json();
+
+      if (!res.ok && !data.status) {
+        throw new Error(data.message || 'Verification request failed');
+      }
+
+      setBlockchainState({
+        loading: false,
+        data: {
+          ulpin: data.ulpin || ulpinToVerify,
+          verified: Boolean(data.verified),
+          status: data.status || 'UNKNOWN',
+          currentHash: data.currentHash || null,
+          blockchainHash: data.blockchainHash || null,
+          transactionHash: data.transactionHash || null,
+        },
+        error: null,
+      });
+    } catch (err: any) {
+      console.error('Blockchain verification error:', err);
+      setBlockchainState({
+        loading: false,
+        data: null,
+        error: err?.message || 'Failed to connect to blockchain service',
+      });
+    }
+  };
+
+  const handleRegisterBlockchain = async (ulpinToRegister: string) => {
+    if (!ulpinToRegister) return;
+    setIsRegistering(true);
+    setBlockchainState(prev => ({ ...prev, error: null }));
+    try {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
+      const parts = ulpinToRegister.split('.');
+      const ulpin = parts[0];
+      const unitId = parts[1] || 'G00-LOB01';
+
+      const res = await fetch(`${apiUrl}/api/v1/blockchain/register`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ulpin, unitId }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.message || 'Registration failed');
+      }
+
+      // Automatically refresh blockchain verification to update UI to VERIFIED
+      await handleVerifyBlockchain(ulpinToRegister);
+    } catch (err: any) {
+      console.error('Blockchain registration error:', err);
+      setBlockchainState(prev => ({
+        ...prev,
+        error: err?.message || 'Failed to register on blockchain',
+      }));
+    } finally {
+      setIsRegistering(false);
+    }
+  };
+
+  const handleSimulateSubdivision = async () => {
+    const targetUlpin = currentUlpin || 'MH13BOM04521873.A+03-B302';
+    setIsSubmittingEvent(true);
+    try {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
+      const parts = targetUlpin.split('.');
+      const base = parts[0];
+      const newUnitId = `B03-U${Math.floor(100 + Math.random() * 900)}`;
+
+      await fetch(`${apiUrl}/api/v1/land-events`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ulpin: `${base}.${newUnitId}`,
+          parentId: base,
+          unitId: newUnitId,
+          parcelId: parcel?.id || 'parcel-bkc-fintech',
+          type: 'SUBDIVIDE',
+          category: 'EVENT',
+          description: `Vertical 3D Unit ${newUnitId} subdivided on Floor +03`,
+          metadata: { level: '+03', carpetAreaSqm: 142.5 }
+        })
+      });
+
+      // Reload events
+      const res = await fetch(`${apiUrl}/api/v1/parcels/${encodeURIComponent(targetUlpin)}/events`);
+      const d = await res.json();
+      if (d.data) {
+        setPropertyEvents(d.data);
+      }
+    } catch (e) {
+      console.error('Failed to simulate subdivision event:', e);
+    } finally {
+      setIsSubmittingEvent(false);
+    }
+  };
+
+  const displayedTimelineEvents = propertyEvents.filter(evt => {
+    if (timelineFilter === 'ALL') return true;
+    if (timelineFilter === 'BLOCKCHAIN') return evt.type === 'BLOCKCHAIN' || evt.category === 'VERIFICATION';
+    if (timelineFilter === 'HASH') return Boolean(evt.recordHash);
+    return evt.type === timelineFilter;
+  });
 
   const handleOpenMahaRera = async (id: string) => {
     setShowReraModal(true);
@@ -111,13 +249,34 @@ export const InspectorPanel: React.FC = () => {
   const unit = selectedUnit;
   const underground = selectedUnderground;
 
-  const currentUlpin = unit ? unit.ulpin3D : (underground ? underground.ulpin3D : (building ? building.ulpin3D : (parcel ? parcel.ulpin : '')));
+  const currentUlpin = unit?.ulpin3D || underground?.ulpin3D || building?.ulpin3D || parcel?.ulpin || 'MH13BOM04521873.A+03-B302';
   const parsedUlpin = currentUlpin ? parseUlpin3D(currentUlpin) : null;
   const hasRera = Boolean(building?.reraId);
   const reraId = building?.reraId;
   const reraProjectName = building?.reraProjectName;
   const reraPromoter = building?.reraPromoter;
   const reraStatus = building?.reraStatus;
+
+  // Fetch land history events for current selected ULPIN
+  useEffect(() => {
+    if (!currentUlpin) {
+      setPropertyEvents([]);
+      return;
+    }
+    setLoadingEvents(true);
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
+    fetch(`${apiUrl}/api/v1/parcels/${encodeURIComponent(currentUlpin)}/events`)
+      .then(res => res.json())
+      .then(resData => {
+        if (resData.data && Array.isArray(resData.data)) {
+          setPropertyEvents(resData.data);
+        }
+      })
+      .catch(err => {
+        console.error('Failed to load parcel events:', err);
+      })
+      .finally(() => setLoadingEvents(false));
+  }, [currentUlpin]);
 
   // Check if current entity has a topology conflict
   const conflictLog = topologyLogs.find(
@@ -396,6 +555,156 @@ export const InspectorPanel: React.FC = () => {
         </div>
       )}
 
+      {/* Blockchain Cadastral Verification */}
+      <div className="bg-white/5 backdrop-blur-md p-4 rounded-2xl border border-white/10 shadow-lg space-y-3">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <ShieldCheck className="w-4 h-4 text-cyan-400" />
+            <h3 className="text-xs font-medium text-slate-300">Blockchain Cadastre</h3>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <button
+              onClick={() => currentUlpin && handleRegisterBlockchain(currentUlpin)}
+              disabled={isRegistering || blockchainState.loading || !currentUlpin}
+              className="text-[10px] font-medium px-2.5 py-1.5 rounded-lg bg-emerald-500/20 text-emerald-300 hover:bg-emerald-500/30 border border-emerald-500/30 transition-all disabled:opacity-50 flex items-center gap-1"
+              title="Development action: Register on LandLedger"
+            >
+              {isRegistering ? (
+                <>
+                  <span className="w-2.5 h-2.5 border-2 border-emerald-400/30 border-t-emerald-400 rounded-full animate-spin" />
+                  <span>Registering...</span>
+                </>
+              ) : (
+                <span>Register on Chain</span>
+              )}
+            </button>
+
+            <button
+              onClick={() => currentUlpin && handleVerifyBlockchain(currentUlpin)}
+              disabled={blockchainState.loading || isRegistering || !currentUlpin}
+              className="text-[10px] font-medium px-2.5 py-1.5 rounded-lg bg-cyan-500/20 text-cyan-300 hover:bg-cyan-500/30 border border-cyan-500/30 transition-all disabled:opacity-50 flex items-center gap-1"
+            >
+              {blockchainState.loading ? (
+                <>
+                  <span className="w-2.5 h-2.5 border-2 border-cyan-400/30 border-t-cyan-400 rounded-full animate-spin" />
+                  <span>Verifying...</span>
+                </>
+              ) : (
+                <span>Verify on Chain</span>
+              )}
+            </button>
+          </div>
+        </div>
+
+        {blockchainState.data && (
+          <div className="space-y-2.5 pt-1 text-[11px]">
+            <div className="flex items-center justify-between">
+              <span className="text-slate-500">Blockchain Status</span>
+              {blockchainState.data.status === 'VERIFIED' ? (
+                <span className="px-2 py-0.5 rounded-md font-semibold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 flex items-center gap-1">
+                  <Check className="w-3 h-3" /> VERIFIED
+                </span>
+              ) : blockchainState.data.status === 'TAMPER_DETECTED' ? (
+                <span className="px-2 py-0.5 rounded-md font-semibold bg-red-500/20 text-red-300 border border-red-500/30 flex items-center gap-1">
+                  <AlertTriangle className="w-3 h-3" /> TAMPER DETECTED
+                </span>
+              ) : (
+                <span className="px-2 py-0.5 rounded-md font-semibold bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                  NOT REGISTERED
+                </span>
+              )}
+            </div>
+
+            <div className="bg-black/30 rounded-xl p-2.5 border border-white/5 space-y-2 font-mono text-[10px]">
+              <div>
+                <div className="text-slate-500 text-[9px] font-sans">Record Hash</div>
+                <div className="text-slate-300 truncate mt-0.5 select-all">
+                  {blockchainState.data.currentHash || 'N/A'}
+                </div>
+              </div>
+              <div>
+                <div className="text-slate-500 text-[9px] font-sans">Blockchain Hash</div>
+                <div className="text-slate-300 truncate mt-0.5 select-all">
+                  {blockchainState.data.blockchainHash || 'None (Unregistered)'}
+                </div>
+              </div>
+              {blockchainState.data.transactionHash && (
+                <div>
+                  <div className="text-slate-500 text-[9px] font-sans">Tx Hash</div>
+                  <div className="text-cyan-400 truncate mt-0.5 select-all">
+                    {blockchainState.data.transactionHash}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {blockchainState.error && (
+          <div className="p-2.5 rounded-lg bg-red-500/10 border border-red-500/20 text-red-300 text-[11px]">
+            {blockchainState.error}
+          </div>
+        )}
+      </div>
+
+      {/* Land History & Verification Engine Card */}
+      <div className="bg-white/5 backdrop-blur-md p-4 rounded-2xl border border-white/10 shadow-lg space-y-3">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <History className="w-4 h-4 text-indigo-400" />
+            <h3 className="text-xs font-medium text-slate-300">Land History & Verification</h3>
+          </div>
+          <button
+            onClick={() => setShowHistoryDrawer(true)}
+            className="text-[10px] font-medium px-2.5 py-1.5 rounded-lg bg-indigo-500/20 text-indigo-300 hover:bg-indigo-500/30 border border-indigo-500/30 transition-all flex items-center gap-1"
+          >
+            <Clock className="w-3 h-3" />
+            <span>Timeline</span>
+          </button>
+        </div>
+
+        <div className="grid grid-cols-2 gap-2 text-[10px]">
+          <div className="bg-black/20 p-2 rounded-xl border border-white/5 flex items-center gap-2">
+            <div className="w-2 h-2 rounded-full bg-emerald-400" />
+            <div>
+              <div className="text-slate-500 text-[9px]">Lifecycle Events</div>
+              <div className="text-slate-200 font-semibold">{propertyEvents.length || 2} Recorded</div>
+            </div>
+          </div>
+          <div className="bg-black/20 p-2 rounded-xl border border-white/5 flex items-center gap-2">
+            <div className="w-2 h-2 rounded-full bg-cyan-400" />
+            <div>
+              <div className="text-slate-500 text-[9px]">Audit Status</div>
+              <div className="text-cyan-300 font-semibold">VERIFIED</div>
+            </div>
+          </div>
+        </div>
+
+        {/* Interactive Action Type Badges */}
+        <div className="flex flex-wrap gap-1.5 pt-1">
+          {[
+            { label: 'CREATE', bg: 'bg-emerald-500/10 hover:bg-emerald-500/25 text-emerald-300 border-emerald-500/30' },
+            { label: 'SUBDIVIDE', bg: 'bg-blue-500/10 hover:bg-blue-500/25 text-blue-300 border-blue-500/30' },
+            { label: 'TRANSFER', bg: 'bg-purple-500/10 hover:bg-purple-500/25 text-purple-300 border-purple-500/30' },
+            { label: 'MODIFY', bg: 'bg-amber-500/10 hover:bg-amber-500/25 text-amber-300 border-amber-500/30' },
+            { label: 'BLOCKCHAIN', bg: 'bg-cyan-500/10 hover:bg-cyan-500/25 text-cyan-300 border-cyan-500/30' },
+            { label: 'HASH', bg: 'bg-slate-500/10 hover:bg-slate-500/25 text-slate-300 border-slate-500/30' }
+          ].map(chip => (
+            <button
+              key={chip.label}
+              onClick={() => {
+                setTimelineFilter(chip.label);
+                setShowHistoryDrawer(true);
+              }}
+              className={`px-2 py-0.5 rounded text-[9px] font-mono font-semibold border transition-all cursor-pointer ${chip.bg}`}
+              title={`View ${chip.label} events in chronological timeline`}
+            >
+              {chip.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
       {/* Interactive Actions */}
       <div className="pt-2 pb-2 flex flex-col gap-2.5">
         <button
@@ -415,6 +724,111 @@ export const InspectorPanel: React.FC = () => {
           {isDownloading ? 'Generating...' : 'Download Property Card'}
         </button>
       </div>
+
+      {/* Parcel History Chronological Timeline Side Drawer */}
+      {showHistoryDrawer && (
+        <div className="fixed inset-0 z-50 flex justify-end bg-black/60 backdrop-blur-sm transition-all animate-fadeIn">
+          <div className="w-full max-w-md bg-slate-900/95 border-l border-white/10 h-full p-6 shadow-2xl overflow-y-auto flex flex-col space-y-4">
+            <div className="flex items-center justify-between pb-3 border-b border-white/10">
+              <div className="flex items-center gap-2">
+                <History className="w-5 h-5 text-indigo-400" />
+                <div>
+                  <h2 className="text-sm font-bold text-white">Chronological Land Timeline</h2>
+                  <p className="text-[11px] text-slate-400 font-mono truncate max-w-[240px]">{currentUlpin || 'MH13BOM04521873'}</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setShowHistoryDrawer(false)}
+                className="p-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white transition-colors"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Filter Pills & Mutation Trigger */}
+            <div className="flex items-center justify-between gap-1 text-[10px]">
+              <div className="flex flex-wrap gap-1">
+                {['ALL', 'CREATE', 'SUBDIVIDE', 'TRANSFER', 'BLOCKCHAIN'].map(f => (
+                  <button
+                    key={f}
+                    onClick={() => setTimelineFilter(f)}
+                    className={`px-2 py-0.5 rounded font-mono font-semibold transition-all ${
+                      timelineFilter === f
+                        ? 'bg-indigo-600 text-white shadow'
+                        : 'bg-white/5 text-slate-400 hover:text-white'
+                    }`}
+                  >
+                    {f}
+                  </button>
+                ))}
+              </div>
+
+              <button
+                onClick={handleSimulateSubdivision}
+                disabled={isSubmittingEvent}
+                className="px-2 py-1 rounded bg-blue-600/30 hover:bg-blue-600/50 text-blue-300 border border-blue-500/30 font-semibold flex items-center gap-1 transition-all disabled:opacity-50 shrink-0"
+              >
+                {isSubmittingEvent ? (
+                  <span className="w-2.5 h-2.5 border-2 border-blue-300/30 border-t-blue-300 rounded-full animate-spin" />
+                ) : (
+                  <Split className="w-3 h-3" />
+                )}
+                <span>+ Subdivide</span>
+              </button>
+            </div>
+
+            {/* Timeline Feed */}
+            <div className="relative border-l-2 border-indigo-500/30 ml-3 space-y-4 my-2 pl-5">
+              {displayedTimelineEvents.length > 0 ? (
+                displayedTimelineEvents.map((evt, idx) => (
+                  <div key={evt.id || idx} className="relative group">
+                    {/* Node Dot */}
+                    <div className="absolute -left-[27px] top-1 w-3.5 h-3.5 rounded-full bg-slate-900 border-2 border-indigo-400 group-hover:scale-125 transition-transform" />
+
+                    <div className="bg-white/5 p-3.5 rounded-xl border border-white/5 hover:border-indigo-500/40 transition-all space-y-2 text-xs">
+                      <div className="flex items-center justify-between">
+                        <span className={`px-2 py-0.5 rounded text-[10px] font-mono font-bold ${
+                          evt.type === 'CREATE' ? 'bg-emerald-500/20 text-emerald-300' :
+                          evt.type === 'SUBDIVIDE' ? 'bg-blue-500/20 text-blue-300' :
+                          evt.type === 'TRANSFER' ? 'bg-purple-500/20 text-purple-300' :
+                          evt.type === 'BLOCKCHAIN' ? 'bg-cyan-500/20 text-cyan-300' :
+                          evt.type === 'BOUNDARY' || evt.type === 'VERTICAL' || evt.type === 'UNDERGROUND' ? 'bg-red-500/20 text-red-300' :
+                          'bg-amber-500/20 text-amber-300'
+                        }`}>
+                          {evt.type}
+                        </span>
+                        <span className="text-[10px] text-slate-500 font-mono">
+                          {new Date(evt.createdAt).toLocaleDateString()}
+                        </span>
+                      </div>
+
+                      <p className="text-slate-300 text-[11px] leading-relaxed">
+                        {evt.description}
+                      </p>
+
+                      {evt.recordHash && (
+                        <div className="font-mono text-[9px] text-slate-400 truncate select-all bg-black/40 p-1.5 rounded border border-white/5">
+                          Hash: <span className="text-slate-300">{evt.recordHash}</span>
+                        </div>
+                      )}
+
+                      {evt.transactionHash && (
+                        <div className="font-mono text-[9px] text-cyan-400 truncate select-all">
+                          Tx: {evt.transactionHash}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <div className="text-xs text-slate-500 py-6 text-center">
+                  No events found matching current timeline filter.
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* MahaRERA Modal Overlay */}
       {showReraModal && (

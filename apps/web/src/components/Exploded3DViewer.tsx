@@ -917,3 +917,5 @@ export const Exploded3DViewer: React.FC = () => {
     </div>
   );
 };
+
+export default Exploded3DViewer;

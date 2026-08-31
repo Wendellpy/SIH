@@ -475,3 +475,56 @@ export interface PropertyVersion {
   geometry: GeoPolygon2D;
   source: string;
 }
+
+/**
+ * =======================================================================
+ * Unified Land Event & Conflict Engine Models
+ * =======================================================================
+ */
+
+export type LandEventCategory = 'EVENT' | 'CONFLICT' | 'VERIFICATION';
+
+export type LandActionType = 'CREATE' | 'SUBDIVIDE' | 'TRANSFER' | 'MODIFY';
+export type LandConflictType = 'BOUNDARY' | 'VERTICAL' | 'UNDERGROUND' | 'SETBACK';
+export type LandVerificationType = 'HASH' | 'BLOCKCHAIN' | 'AUDIT';
+
+export type LandEventType = LandActionType | LandConflictType | LandVerificationType;
+
+export type LandEventStatus = 
+  | 'PENDING' 
+  | 'COMPLETED' 
+  | 'VERIFIED' 
+  | 'FAILED' 
+  | 'OPEN' 
+  | 'IN_REVIEW' 
+  | 'RESOLVED' 
+  | 'REJECTED';
+
+export type BlockchainVerificationStatus = 
+  | 'NOT_ANCHORED' 
+  | 'PENDING' 
+  | 'VERIFIED' 
+  | 'MISMATCH' 
+  | 'FAILED';
+
+export type LandEventSeverity = 'CRITICAL' | 'HIGH' | 'MEDIUM' | 'LOW' | 'INFO';
+
+export interface LandEvent {
+  id: string;
+  ulpin: string;
+  parcelId?: string;
+  unitId?: string;
+  parentId?: string; // e.g. parent ULPIN / parcel during subdivision
+  type: LandEventType;
+  category: LandEventCategory;
+  status: LandEventStatus;
+  severity?: LandEventSeverity;
+  description: string;
+  metadata?: Record<string, any>;
+  createdAt: string;
+  resolvedAt?: string;
+  transactionHash?: string;
+  recordHash?: string;
+  blockNumber?: number;
+  blockchainStatus?: BlockchainVerificationStatus;
+}

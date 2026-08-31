@@ -1,5 +1,6 @@
 import { Request, Response, Router } from 'express';
 import { db } from '../database/store.js';
+import { landEventService } from '../services/land-event.service.js';
 
 export const adminRouter = Router();
 
@@ -24,16 +25,35 @@ adminRouter.post('/conflicts/:id/resolve', (req: Request, res: Response) => {
   const { id } = req.params;
   const resolvedBy = (req.body.resolvedBy as string) || 'DoLR Verifier Officer';
   const action = (req.body.action as 'RESOLVED' | 'REJECTED') || 'RESOLVED';
+  const notes = req.body.notes as string | undefined;
 
   const ok = db.resolveConflict(id, resolvedBy, action);
   if (!ok) {
     return res.status(404).json({ status: 'error', message: `Conflict log ${id} not found` });
   }
 
+  // Also ensure resolved in landEventService
+  const resolvedEvent = landEventService.resolveConflict(id, resolvedBy, action, notes);
+
   res.json({
     status: 'success',
     message: `Conflict ${id} marked as ${action} by ${resolvedBy}`,
-    data: db.getTopologyLogById(id)
+    data: db.getTopologyLogById(id),
+    landEvent: resolvedEvent || db.getLandEventById(id)
+  });
+});
+
+/**
+ * GET /api/v1/admin/land-events
+ * Fetch all unified land events, conflicts, and verification records
+ */
+adminRouter.get('/land-events', (req: Request, res: Response) => {
+  const { ulpin, category, status } = req.query as { ulpin?: string; category?: string; status?: string };
+  const events = db.getLandEvents({ ulpin, category, status });
+  res.json({
+    status: 'success',
+    count: events.length,
+    data: events
   });
 });
 

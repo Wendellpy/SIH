@@ -29,7 +29,7 @@ const MapLibre3DMap = dynamic(
 );
 
 const Exploded3DViewer = dynamic(
-  () => import('@/components/Exploded3DViewer').then((mod) => mod.Exploded3DViewer),
+  () => import('@/components/Exploded3DViewer').then((mod) => mod.default || mod.Exploded3DViewer),
   {
     ssr: false,
     loading: () => (

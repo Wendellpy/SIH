@@ -2,6 +2,7 @@ import PDFDocument from 'pdfkit';
 import QRCode from 'qrcode';
 import crypto from 'crypto';
 import { VerticalUnit, Parcel, Building, UndergroundAsset } from '@sih/shared-types';
+import { db } from '../database/store.js';
 
 export class PropertyCardService {
   /**
@@ -195,6 +196,23 @@ export class PropertyCardService {
             doc.text(`${idx + 1}. [${conflict.severity.toUpperCase()}] ${conflict.type} (ID: ${conflict.utility_id})`);
             doc.fillColor('#333333');
             doc.text(`   Distance: ${conflict.distance.toFixed(2)}m`);
+
+            // Automatically record conflict in unified Land Event Engine
+            const isSetback = conflict.type?.toLowerCase().includes('setback') || conflict.type?.toLowerCase().includes('clearance');
+            const conflictType = isSetback ? 'SETBACK' : 'UNDERGROUND';
+            const severity = (conflict.severity?.toUpperCase() === 'HIGH' ? 'HIGH' : (conflict.severity?.toUpperCase() === 'CRITICAL' ? 'CRITICAL' : 'MEDIUM')) as any;
+
+            db.addLandEvent({
+              id: `conflict-util-${conflict.utility_id || Math.random().toString(36).slice(2, 8)}`,
+              ulpin: 'MH13BOM04521873',
+              type: conflictType,
+              category: 'CONFLICT',
+              status: 'OPEN',
+              severity,
+              description: `Clearance check failure: ${conflict.type || 'Utility intersection'} near ${conflict.utility_id} (Distance: ${typeof conflict.distance === 'number' ? conflict.distance.toFixed(2) : 0}m)`,
+              metadata: { conflict, footprint },
+              createdAt: new Date().toISOString()
+            });
           });
         }
 
