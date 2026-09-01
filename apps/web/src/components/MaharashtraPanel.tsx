@@ -261,11 +261,19 @@ export const MaharashtraPanel = () => {
     setLoading(true);
     setResult(null);
 
+    const cleanSearch = searchVal.trim().toUpperCase();
+    const isUlpin = cleanSearch.startsWith('MH') && cleanSearch.length >= 14;
+
     let url = 'http://127.0.0.1:4000/api/v1/maharashtra/parcel?';
-    if (selectedDistrict) url += `district=${selectedDistrict}&`;
-    if (selectedTaluka) url += `taluka=${selectedTaluka}&`;
-    if (selectedVillage) url += `village=${selectedVillage}&`;
-    if (searchVal) url += `cts=${encodeURIComponent(searchVal)}&`;
+    if (isUlpin) {
+      // 3D ULPIN can have suffixes like .F1.101, but the base API accepts the 14-char or 3D ULPIN
+      url = `http://127.0.0.1:4000/api/v1/maharashtra/ulpin/${encodeURIComponent(cleanSearch)}`;
+    } else {
+      if (selectedDistrict) url += `district=${selectedDistrict}&`;
+      if (selectedTaluka) url += `taluka=${selectedTaluka}&`;
+      if (selectedVillage) url += `village=${selectedVillage}&`;
+      if (searchVal) url += `cts=${encodeURIComponent(searchVal)}&`;
+    }
 
     fetch(url)
       .then(res => res.json())

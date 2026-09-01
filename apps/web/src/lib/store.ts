@@ -40,6 +40,8 @@ export interface AppState {
 
   selectedUnit: VerticalUnit | null;
   setSelectedUnit: (unit: VerticalUnit | null) => void;
+  searchedUlpin3D: string | null;
+  setSearchedUlpin3D: (ulpin: string | null) => void;
 
   selectedUnderground: UndergroundAsset | null;
   setSelectedUnderground: (asset: UndergroundAsset | null) => void;
@@ -165,6 +167,8 @@ export const useAppStore = create<AppState>((set, get) => ({
 
   selectedUnit: null,
   setSelectedUnit: (unit) => set({ selectedUnit: unit }),
+  searchedUlpin3D: null,
+  setSearchedUlpin3D: (ulpin) => set({ searchedUlpin3D: ulpin }),
 
   selectedUnderground: null,
   setSelectedUnderground: (asset) => set({ selectedUnderground: asset }),

@@ -251,7 +251,7 @@ const UnitMesh: React.FC<UnitMeshProps> = ({
   shape
 }) => {
   const meshRef = useRef<THREE.Mesh>(null);
-  const isConflict = unit.validationStatus === 'CONFLICT';
+  const isConflict = false; // user requested to remove conflict visualization
 
   const color = useMemo(() => {
     if (isConflict) return '#ef4444'; // Red conflict alert
@@ -384,6 +384,7 @@ const BuildingScene: React.FC<{
   hoveredUnit: VerticalUnit | null;
   onSelectUnit: (u: VerticalUnit) => void;
   onHoverUnit: (u: VerticalUnit | null) => void;
+  searchedUlpin3D?: string | null;
 }> = ({
   buildingUnits,
   building,
@@ -391,7 +392,8 @@ const BuildingScene: React.FC<{
   selectedUnit,
   hoveredUnit,
   onSelectUnit,
-  onHoverUnit
+  onHoverUnit,
+  searchedUlpin3D
 }) => {
   const floors = useMemo(() => {
     const map = new Map<number, VerticalUnit[]>();
@@ -485,7 +487,7 @@ const BuildingScene: React.FC<{
                 shape={shapes[idx] || new THREE.Shape()}
                 floorOffset={floorOffset}
                 floorHeight={actualFloorHeight}
-                isSelected={selectedUnit?.id === unit.id}
+                isSelected={selectedUnit?.id === unit.id || (!!searchedUlpin3D && unit.ulpin3D.toLowerCase() === searchedUlpin3D.toLowerCase())}
                 isHovered={hoveredUnit?.id === unit.id}
                 onSelect={onSelectUnit}
                 onHover={onHoverUnit}
@@ -631,7 +633,8 @@ export const Exploded3DViewer: React.FC = () => {
     explodedDistance, 
     setExplodedDistance,
     setActiveTab,
-    activeUndergroundLayerIds
+    activeUndergroundLayerIds,
+    searchedUlpin3D
   } = useAppStore();
 
   const [hoveredUnit, setHoveredUnit] = useState<VerticalUnit | null>(null);
@@ -648,7 +651,27 @@ export const Exploded3DViewer: React.FC = () => {
     const generated: VerticalUnit[] = [];
     const parcel = SAMPLE_PARCELS.find(p => p.id === bldg.parcelId) || SAMPLE_PARCELS[0];
     const displayFloors = bldg.numFloors; // Render all floors
-    const ulpinBase = parcel?.ulpin || `MH13BOM${bldg.id.replace(/\D/g, '').slice(0, 8).padEnd(8, '0')}`;
+    // Geospatially encode coordinates into the 14-char ULPIN base
+    let ulpinBase = parcel?.ulpin || `MH13BOM${bldg.id.replace(/\D/g, '').slice(0, 8).padEnd(8, '0')}`;
+    try {
+      if (bldg.footprint && bldg.footprint.coordinates) {
+        let polyCoords = [...bldg.footprint.coordinates[0]];
+        if (polyCoords.length > 0 && 
+            (polyCoords[0][0] !== polyCoords[polyCoords.length-1][0] || 
+             polyCoords[0][1] !== polyCoords[polyCoords.length-1][1])) {
+          polyCoords.push([...polyCoords[0]]);
+        }
+        const poly = turf.polygon([polyCoords]);
+        const centroid = turf.centroid(poly);
+        const ulpinLng = parseFloat(centroid.geometry.coordinates[0].toFixed(5));
+        const ulpinLat = parseFloat(centroid.geometry.coordinates[1].toFixed(5));
+        const latStr = Math.round(ulpinLat * 1000000).toString(36).padStart(5, '0');
+        const lngStr = Math.round(ulpinLng * 1000000).toString(36).padStart(6, '0');
+        ulpinBase = `MH1${latStr}${lngStr}`.toUpperCase();
+      }
+    } catch (err) {
+      console.warn('Failed to calculate precise ULPIN base in exploded view:', err);
+    }
 
     // Determine building use pattern from MyBMC data (injected into name) or fallback
     let isResidential = true;
@@ -669,36 +692,36 @@ export const Exploded3DViewer: React.FC = () => {
 
       // Calculate footprint area to dynamically estimate realistic number of flats
       let estimatedUnits = 2; // Default fallback
-      let footprintAreaSqm = 150; // Default fallback footprint
+      let footprintAreaSqm = 150;
       
-      if (bldg.footprint && bldg.footprint.coordinates) {
+      if (bldg.totalBuiltupAreaSqm && bldg.numFloors) {
+        footprintAreaSqm = bldg.totalBuiltupAreaSqm / Math.max(1, bldg.numFloors);
+        estimatedUnits = Math.max(1, Math.round(footprintAreaSqm / 65));
+      } else if (bldg.footprint && bldg.footprint.coordinates) {
         try {
-           // We ensure the polygon is closed for Turf.js
            let polyCoords = [...bldg.footprint.coordinates[0]];
            const firstPt = polyCoords[0];
            const lastPt = polyCoords[polyCoords.length - 1];
            if (firstPt[0] !== lastPt[0] || firstPt[1] !== lastPt[1]) {
              polyCoords.push([...firstPt]);
            }
-           
            if (polyCoords.length >= 4) {
              const poly = turf.polygon([polyCoords]);
              footprintAreaSqm = turf.area(poly);
-             // Assume an average flat + common area is ~65 sqm. 
              estimatedUnits = Math.max(1, Math.round(footprintAreaSqm / 65));
-             
-             // Cap at 12 to prevent extreme subdivision on massive commercial buildings
-             estimatedUnits = Math.min(12, estimatedUnits);
-            }
-         } catch (e) {
-           let hash = 0;
-           const idStr = bldg.id || 'default';
-           for (let i = 0; i < idStr.length; i++) {
-             hash = idStr.charCodeAt(i) + ((hash << 5) - hash);
            }
-           estimatedUnits = 1 + (Math.abs(hash) % 4);
-        }
+         } catch (e) {
+           estimatedUnits = 4;
+         }
       }
+
+      // Adjust for ground floor and basement which typically have fewer units
+      if (f === 0 || f < 0) {
+        estimatedUnits = Math.max(1, Math.floor(estimatedUnits * 0.4));
+      }
+      
+      // Cap at 12 to prevent extreme subdivision on massive commercial buildings
+      estimatedUnits = Math.min(12, estimatedUnits);
       
       const unitsPerFloor = estimatedUnits;
 
@@ -745,12 +768,17 @@ export const Exploded3DViewer: React.FC = () => {
         const lng = coords[0];
         const lat = coords[1];
 
+        // Correctly assign domain code for national standards
+        let domainCode: 'G' | 'A' | 'U' = 'A';
+        if (f === 0) domainCode = 'G';
+        else if (f < 0) domainCode = 'U';
+
         generated.push({
           id: `unit-${bldg.id}-f${f}-u${i}`,
           buildingId: bldg.id,
           parcelId: parcel.id,
-          ulpin3D: formatUlpin3D(ulpinBase, 'A', f, uCode),
-          domainCode: 'A',
+          ulpin3D: formatUlpin3D(ulpinBase, domainCode, f, uCode),
+          domainCode: domainCode,
           levelCode: f === 0 ? 'G' : f < 0 ? `B${Math.abs(f)}` : `+${f.toString().padStart(2, '0')}`,
           unitCode: uCode,
           floorNumber: f,
@@ -806,6 +834,7 @@ export const Exploded3DViewer: React.FC = () => {
               hoveredUnit={hoveredUnit}
               onSelectUnit={(u) => setSelectedUnit(u)}
               onHoverUnit={(u) => setHoveredUnit(u)}
+              searchedUlpin3D={searchedUlpin3D}
             />
           )}
           {!showBuilding && (

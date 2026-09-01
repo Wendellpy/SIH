@@ -423,42 +423,6 @@ export const InspectorPanel: React.FC = () => {
         </div>
       )}
 
-      {/* Validation & Conflict Status Alert */}
-      {unit?.validationStatus === 'CONFLICT' || conflictLog ? (
-        <div className="p-4 rounded-xl bg-red-500/10 border border-red-500/20 text-red-200 space-y-2">
-          <div className="flex items-center gap-2 text-[13px] font-semibold text-red-400">
-            <AlertTriangle className="w-4 h-4" />
-            <span>Topology Conflict Detected</span>
-          </div>
-          <p className="text-[12px] text-red-200/80 leading-relaxed">
-            {conflictLog?.message || 'Vertical 3D solid overlap detected with adjacent unit bounding box.'}
-          </p>
-          {conflictLog?.details?.overlapVolumeCum && (
-            <div className="text-[11px] font-mono text-red-200/70 bg-black/20 px-3 py-2 rounded-lg border border-red-500/10">
-              Volume: {conflictLog.details.overlapVolumeCum} m³ &bull; Range: [{conflictLog.details.elevationZRange?.join('m to ')}m]
-            </div>
-          )}
-          {conflictLog?.status === 'OPEN' && (
-            <button
-              onClick={() => resolveConflict(conflictLog.id)}
-              className="mt-3 w-full py-2 px-3 bg-red-500 hover:bg-red-600 text-white rounded-lg text-xs font-medium transition-all shadow-sm"
-            >
-              Resolve in DoLR Verifier Portal
-            </button>
-          )}
-        </div>
-      ) : (
-        <div className="p-3.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-200 flex items-center justify-between text-[13px]">
-          <div className="flex items-center gap-2 font-medium">
-            <ShieldCheck className="w-4 h-4 text-emerald-400" />
-            <span>3D Topology Validated</span>
-          </div>
-          <span className="text-[10px] font-medium px-2 py-0.5 rounded-md bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-            WATERTIGHT SOLID
-          </span>
-        </div>
-      )}
-
       {/* Temporal Change Alerts */}
       {relevantChanges.map(change => (
         <div key={change.id} className="p-3 rounded-xl bg-orange-950/40 border border-orange-500/50 text-orange-200 space-y-1.5">

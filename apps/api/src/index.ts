@@ -12,6 +12,7 @@ import { maharashtraRouter } from './controllers/maharashtra.controller.js';
 import { reraRouter } from './controllers/rera.controller.js';
 import { blockchainRouter } from './controllers/blockchain.controller.js';
 import { landEventRouter } from './controllers/land-event.controller.js';
+import { bmcRouter } from './controllers/bmc.controller.js';
 import { jobsService } from './services/jobs.service.js';
 
 const app = express();
@@ -42,6 +43,7 @@ app.use('/api/v1/maharashtra', maharashtraRouter);
 app.use('/api/v1', reraRouter);
 app.use('/api/v1', blockchainRouter);
 app.use('/api/v1', landEventRouter);
+app.use('/api/v1', bmcRouter);
 
 // WebSocket Real-time Job Progress Streaming
 const clients = new Set<WebSocket>();

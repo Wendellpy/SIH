@@ -22,6 +22,7 @@
     "node-cache": "^5.1.2",
     "pdfkit": "^0.20.1",
     "proj4": "^2.21.0",
+    "puppeteer": "^25.9.0",
     "qrcode": "^1.5.4",
     "string-similarity": "^4.0.4",
     "swagger-ui-express": "^5.0.0",

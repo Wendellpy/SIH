@@ -18,7 +18,8 @@ import {
   Navigation,
   ExternalLink,
   ShieldCheck,
-  AlertCircle
+  AlertCircle,
+  X
 } from 'lucide-react';
 import { useAppStore } from '@/lib/store';
 import { formatUlpin3D, Building } from '@sih/shared-types';
@@ -64,6 +65,7 @@ export const MapLibre3DMap: React.FC = () => {
       usage: string;
       name: string;
       noOfFloorsStr: string;
+      unitCount?: number;
       notFound?: boolean;
     } | null;
     isAnimated: boolean;
@@ -72,12 +74,37 @@ export const MapLibre3DMap: React.FC = () => {
     featureBldgId?: string;
   } | null>(null);
 
+  const [bmcScrapedUnits, setBmcScrapedUnits] = useState<Record<string, string[]> | null>(null);
+  const [isScrapingBmc, setIsScrapingBmc] = useState<boolean>(false);
+
+  useEffect(() => {
+    if (selectedBuildingInfo?.bmcData?.sacNumber) {
+      const sac = selectedBuildingInfo.bmcData.sacNumber;
+      setIsScrapingBmc(true);
+      setBmcScrapedUnits(null);
+      const floors = selectedBuildingInfo.floors || 1;
+      const expectedUnits = selectedBuildingInfo.bmcData.unitCount || 0;
+      fetch(`http://localhost:4000/api/v1/bmc/${sac}/units?expectedFloors=${floors}&expectedUnits=${expectedUnits}`)
+        .then(r => r.json())
+        .then(data => {
+          if (data.success && data.unitsByFloor) {
+            setBmcScrapedUnits(data.unitsByFloor);
+          }
+        })
+        .catch(console.error)
+        .finally(() => setIsScrapingBmc(false));
+    } else {
+      setBmcScrapedUnits(null);
+    }
+  }, [selectedBuildingInfo?.bmcData?.sacNumber, selectedBuildingInfo?.floors, selectedBuildingInfo?.bmcData?.unitCount]);
+
   const [isFetchingBmc, setIsFetchingBmc] = useState(false);
 
   const [copied, setCopied] = useState(false);
   const [selectedFloor, setSelectedFloor] = useState<string>('Ground Floor');
+  const [showAquariaFloorPlan, setShowAquariaFloorPlan] = useState(false);
   const [selectedUnit, setSelectedUnit] = useState<string>('101');
-  const { activeTab, layers, setActiveTab, setSelectedBuilding, setSelectedMiningArea, flyToTarget, setFlyToTarget, activeUndergroundLayerIds, currentRole, temporalYear, floodSimulation, searchedParcelGeoJSON, mapViewState, setMapViewState } = useAppStore();
+  const { activeTab, layers, setActiveTab, setSelectedBuilding, setSelectedMiningArea, flyToTarget, setFlyToTarget, activeUndergroundLayerIds, currentRole, temporalYear, floodSimulation, searchedParcelGeoJSON, mapViewState, setMapViewState, searchedUlpin3D } = useAppStore();
 
   const drawRef = useRef<MapboxDraw | null>(null);
   const dynamicBuildingsRef = useRef<any[]>([]);
@@ -90,6 +117,7 @@ export const MapLibre3DMap: React.FC = () => {
 
   useEffect(() => {
     if (flyToTarget && mapRef.current && mapLoaded) {
+      console.log('[MapLibre flyTo] Flying to:', flyToTarget.lng, flyToTarget.lat, 'zoom:', flyToTarget.zoom);
       mapRef.current.flyTo({
         center: [flyToTarget.lng, flyToTarget.lat],
         zoom: flyToTarget.zoom || 16,
@@ -102,6 +130,51 @@ export const MapLibre3DMap: React.FC = () => {
       setFlyToTarget(null);
     }
   }, [flyToTarget, mapLoaded, setFlyToTarget]);
+
+  const lastProcessedUlpinRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    if (searchedUlpin3D && activeTab === 'MAPLIBRE_3D' && lastProcessedUlpinRef.current !== searchedUlpin3D) {
+      lastProcessedUlpinRef.current = searchedUlpin3D;
+      
+      const parts = searchedUlpin3D.split('-');
+      if (parts.length > 1) {
+        const unitRaw = parts[parts.length - 1]; // e.g. 101 or 01
+        
+        const baseAndLevel = parts[0]; // e.g. MH1...A+02
+        const levelCode = baseAndLevel.slice(-3); // +02 or -01 or 000
+        
+        if (levelCode.startsWith('+') || levelCode.startsWith('-') || levelCode === '000' || levelCode.startsWith('G')) {
+           let levelNum = parseInt(levelCode.replace('+', ''), 10);
+           if (levelCode.startsWith('G') || levelCode.endsWith('00')) levelNum = 0;
+           
+           if (!isNaN(levelNum)) {
+             if (levelNum === 0) setSelectedFloor('Ground Floor');
+             else if (levelNum < 0) setSelectedFloor('Basement');
+             else {
+                const s = ["TH", "ST", "ND", "RD"];
+                const v = levelNum % 100;
+                const ordinal = levelNum + (s[(v - 20) % 10] || s[v] || s[0]);
+                setSelectedFloor(ordinal);
+             }
+           }
+        }
+        
+        setSelectedUnit(unitRaw);
+      }
+        
+      // Ensure the building is actually selected so the Inspector panel opens for the right building
+      if (mapRef.current && mapLoaded) {
+         setTimeout(() => {
+           if (!mapRef.current) return;
+           const center = mapRef.current.getCenter();
+           const point = mapRef.current.project(center);
+           // Add simulated flag so the click handler knows to expand its search box
+           mapRef.current.fire('click', { lngLat: center, point, originalEvent: { simulated: true } as any });
+         }, 2600);
+      }
+    }
+  }, [searchedUlpin3D, activeTab, mapLoaded]);
 
   useEffect(() => {
     if (!mapContainerRef.current || mapRef.current) return;
@@ -746,12 +819,22 @@ export const MapLibre3DMap: React.FC = () => {
       });
 
       map.on('click', async (e) => {
-        // Expand hit area by 3 pixels for better accuracy
+        // Expand hit area for better accuracy, especially if simulated
         let bldgs: any[] = [];
         try {
           const availableLayers = ['detailed-landmarks-3d', '3d-buildings'].filter(l => map.getLayer(l));
           if (availableLayers.length > 0) {
-            bldgs = map.queryRenderedFeatures(e.point, { layers: availableLayers });
+            const isSimulated = (e.originalEvent as any)?.simulated;
+            if (isSimulated) {
+              const pad = 20;
+              const bbox = [
+                [e.point.x - pad, e.point.y - pad],
+                [e.point.x + pad, e.point.y + pad]
+              ];
+              bldgs = map.queryRenderedFeatures(bbox as any, { layers: availableLayers });
+            } else {
+              bldgs = map.queryRenderedFeatures(e.point, { layers: availableLayers });
+            }
           }
         } catch (err) {
           console.warn("Layer query failed", err);
@@ -806,8 +889,23 @@ export const MapLibre3DMap: React.FC = () => {
         }
 
         // Geospatially encode coordinates into the 14-char ULPIN so search can fly back precisely
-        const latStr = Math.round(lat * 1000000).toString(36).padStart(5, '0');
-        const lngStr = Math.round(lng * 1000000).toString(36).padStart(6, '0');
+        // Use centroid to ensure the ULPIN remains strictly stable across the entire footprint
+        let ulpinLng = lng;
+        let ulpinLat = lat;
+        try {
+          if (f.geometry && f.geometry.type === 'Polygon') {
+            const centroid = turf.centroid(f.geometry as any);
+            ulpinLng = parseFloat(centroid.geometry.coordinates[0].toFixed(5));
+            ulpinLat = parseFloat(centroid.geometry.coordinates[1].toFixed(5));
+          } else if (f.geometry && f.geometry.type === 'MultiPolygon') {
+            const centroid = turf.centroid(f.geometry as any);
+            ulpinLng = parseFloat(centroid.geometry.coordinates[0].toFixed(5));
+            ulpinLat = parseFloat(centroid.geometry.coordinates[1].toFixed(5));
+          }
+        } catch (err) {}
+
+        const latStr = Math.round(ulpinLat * 1000000).toString(36).padStart(5, '0');
+        const lngStr = Math.round(ulpinLng * 1000000).toString(36).padStart(6, '0');
         const baseUlpin = `MH1${latStr}${lngStr}`.toUpperCase();
         
         const ulpin3D = formatUlpin3D(baseUlpin, 'A', 0, 'G01'); // Default to ground floor unit instead of placeholder U301
@@ -947,9 +1045,10 @@ export const MapLibre3DMap: React.FC = () => {
                 usage: bmcProps.USAGE || 'Unknown',
                 name: bmcProps.NAME || 'Unnamed BMC Building',
                 noOfFloorsStr: bmcProps.NO_OF_FLOO || '',
+                unitCount: parseInt(bmcProps.UNIT_CNT) || 0,
               };
               
-              let parsedFloors = 1;
+              let parsedFloors = 0;
               let hasBasement = false;
               if (bmcData.noOfFloorsStr) {
                  const str = bmcData.noOfFloorsStr.toLowerCase();
@@ -959,37 +1058,35 @@ export const MapLibre3DMap: React.FC = () => {
                  else if (str.includes('g') || str.includes('gr')) parsedFloors = 1;
               }
               
-              if (parsedFloors > 0) {
-                 const accurateFloors = Math.max(floors, parsedFloors);
-                 const accurateHeight = accurateFloors * 3.5;
-                 
-                 setSelectedBuildingInfo(prev => {
-                   if (!prev) return prev;
-                   // Update the dynamic building with accurate heights
-                   let finalName = (bmcData.name && bmcData.name.trim().length > 1) ? bmcData.name : prev.building.name;
-                   if (bmcData.usage && bmcData.usage !== 'Unknown' && !finalName.includes('[')) {
-                      finalName = `${finalName} [${bmcData.usage}]`;
-                   }
-                   const updatedBuilding = {
-                     ...prev.building,
-                     eavesHeightM: Math.round(accurateHeight * 0.85),
-                     roofHeightM: Math.round(accurateHeight),
-                     numFloors: accurateFloors,
-                     numBasements: hasBasement ? 1 : 0,
-                     totalBuiltupAreaSqm: accurateFloors * 650,
-                     name: finalName
-                   };
-                   
-                   return {
-                     ...prev,
-                     height: Math.round(accurateHeight),
-                     floors: accurateFloors,
-                     buildingName: updatedBuilding.name,
-                     building: updatedBuilding,
-                     bmcData
-                   };
-                 });
-              }
+              setSelectedBuildingInfo(prev => {
+                if (!prev) return prev;
+                // Update the dynamic building with accurate heights ONLY if BMC had valid floor data
+                let finalName = (bmcData.name && bmcData.name.trim().length > 1) ? bmcData.name : prev.building.name;
+                if (bmcData.usage && bmcData.usage !== 'Unknown' && !finalName.includes('[')) {
+                   finalName = `${finalName} [${bmcData.usage}]`;
+                }
+                const footprintArea = bmcProps['SHAPE.AREA'] || bmcProps.Shape__Area || bmcProps.SHAPE_Area || 650;
+                
+                const accurateFloors = parsedFloors > 0 ? parsedFloors : prev.floors;
+                const originalHeight = prev.height; // Always keep the building at its visual OSM height to prevent popping/climbing
+                
+                const updatedBuilding = {
+                  ...prev.building,
+                  numFloors: accurateFloors,
+                  numBasements: hasBasement ? 1 : prev.building.numBasements,
+                  totalBuiltupAreaSqm: accurateFloors * footprintArea,
+                  name: finalName
+                };
+                
+                return {
+                  ...prev,
+                  height: originalHeight,
+                  floors: accurateFloors,
+                  buildingName: updatedBuilding.name,
+                  building: updatedBuilding,
+                  bmcData
+                };
+              });
             } else {
               // Pan-India Fallback: Overpass API
               // Search for any named feature (node, way, relation) within 30 meters, or just any building
@@ -1043,7 +1140,7 @@ export const MapLibre3DMap: React.FC = () => {
                     updateState(osmData);
                   }
                 } else {
-                  setSelectedBuildingInfo(prev => prev ? { ...prev, bmcData: { sacNumber: '', usage: '', name: '', noOfFloorsStr: '', notFound: true } } : prev);
+                  setSelectedBuildingInfo(prev => prev ? { ...prev, bmcData: { sacNumber: '', usage: '', name: '', noOfFloorsStr: '', unitCount: 0, notFound: true } } : prev);
                 }
               });
             }
@@ -1052,7 +1149,7 @@ export const MapLibre3DMap: React.FC = () => {
             console.warn('[MapLibre] Failed to fetch data', err);
             setSelectedBuildingInfo(prev => prev ? {
               ...prev,
-              bmcData: { sacNumber: '', usage: '', name: '', noOfFloorsStr: '', notFound: true }
+              bmcData: { sacNumber: '', usage: '', name: '', noOfFloorsStr: '', unitCount: 0, notFound: true }
             } : null);
           })
           .finally(() => setIsFetchingBmc(false));
@@ -2067,7 +2164,23 @@ export const MapLibre3DMap: React.FC = () => {
             </div>
           )}
 
-          {!isFetchingBmc && selectedBuildingInfo.bmcData?.notFound && (
+          {isScrapingBmc && (
+            <div className="glass-card p-4 rounded-xl border border-blue-500/20 bg-blue-950/10 space-y-3 mt-2 mb-2">
+              <div className="flex items-center justify-center gap-2">
+                <div className="w-4 h-4 border-2 border-blue-500/30 border-t-blue-400 rounded-full animate-spin"></div>
+                <div className="text-[10px] text-blue-400 font-mono animate-pulse">
+                  Querying MyBMC Property Tax Portal...
+                </div>
+              </div>
+              <div className="space-y-2 pt-2 border-t border-white/5">
+                <div className="h-2 bg-white/10 rounded w-3/4 animate-pulse"></div>
+                <div className="h-2 bg-white/10 rounded w-1/2 animate-pulse"></div>
+                <div className="h-6 bg-white/10 rounded w-full animate-pulse mt-2"></div>
+              </div>
+            </div>
+          )}
+
+          {!isFetchingBmc && !isScrapingBmc && selectedBuildingInfo.bmcData?.notFound && (
             <div className="glass-card p-2.5 rounded-xl border border-rose-500/20 bg-rose-950/10 space-y-2">
               <div className="text-[10px] text-rose-400 flex items-center gap-1 font-mono">
                 <AlertCircle className="w-3 h-3" /> No authoritative MyBMC record found here.
@@ -2075,7 +2188,7 @@ export const MapLibre3DMap: React.FC = () => {
             </div>
           )}
 
-          {selectedBuildingInfo.bmcData && !selectedBuildingInfo.bmcData.notFound && (() => {
+          {!isFetchingBmc && !isScrapingBmc && selectedBuildingInfo.bmcData && !selectedBuildingInfo.bmcData.notFound && (() => {
             // Helper for units
             let availableUnits: string[] = [];
             let floorNumStr = 'F0';
@@ -2097,26 +2210,81 @@ export const MapLibre3DMap: React.FC = () => {
               const floorUnits = existingBldgUnits.filter(u => u.floorNumber === floorNumber);
               availableUnits = floorUnits.map(u => u.unitCode);
               if (availableUnits.length === 0) availableUnits = ['NO_UNITS_FOUND'];
-            } else {
-              // Dynamic fallback generator simulating real live data variations (1 to 5 flats per floor)
-              let hash = 0;
-              const idStr = selectedBuildingInfo.id || 'default';
-              for (let i = 0; i < idStr.length; i++) {
-                hash = idStr.charCodeAt(i) + ((hash << 5) - hash);
+            } else if (bmcScrapedUnits && Object.keys(bmcScrapedUnits).length > 0) {
+              // We successfully fetched exact unit names from our BMC Scraper API!
+              const fIndex = selectedFloor === 'Basement' || selectedFloor === 'Ground Floor' ? 0 : parseInt(selectedFloor.replace(/\D/g, '')) || 0;
+              const scrapedFloorKey = fIndex === 0 ? 'Ground Floor' : `F${fIndex}`;
+              
+              // First try the exact floor key (F1, F2), then All Floors (if scraper couldn't distribute), then fallback
+              availableUnits = bmcScrapedUnits[scrapedFloorKey] || bmcScrapedUnits['All Floors'] || bmcScrapedUnits['F1'] || [];
+              
+              if (availableUnits.length === 0) {
+                 availableUnits = ['NO_UNITS_FOUND'];
               }
-              const unitsPerFloor = 1 + (Math.abs(hash) % 5);
-
-              availableUnits = Array.from({ length: unitsPerFloor }).map((_, i) => {
-                const idx = i + 1;
-                if (selectedFloor === 'Ground Floor') return `0${idx}`;
-                if (selectedFloor === 'Basement') return `B0${idx}`;
-                return `${floorNumber}${idx}`;
-              });
+            } else {
+              // Calculate realistic units per floor based on actual BMC unit count if available
+              let unitsPerFloor = 1;
+              const numFloors = Math.max(1, selectedBuildingInfo.floors);
+              
+              const bmcUnits = selectedBuildingInfo.bmcData?.unitCount || 0;
+              
+              if (bmcUnits > 0) {
+                // Exact total count from MyBMC. Distribute mathematically so the total across all floors is 100% accurate.
+                const baseUnits = Math.floor(bmcUnits / numFloors);
+                const remainder = bmcUnits % numFloors;
+                
+                // Determine floor index (0 for Ground, 1 for F1, etc.)
+                let fIndex = 0;
+                if (selectedFloor === 'Basement') fIndex = 0;
+                else if (selectedFloor === 'Ground Floor') fIndex = 0;
+                else fIndex = parseInt(selectedFloor.replace(/\D/g, '')) || 0;
+                
+                // Add 1 extra unit to the first `remainder` floors to distribute perfectly
+                unitsPerFloor = baseUnits + (fIndex < remainder ? 1 : 0);
+                unitsPerFloor = Math.max(0, unitsPerFloor);
+              } else {
+                // Fallback: Calculate units per floor based on built-up area
+                // Many buildings in BMC GIS have UNIT_CNT = 0 (like RN0408960310000), but property tax has the real units.
+                // Since property tax API is secured, we MUST mathematically distribute units here so the user can select them!
+                const totalArea = selectedBuildingInfo.building?.totalBuiltupAreaSqm || (numFloors * 650);
+                const areaPerFloor = totalArea / numFloors;
+                
+                // Assume average flat size in Mumbai is ~65 sqm (approx 700 sqft)
+                unitsPerFloor = Math.max(1, Math.round(areaPerFloor / 65));
+                
+                // Adjust for ground floor and basement which typically have fewer units (lobbies, parking, etc.)
+                if (selectedFloor === 'Ground Floor' || selectedFloor === 'Basement') {
+                  unitsPerFloor = Math.max(1, Math.floor(unitsPerFloor * 0.4));
+                }
+              }
+              
+              // Cap at a reasonable maximum to avoid UI clutter for massive podiums
+              unitsPerFloor = Math.min(unitsPerFloor, 32);
+              
+              if (unitsPerFloor === 0) {
+                 availableUnits = ['NO_UNITS_FOUND'];
+              } else {
+                 availableUnits = Array.from({ length: unitsPerFloor }).map((_, i) => {
+                   const idx = i + 1;
+                   if (selectedFloor === 'Ground Floor') return `0${idx}`;
+                   if (selectedFloor === 'Basement') return `B0${idx}`;
+                   return `${floorNumber}${idx < 10 ? '0' : ''}${idx}`;
+                 });
+                 if (availableUnits.length === 0) {
+                   availableUnits = ['NA'];
+                 }
+              }
             }
             
             // Ensure selectedUnit is valid for this floor
             if (!availableUnits.includes(selectedUnit)) {
-              setTimeout(() => setSelectedUnit(availableUnits[0]), 0);
+              // Only override if the user didn't just search for this specific unit
+              if (searchedUlpin3D && searchedUlpin3D.includes(`-${selectedUnit}`)) {
+                 availableUnits.push(selectedUnit);
+                 availableUnits.sort();
+              } else {
+                 setTimeout(() => setSelectedUnit(availableUnits[0]), 0);
+              }
             }
 
             // Generate accurate dynamic ULPIN based on selection
@@ -2223,6 +2391,8 @@ export const MapLibre3DMap: React.FC = () => {
             </div>
           )}
 
+
+
           {/* Synthesized 3D ULPIN */}
           {(() => {
             const baseUlpin = selectedBuildingInfo.ulpin3D.split('.')[0] || selectedBuildingInfo.ulpin3D;
@@ -2303,6 +2473,18 @@ export const MapLibre3DMap: React.FC = () => {
               if (selectedBuildingInfo?.building) {
                 setSelectedBuilding(selectedBuildingInfo.building);
               }
+              // Set the currently configured ULPIN so Exploded View highlights it
+              const baseU = selectedBuildingInfo.ulpin3D.split('.')[0] || selectedBuildingInfo.ulpin3D;
+              let dCode: 'G' | 'A' | 'U' = 'A';
+              let lNum = 0;
+              if (selectedFloor === 'Ground Floor') { dCode = 'G'; lNum = 0; }
+              else if (selectedFloor === 'Basement') { dCode = 'U'; lNum = -1; }
+              else { dCode = 'A'; lNum = parseInt(selectedFloor.replace(/\D/g, '')) || 1; }
+              useAppStore.getState().setSearchedUlpin3D(formatUlpin3D(baseU, dCode, lNum, selectedUnit));
+              
+              // Automatically explode the building to make the highlighted unit visible
+              useAppStore.getState().setExplodedDistance(1.5);
+              
               setActiveTab('EXPLODED_3D');
             }}
             className="w-full py-2.5 px-4 rounded-xl bg-gradient-to-r from-brand-primary to-indigo-600 hover:from-cyan-400 hover:to-indigo-500 text-white text-xs font-semibold flex items-center justify-center gap-1.5 shadow-neon-cyan transition-all duration-300 hover:scale-[1.02]"
@@ -2310,6 +2492,55 @@ export const MapLibre3DMap: React.FC = () => {
             <Sparkles className="w-3.5 h-3.5 text-amber-300" />
             Drill Down in Exploded 3D Scene &rarr;
           </button>
+          
+          {selectedBuildingInfo.buildingName.toLowerCase().includes('aquaria') && (
+            <button
+              onClick={() => setShowAquariaFloorPlan(true)}
+              className="w-full mt-2 py-2.5 px-4 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white text-xs font-semibold flex items-center justify-center gap-1.5 shadow-neon-emerald transition-all duration-300 hover:scale-[1.02]"
+            >
+              <Layers className="w-3.5 h-3.5 text-emerald-200" />
+              View 3D Floor Plan & Mockups
+            </button>
+          )}
+        </div>
+      )}
+
+      {/* Aquaria Grande Floor Plan Modal Overlay */}
+      {showAquariaFloorPlan && (
+        <div className="absolute inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-300">
+          <div className="relative w-full max-w-4xl max-h-full bg-slate-900 rounded-2xl shadow-2xl border border-white/10 flex flex-col overflow-hidden">
+            <div className="flex items-center justify-between p-4 border-b border-white/10 bg-slate-800/50">
+              <h2 className="text-lg font-bold text-white flex items-center gap-2">
+                <Layers className="text-emerald-400" />
+                Aquaria Grande - 3D Mockups & Floor Plans
+              </h2>
+              <button 
+                onClick={() => setShowAquariaFloorPlan(false)}
+                className="p-1 rounded-full hover:bg-white/10 text-slate-400 hover:text-white transition-colors"
+              >
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+            
+            <div className="flex-1 p-6 overflow-y-auto custom-scrollbar flex flex-col gap-8 items-center bg-slate-900">
+              {[
+                'https://img.staticmb.com/mbimages/project/2023/11/08/Master-Plan-25-Wadhwa-Aquaria-Grande-Mumbai-5029949_462_700.jpg',
+                'https://img.staticmb.com/mbimages/project/Floor-Plan-2-Wadhwa-Aquaria-Grande-Mumbai-5029949_700_1024.jpg',
+                'https://img.staticmb.com/mbimages/project/Floor-Plan-23-Wadhwa-Aquaria-Grande-Mumbai-5029949_618_1024.jpg',
+                'https://img.staticmb.com/mbimages/project/Floor-Plan-24-Wadhwa-Aquaria-Grande-Mumbai-5029949_596_1024.jpg',
+                'https://img.staticmb.com/mbimages/project/Floor-Plan-3-Wadhwa-Aquaria-Grande-Mumbai-5029949_700_1024.jpg'
+              ].map((src, idx) => (
+                <div key={idx} className="w-full bg-white rounded-xl p-2 flex justify-center">
+                  <img 
+                    src={src} 
+                    alt={`Floor plan ${idx + 1}`} 
+                    className="max-w-full h-auto object-contain rounded-lg"
+                    style={{ maxHeight: '70vh' }}
+                  />
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
       )}
     </div>
