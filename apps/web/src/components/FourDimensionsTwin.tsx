@@ -234,7 +234,7 @@ export function FourDimensionsTwin() {
                 </div>
               ) : (
                 <span className="text-[10px] text-[#64748B] font-semibold">
-                  Bhū-Aadhaar 3D Cadastral Layer
+                  GeoElevate 3D Cadastral Layer
                 </span>
               )}
             </div>

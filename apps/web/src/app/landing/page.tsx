@@ -10,7 +10,7 @@ import { FourDimensionsTwin } from '@/components/FourDimensionsTwin';
 import { ArchitecturalBuildingViewer } from '@/components/ArchitecturalBuildingViewer';
 
 /* ═══════════════════════════════════════════════════
-   Bhū-Aadhaar 3D Engine — Complete Landing Page
+   GeoElevate 3D Engine — Complete Landing Page
    Premium digital-twin command center aesthetic
    ═══════════════════════════════════════════════════ */
 
@@ -230,11 +230,11 @@ export default function LandingPage() {
       >
         {/* Brand Logo & Title */}
         <div className="flex items-center gap-3 select-none flex-shrink-0">
-          <div className="w-8 h-8 rounded-[8px] bg-white text-black flex items-center justify-center shadow-md shadow-black/40 font-bold hover:scale-105 transition-all">
-            <Building2 className="w-4 h-4 text-black stroke-[2.5]" />
+          <div className="w-8 h-8 flex items-center justify-center hover:scale-105 transition-all">
+            <Building2 className="w-5 h-5 text-white stroke-[2.5]" />
           </div>
           <span className="text-[13px] font-extrabold tracking-wider text-white uppercase">
-            Bhū-Aadhaar
+            GeoElevate
           </span>
         </div>
 
@@ -498,7 +498,7 @@ export default function LandingPage() {
           Built on open standards.
         </h2>
         <p className="text-[13px] leading-[1.8] max-w-2xl mb-10" style={{ color: C.text2 }}>
-          Every component of the Bhū-Aadhaar engine is designed around interoperability, transparency and real-time spatial accuracy.
+          Every component of the GeoElevate engine is designed around interoperability, transparency and real-time spatial accuracy.
         </p>
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
           {PLATFORM_FEATURES.map((f, i) => (
@@ -526,7 +526,7 @@ export default function LandingPage() {
           One City.<br />Many Layers.<br />One Intelligent View.
         </p>
         <p className="mt-4 text-[12px]" style={{ color: C.muted }}>
-          Explore Mumbai through the Bhū-Aadhaar 3D Engine.
+          Explore Mumbai through the GeoElevate 3D Engine.
         </p>
         <div className="mt-7">
           <Link
@@ -547,7 +547,7 @@ export default function LandingPage() {
       <footer className="relative z-10 px-5 sm:px-8 lg:px-16 py-8" style={{ borderTop: `1px solid ${C.border}` }}>
         <div className="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-2 select-none">
-            <span className="text-[10px] font-bold tracking-[0.12em] uppercase">{`Bhū-Aadhaar`}</span>
+            <span className="text-[10px] font-bold tracking-[0.12em] uppercase">{`GeoElevate`}</span>
             <span className="text-[9px]" style={{ color: C.muted }}>|</span>
             <span className="text-[9px] tracking-wider uppercase" style={{ color: C.muted }}>3D Engine</span>
           </div>

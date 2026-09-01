@@ -55,7 +55,7 @@ const CAROUSEL_CARDS: CarouselCardData[] = [
     metric: '14-DIGIT ULPIN',
     title: 'LAND',
     subtitle: 'Unified Geo-Parcel Engine',
-    desc: 'Bhū-Aadhaar coordinates anchored directly to Survey of India benchmarks and Revenue Department spatial boundaries.',
+    desc: 'GeoElevate coordinates anchored directly to Survey of India benchmarks and Revenue Department spatial boundaries.',
     stats: [
       { label: 'DATUM', value: 'WGS84 / UTM 43N' },
       { label: 'PARCELS', value: 'VERIFIED' },
