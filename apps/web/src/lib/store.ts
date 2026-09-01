@@ -66,6 +66,12 @@ export interface AppState {
     terrain: boolean;
     mybmc: boolean;
     mining: boolean;
+    publicAmenitiesParking: boolean;
+    publicAmenitiesParks: boolean;
+    publicAmenitiesSchools: boolean;
+    publicAmenitiesHospitals: boolean;
+    elevatedCorridors: boolean;
+    regulatedBoundaries: boolean;
   };
   activeUndergroundLayerIds: number[];
   toggleLayer: (layer: keyof AppState['layers']) => void;
@@ -183,6 +189,12 @@ export const useAppStore = create<AppState>((set, get) => ({
     terrain: false,
     mybmc: true,
     mining: true,
+    publicAmenitiesParking: false,
+    publicAmenitiesParks: false,
+    publicAmenitiesSchools: false,
+    publicAmenitiesHospitals: false,
+    elevatedCorridors: true,
+    regulatedBoundaries: false
   },
   activeUndergroundLayerIds: [],
   toggleLayer: (layer) =>

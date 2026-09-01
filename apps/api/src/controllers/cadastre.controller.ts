@@ -145,14 +145,106 @@ cadastreRouter.post('/certificate', roleMiddleware(['engineer']), async (req: Re
  * GET /api/v1/search
  * Universal search query across 3D ULPINs, owners, addresses, and utilities
  */
-cadastreRouter.get('/search', (req: Request, res: Response) => {
+cadastreRouter.get('/search', async (req: Request, res: Response) => {
   const query = (req.query.q as string) || '';
   const results = ulpinService.search(query);
+  
+  // Proxy to Photon (OSM) for fallback geocoding if query > 3 chars
+  const externalResults: any[] = [];
+  if (query.length > 2) {
+    // ── 1. BMC Official Building Registry (mybmcid.mcgm.gov.in Buildgs_SAC) ──
+    // Exact building-name search with real authoritative coordinates
+    try {
+      const sanitized = query.replace(/'/g, "''"); // escape SQL quotes
+      const bmcUrl = `https://mybmcid.mcgm.gov.in/server/rest/services/MCGM_UID/IPVS/FeatureServer/1/query` +
+        `?where=UPPER(NAME)+LIKE+UPPER('%25${encodeURIComponent(sanitized)}%25')` +
+        `&outFields=NAME,ADDRESS,WARD,USAGE,NO_OF_FLOO,POINT_X,POINT_Y,SAC_NUMBER` +
+        `&returnGeometry=true&outSR=4326&f=json&resultRecordCount=5`;
+
+      const bmcRes = await fetch(bmcUrl, { signal: AbortSignal.timeout(5000) });
+      const bmcData = await bmcRes.json();
+
+      if (bmcData?.features?.length) {
+        const seen = new Set<string>();
+        bmcData.features.forEach((f: any) => {
+          const attr = f.attributes;
+          if (!attr.NAME || !attr.POINT_X || !attr.POINT_Y) return;
+          const dedupeKey = `${attr.NAME}-${attr.POINT_X.toFixed(4)}-${attr.POINT_Y.toFixed(4)}`;
+          if (seen.has(dedupeKey)) return;
+          seen.add(dedupeKey);
+
+          // Build centroid from polygon geometry if available
+          let lat = attr.POINT_Y;
+          let lon = attr.POINT_X;
+          if (f.geometry?.rings?.length) {
+            const ring = f.geometry.rings[0];
+            lon = ring.reduce((s: number, p: number[]) => s + p[0], 0) / ring.length;
+            lat = ring.reduce((s: number, p: number[]) => s + p[1], 0) / ring.length;
+          }
+
+          externalResults.push({
+            type: 'LOCATION',
+            title: attr.NAME,
+            subtitle: `🏛 BMC: ${attr.ADDRESS?.split(',').slice(0, 3).join(', ') || `Ward ${attr.WARD}`}  |  ${attr.USAGE || ''}  ${attr.NO_OF_FLOO || ''}`,
+            id: `bmc-${attr.SAC_NUMBER || Math.random()}`,
+            ulpin: '',
+            metadata: {
+              lat,
+              lon,
+              feature: {
+                type: 'Feature',
+                geometry: { type: 'Point', coordinates: [lon, lat] },
+                properties: attr
+              },
+              source: 'BMC',
+              ...attr
+            }
+          });
+        });
+      }
+    } catch (err) {
+      console.error('BMC building search failed:', err);
+    }
+
+    // ── 2. Photon (OSM) fallback for areas / localities / roads ──
+    // Only kick in if BMC returned no results, or as supplement for area queries
+    if (externalResults.length === 0) {
+      try {
+        const mumbai_bbox = '72.74,18.89,72.99,19.27';
+        const extRes = await fetch(
+          `https://photon.komoot.io/api/?q=${encodeURIComponent(query)}&limit=4&bbox=${mumbai_bbox}&lang=en`,
+          { headers: { 'Accept-Language': 'en' }, signal: AbortSignal.timeout(5000) }
+        );
+        const extData = await extRes.json();
+        if (extData?.features) {
+          extData.features.forEach((f: any) => {
+            const cityLabel = [f.properties.district, f.properties.city].filter(Boolean).join(', ');
+            externalResults.push({
+              type: 'LOCATION',
+              title: f.properties.name || `${f.properties.osm_value || 'Location'} in ${f.properties.district || f.properties.city}`,
+              subtitle: `📍 ${cityLabel || 'Mumbai'} — ${f.properties.osm_value || 'place'}`,
+              id: f.properties.osm_id?.toString() || Math.random().toString(),
+              ulpin: '',
+              metadata: {
+                lat: f.geometry.coordinates[1],
+                lon: f.geometry.coordinates[0],
+                feature: f,
+                ...f.properties
+              }
+            });
+          });
+        }
+      } catch (err) {
+        console.error('Photon fallback failed:', err);
+      }
+    }
+  }
+
   res.json({
     status: 'success',
     query,
-    count: results.length,
-    data: results
+    count: results.length + externalResults.length,
+    data: [...results, ...externalResults]
   });
 });
 

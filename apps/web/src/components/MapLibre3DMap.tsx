@@ -24,7 +24,7 @@ import { useAppStore } from '@/lib/store';
 import { formatUlpin3D, Building } from '@sih/shared-types';
 import MapboxDraw from '@mapbox/mapbox-gl-draw';
 import * as turf from '@turf/turf';
-import { SAMPLE_BUILDINGS, SAMPLE_VERTICAL_UNITS, SAMPLE_MINING_AREAS } from '@sih/sample-data';
+import { SAMPLE_BUILDINGS, SAMPLE_VERTICAL_UNITS, SAMPLE_MINING_AREAS, SAMPLE_PUBLIC_AMENITIES, SAMPLE_ELEVATED_CORRIDORS, SAMPLE_REGULATED_BOUNDARIES } from '@sih/sample-data';
 import { ClearanceTool } from './ClearanceTool';
 import { generateProceduralUtilities } from '@/lib/proceduralUtilities';
 import { WESTERN_LINE_GEOJSON, generateInitialTrains, updateTrains, getTrainsGeoJSON, TrainState } from '@/lib/trainRoutes';
@@ -34,6 +34,7 @@ export const MapLibre3DMap: React.FC = () => {
   const mapRef = useRef<maplibregl.Map | null>(null);
 
   const [currentPitch, setCurrentPitch] = useState<number>(45);
+  const [basemapStyle, setBasemapStyle] = useState<'street' | 'satellite'>('street');
   const [mapLoaded, setMapLoaded] = useState<boolean>(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
@@ -126,6 +127,12 @@ export const MapLibre3DMap: React.FC = () => {
               type: 'vector',
               url: 'https://tiles.openfreemap.org/planet',
               attribution: '© OpenStreetMap contributors, OpenMapTiles, OpenFreeMap, SIH 3D ULPIN'
+            },
+            'satellite-esri': {
+              type: 'raster',
+              tiles: ['https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'],
+              tileSize: 256,
+              attribution: 'Esri, Maxar, Earthstar Geographics'
             }
           },
           layers: [
@@ -135,6 +142,19 @@ export const MapLibre3DMap: React.FC = () => {
               type: 'background',
               paint: {
                 'background-color': '#070b14'
+              }
+            },
+            // Esri Satellite
+            {
+              id: 'satellite-layer',
+              type: 'raster',
+              source: 'satellite-esri',
+              layout: {
+                visibility: 'none'
+              },
+              paint: {
+                'raster-opacity': 1.0,
+                'raster-saturation': -0.1
               }
             },
             // Landcover
@@ -558,6 +578,8 @@ export const MapLibre3DMap: React.FC = () => {
                   <div>${props.source}</div>
                   <div class="text-slate-400">Speed</div>
                   <div class="text-cyan-300">${props.speed} km/h</div>
+                  <div class="text-slate-400">Distance Covered</div>
+                  <div class="text-emerald-300">${((props.progress * props.totalLength) || 0).toFixed(1)} km</div>
                   <div class="text-slate-400">Progress</div>
                   <div class="text-emerald-300">${Math.round(props.progress * 100)}% Complete</div>
                 </div>
@@ -619,9 +641,11 @@ export const MapLibre3DMap: React.FC = () => {
                   <div class="text-slate-400">Type</div>
                   <div>${props.ASSET_TYPE || props.TYPE || 'Unknown'}</div>
                   <div class="text-slate-400">Agency</div>
-                  <div>${props.OWNER || props.AGENCY || 'MCGM'}</div>
+                  <div>${props.OWNER || props.AGENCY || props.operator || 'MCGM'}</div>
                   <div class="text-slate-400">Depth</div>
-                  <div>${props.DEPTH || 'N/A'}</div>
+                  <div>${props.DEPTH || props.depth || 'N/A'}</div>
+                  <div class="text-slate-400">Material</div>
+                  <div>${props.MATERIAL || props.material || 'Unknown'}</div>
                 </div>
               </div>
             `)
@@ -645,6 +669,11 @@ export const MapLibre3DMap: React.FC = () => {
                   <div>${props.assetType || 'Unknown'}</div>
                   <div class="text-slate-400">Agency</div>
                   <div>${props.owningAgency || 'Unknown'}</div>
+                  <div class="text-slate-400">Color</div>
+                  <div class="flex items-center gap-1">
+                    <div class="w-3 h-3 rounded" style="background-color: ${props.color || '#ffffff'}"></div>
+                    ${props.color || 'Default'}
+                  </div>
                 </div>
               </div>
             `)
@@ -1138,31 +1167,58 @@ export const MapLibre3DMap: React.FC = () => {
       map.on('click', 'searched-parcel-fill', (e) => {
         // Reuse already loaded data in the Zustand store
         const state = useAppStore.getState();
-        const bldg = state.selectedBuilding;
-        if (!bldg) return;
-        
-        setSelectedBuildingInfo({
-          id: bldg.id,
-          height: bldg.roofHeightM,
-          minHeight: bldg.plinthElevationM,
-          floors: bldg.numFloors,
-          ulpin3D: bldg.ulpin3D || '',
-          coordinates: [e.lngLat.lng, e.lngLat.lat],
-          building: bldg,
-          buildingName: bldg.name,
-          ownership: null,
-          bmcData: {
-            sacNumber: 'SEARCH_RESULT',
-            usage: 'Known',
-            name: bldg.name,
-            noOfFloorsStr: String(bldg.numFloors),
-          },
-          isAnimated: false,
-        });
+        if (state.selectedParcel || state.selectedBuilding || state.selectedUnit) {
+          // Open the main Inspector Panel
+          setActiveTab('INSPECTOR');
+        }
       });
       
       map.on('mouseenter', 'searched-parcel-fill', () => { map.getCanvas().style.cursor = 'pointer'; });
       map.on('mouseleave', 'searched-parcel-fill', () => { map.getCanvas().style.cursor = ''; });
+
+      // Generic Popup for Amenities, Corridors, Boundaries
+      const handleFeatureClick = (e: any) => {
+        if (!e.features || e.features.length === 0) return;
+        const feature = e.features[0];
+        const props = feature.properties;
+        
+        const name = props.name || 'Name not available';
+        const category = props.category || props.boundaryType || 'Unknown';
+        const dataSource = props.dataSource || 'demo';
+        
+        const badgeColor = dataSource === 'verified' ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30' : 'bg-amber-500/20 text-amber-400 border-amber-500/30';
+        const badgeIcon = dataSource === 'verified' ? `<svg class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>` : `<svg class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>`;
+
+        const html = `
+          <div class="p-3 bg-slate-900 border border-slate-700 rounded-lg shadow-xl max-w-xs font-sans">
+            <div class="flex items-start justify-between gap-3 mb-2">
+              <h3 class="text-sm font-bold text-white leading-tight">${name}</h3>
+              <span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider border ${badgeColor}">
+                ${badgeIcon}
+                ${dataSource}
+              </span>
+            </div>
+            <div class="text-xs text-slate-400 capitalize">
+              <span class="font-medium text-slate-300">Type:</span> ${category}
+            </div>
+            ${props.capacity ? `<div class="text-xs text-slate-400 mt-1"><span class="font-medium text-slate-300">Capacity:</span> ${props.capacity}</div>` : ''}
+            ${props.sourceName ? `<div class="text-[10px] text-slate-500 mt-2 pt-2 border-t border-slate-800">Source: ${props.sourceName}</div>` : ''}
+          </div>
+        `;
+
+        new maplibregl.Popup({ className: 'custom-popup', closeButton: true, maxWidth: '300px' })
+          .setLngLat(e.lngLat)
+          .setHTML(html)
+          .addTo(map);
+      };
+
+      const hoverLayers = ['public-amenities-points', 'elevated-stations-points', 'elevated-corridors-lines', 'regulated-boundaries-fill'];
+      hoverLayers.forEach(layer => {
+        map.on('click', layer, handleFeatureClick);
+        map.on('mouseenter', layer, () => { map.getCanvas().style.cursor = 'pointer'; });
+        map.on('mouseleave', layer, () => { map.getCanvas().style.cursor = ''; });
+      });
+
 
       mapRef.current = map;
     } catch (err: any) {
@@ -1408,7 +1464,8 @@ export const MapLibre3DMap: React.FC = () => {
           paint: {
             'fill-color': '#10b981', // emerald-500
             'fill-opacity': 0.3
-          }
+          },
+          filter: ['==', ['geometry-type'], 'Polygon']
         }, 'poi-labels');
 
         map.addLayer({
@@ -1419,7 +1476,22 @@ export const MapLibre3DMap: React.FC = () => {
             'line-color': '#10b981',
             'line-width': 3,
             'line-dasharray': [2, 1]
-          }
+          },
+          filter: ['==', ['geometry-type'], 'Polygon']
+        }, 'poi-labels');
+
+        map.addLayer({
+          id: 'searched-parcel-point',
+          type: 'circle',
+          source: 'searched-parcel-source',
+          paint: {
+            'circle-color': '#a855f7', // purple-500
+            'circle-radius': 10,
+            'circle-stroke-color': '#ffffff',
+            'circle-stroke-width': 2,
+            'circle-pitch-alignment': 'map'
+          },
+          filter: ['==', ['geometry-type'], 'Point']
         }, 'poi-labels');
       } else {
         (map.getSource('searched-parcel-source') as maplibregl.GeoJSONSource).setData(searchedParcelGeoJSON);
@@ -1427,6 +1499,7 @@ export const MapLibre3DMap: React.FC = () => {
     } else {
       if (map.getLayer('searched-parcel-fill')) map.removeLayer('searched-parcel-fill');
       if (map.getLayer('searched-parcel-line')) map.removeLayer('searched-parcel-line');
+      if (map.getLayer('searched-parcel-point')) map.removeLayer('searched-parcel-point');
       if (map.getSource('searched-parcel-source')) map.removeSource('searched-parcel-source');
     }
   }, [searchedParcelGeoJSON, mapLoaded]);
@@ -1651,6 +1724,251 @@ export const MapLibre3DMap: React.FC = () => {
     setCurrentPitch(pitch);
   };
 
+  useEffect(() => {
+    if (!mapLoaded || !mapRef.current) return;
+    const map = mapRef.current;
+    
+    if (basemapStyle === 'satellite') {
+      if (map.getLayer('satellite-layer')) map.setLayoutProperty('satellite-layer', 'visibility', 'visible');
+      if (map.getLayer('landcover')) map.setPaintProperty('landcover', 'fill-opacity', 0.1);
+      if (map.getLayer('landuse')) map.setPaintProperty('landuse', 'fill-opacity', 0.1);
+      if (map.getLayer('water')) map.setPaintProperty('water', 'fill-opacity', 0.2);
+    } else {
+      if (map.getLayer('satellite-layer')) map.setLayoutProperty('satellite-layer', 'visibility', 'none');
+      if (map.getLayer('landcover')) map.setPaintProperty('landcover', 'fill-opacity', 1.0);
+      if (map.getLayer('landuse')) map.setPaintProperty('landuse', 'fill-opacity', 1.0);
+      if (map.getLayer('water')) map.setPaintProperty('water', 'fill-opacity', 1.0);
+    }
+  }, [basemapStyle, mapLoaded]);
+
+  // ----------------------------------------------------
+  // PUBLIC AMENITIES (Dynamic BMC ArcGIS Fetch)
+  // ----------------------------------------------------
+  useEffect(() => {
+    if (!mapLoaded || !mapRef.current) return;
+    const map = mapRef.current;
+
+    const updateAmenities = async () => {
+      const amenitiesEnabled = layers.publicAmenitiesParking || layers.publicAmenitiesParks || layers.publicAmenitiesSchools || layers.publicAmenitiesHospitals;
+      
+      if (!amenitiesEnabled) {
+        if (map.getLayer('public-amenities-points')) {
+          map.setLayoutProperty('public-amenities-points', 'visibility', 'none');
+        }
+        return;
+      }
+
+      const bounds = map.getBounds();
+      const bbox = `${bounds.getWest()},${bounds.getSouth()},${bounds.getEast()},${bounds.getNorth()}`;
+
+      // Mapping layers to their IDs and categories
+      const targets = [
+        { id: 214, cat: 'hospital', enabled: layers.publicAmenitiesHospitals, color: '#f43f5e', nameField: 'NAME', capField: null },
+        { id: 296, cat: 'school', enabled: layers.publicAmenitiesSchools, color: '#f97316', nameField: 'SCHNAME', capField: null },
+        { id: 329, cat: 'parking', enabled: layers.publicAmenitiesParking, color: '#3b82f6', nameField: 'NAME', capField: 'TOTAL' },
+        { id: 327, cat: 'park', enabled: layers.publicAmenitiesParks, color: '#10b981', nameField: 'NAME', capField: null },
+      ];
+
+      const allFeatures: any[] = [];
+
+      for (const t of targets) {
+        if (!t.enabled) continue;
+        const url = `https://prsrvgisapp.mcgm.gov.in/server/rest/services/mcgm/MCGMGIS_Departments_Master_All_Layers/MapServer/${t.id}/query?geometry=${bbox}&geometryType=esriGeometryEnvelope&inSR=4326&spatialRel=esriSpatialRelIntersects&outFields=*&returnGeometry=true&f=geojson&resultRecordCount=2000`;
+        try {
+          const res = await fetch(url);
+          const data = await res.json();
+          if (data && data.features) {
+            data.features.forEach((f: any) => {
+              // Convert polygons to points for parks using turf centroid
+              let geom = f.geometry;
+              if (geom && (geom.type === 'Polygon' || geom.type === 'MultiPolygon')) {
+                try {
+                  geom = turf.centroid(f).geometry;
+                } catch (e) {
+                  // Fallback if invalid
+                }
+              }
+
+              // Force 2D Point
+              if (geom && geom.type === 'Point' && geom.coordinates && geom.coordinates.length > 2) {
+                geom.coordinates = [geom.coordinates[0], geom.coordinates[1]];
+              }
+
+              allFeatures.push({
+                type: 'Feature',
+                geometry: geom,
+                properties: {
+                  id: `bmc-${t.cat}-${f.properties?.OBJECTID || Math.random()}`,
+                  category: t.cat,
+                  name: f.properties?.[t.nameField] || `Unnamed ${t.cat}`,
+                  capacity: t.capField ? f.properties?.[t.capField] : undefined,
+                  dataSource: 'verified',
+                  sourceName: 'BMC ArcGIS REST Services',
+                  color: t.color
+                }
+              });
+            });
+          }
+        } catch (e) {
+          console.error(`Failed to fetch BMC amenity layer ${t.id}`, e);
+        }
+      }
+
+      const featureCollection = { type: 'FeatureCollection', features: allFeatures };
+
+      if (!mapRef.current) return;
+      const activeMap = mapRef.current;
+
+      if (!activeMap.getSource('public-amenities-source')) {
+        activeMap.addSource('public-amenities-source', { type: 'geojson', data: featureCollection as any });
+        activeMap.addLayer({
+          id: 'public-amenities-points',
+          type: 'circle',
+          source: 'public-amenities-source',
+          paint: {
+            'circle-color': ['get', 'color'],
+            'circle-radius': 6,
+            'circle-stroke-width': 1.5,
+            'circle-stroke-color': '#ffffff'
+          }
+        });
+      } else {
+        (activeMap.getSource('public-amenities-source') as maplibregl.GeoJSONSource).setData(featureCollection as any);
+        activeMap.setLayoutProperty('public-amenities-points', 'visibility', 'visible');
+      }
+    };
+
+    updateAmenities();
+    map.on('moveend', updateAmenities);
+
+    return () => {
+      map.off('moveend', updateAmenities);
+    };
+  }, [
+    layers.publicAmenitiesParking, 
+    layers.publicAmenitiesParks, 
+    layers.publicAmenitiesSchools, 
+    layers.publicAmenitiesHospitals, 
+    mapLoaded
+  ]);
+
+  // ----------------------------------------------------
+  // ELEVATED CORRIDORS & REGULATED BOUNDARIES
+  // ----------------------------------------------------
+  useEffect(() => {
+    if (!mapLoaded || !mapRef.current) return;
+    const map = mapRef.current;
+
+    // ----------------------------------------------------
+    // ELEVATED CORRIDORS
+    // ----------------------------------------------------
+    if (layers.elevatedCorridors) {
+      if (!map.getSource('elevated-corridors-source')) {
+        map.addSource('elevated-corridors-source', {
+          type: 'geojson',
+          data: {
+            type: 'FeatureCollection',
+            features: SAMPLE_ELEVATED_CORRIDORS.map(c => ({
+              type: 'Feature',
+              properties: { ...c },
+              geometry: c.geometry
+            }))
+          }
+        });
+        map.addLayer({
+          id: 'elevated-corridors-lines',
+          type: 'line',
+          source: 'elevated-corridors-source',
+          paint: {
+            'line-color': '#a855f7',
+            'line-width': 4,
+            'line-dasharray': [2, 1]
+          }
+        });
+
+        // Add Stations
+        const stations = SAMPLE_ELEVATED_CORRIDORS.flatMap(c => c.stations || []);
+        map.addSource('elevated-stations-source', {
+          type: 'geojson',
+          data: {
+            type: 'FeatureCollection',
+            features: stations.map(s => ({
+              type: 'Feature',
+              properties: { ...s },
+              geometry: s.geometry
+            }))
+          }
+        });
+        map.addLayer({
+          id: 'elevated-stations-points',
+          type: 'circle',
+          source: 'elevated-stations-source',
+          paint: {
+            'circle-color': '#ffffff',
+            'circle-radius': 4,
+            'circle-stroke-width': 2,
+            'circle-stroke-color': '#a855f7'
+          }
+        });
+      } else {
+        map.setLayoutProperty('elevated-corridors-lines', 'visibility', 'visible');
+        map.setLayoutProperty('elevated-stations-points', 'visibility', 'visible');
+      }
+    } else {
+      if (map.getLayer('elevated-corridors-lines')) {
+        map.setLayoutProperty('elevated-corridors-lines', 'visibility', 'none');
+        map.setLayoutProperty('elevated-stations-points', 'visibility', 'none');
+      }
+    }
+
+    // ----------------------------------------------------
+    // REGULATED BOUNDARIES
+    // ----------------------------------------------------
+    if (layers.regulatedBoundaries) {
+      if (!map.getSource('regulated-boundaries-source')) {
+        map.addSource('regulated-boundaries-source', {
+          type: 'geojson',
+          data: {
+            type: 'FeatureCollection',
+            features: SAMPLE_REGULATED_BOUNDARIES.map(b => ({
+              type: 'Feature',
+              properties: { ...b, color: b.boundaryType === 'crz' ? '#3b82f6' : '#22c55e' },
+              geometry: b.geometry
+            }))
+          }
+        });
+        map.addLayer({
+          id: 'regulated-boundaries-fill',
+          type: 'fill',
+          source: 'regulated-boundaries-source',
+          paint: {
+            'fill-color': ['get', 'color'],
+            'fill-opacity': 0.15
+          }
+        }, '3d-buildings'); // render below 3D buildings
+        map.addLayer({
+          id: 'regulated-boundaries-line',
+          type: 'line',
+          source: 'regulated-boundaries-source',
+          paint: {
+            'line-color': ['get', 'color'],
+            'line-width': 2,
+            'line-dasharray': [4, 2]
+          }
+        }, '3d-buildings');
+      } else {
+        map.setLayoutProperty('regulated-boundaries-fill', 'visibility', 'visible');
+        map.setLayoutProperty('regulated-boundaries-line', 'visibility', 'visible');
+      }
+    } else {
+      if (map.getLayer('regulated-boundaries-fill')) {
+        map.setLayoutProperty('regulated-boundaries-fill', 'visibility', 'none');
+        map.setLayoutProperty('regulated-boundaries-line', 'visibility', 'none');
+      }
+    }
+
+  }, [layers, mapLoaded]);
+
   const flyToDistrict = (lng: number, lat: number, zoom = 15, pitch = 45, bearing = -15) => {
     if (!mapRef.current) return;
     mapRef.current.flyTo({
@@ -1700,7 +2018,11 @@ export const MapLibre3DMap: React.FC = () => {
       </div>
 
       {/* Map Pitch Controls (Bottom-Left) */}
-      <div className="absolute bottom-5 left-5 glass-panel rounded-xl p-1.5 pointer-events-auto flex items-center shadow-xl border-white/10 backdrop-blur-md">
+      <div className="absolute bottom-5 left-5 glass-panel rounded-xl p-1.5 pointer-events-auto flex items-center shadow-xl border-white/10 backdrop-blur-md gap-2">
+        <div className="flex items-center gap-1 border-r border-white/10 pr-2">
+          <button onClick={() => setBasemapStyle('street')} className={`px-3 py-1.5 text-[11px] font-bold rounded-lg transition-colors ${basemapStyle === 'street' ? 'bg-brand-primary text-white shadow-sm' : 'bg-white/5 text-slate-400 hover:bg-white/10'}`}>Map</button>
+          <button onClick={() => setBasemapStyle('satellite')} className={`px-3 py-1.5 text-[11px] font-bold rounded-lg transition-colors ${basemapStyle === 'satellite' ? 'bg-brand-primary text-white shadow-sm' : 'bg-white/5 text-slate-400 hover:bg-white/10'}`}>Satellite</button>
+        </div>
         <div className="flex items-center gap-1">
           <button onClick={() => setMapPitch(0)} className={`px-3 py-1.5 text-[11px] font-bold rounded-lg transition-colors ${currentPitch === 0 ? 'bg-brand-primary text-white shadow-sm' : 'bg-white/5 text-slate-400 hover:bg-white/10'}`}>2D</button>
           <button onClick={() => setMapPitch(45)} className={`px-3 py-1.5 text-[11px] font-bold rounded-lg transition-colors ${currentPitch === 45 ? 'bg-brand-primary text-white shadow-sm' : 'bg-white/5 text-slate-400 hover:bg-white/10'}`}>3D</button>

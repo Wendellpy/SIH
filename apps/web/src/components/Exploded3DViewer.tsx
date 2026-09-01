@@ -263,7 +263,12 @@ const UnitMesh: React.FC<UnitMeshProps> = ({
 
   // Adjust depth slightly to prevent Z-fighting with the base plate when collapsed
   const height = Math.max(0.5, floorHeight - 0.15); 
-  const yPos = floorOffset;
+  
+  const unitGeorefOffset = unit.georeference?.floorElevationAboveGroundM;
+  const useGeoref = unitGeorefOffset !== undefined;
+  
+  // Real Z offsets when georeference is present, falls back to existing arbitrary spacing when it is not
+  const yPos = useGeoref ? unitGeorefOffset : floorOffset;
 
   const extrudeSettings = useMemo(() => ({
     depth: height,
@@ -326,13 +331,44 @@ const UnitMesh: React.FC<UnitMeshProps> = ({
       </lineSegments>
 
       {(isSelected || isHovered || isConflict) && (
-        <Html position={[0, height + 0.3, 0]} center distanceFactor={18}>
-          <div className={`px-2 py-1 rounded shadow-xl text-[10px] font-mono whitespace-nowrap pointer-events-none backdrop-blur-md border ${
+        <Html position={[0, height + 0.3, 0]} center distanceFactor={18} zIndexRange={[100, 0]}>
+          <div className={`flex flex-col gap-1 p-2 rounded-lg shadow-xl text-[10px] font-mono whitespace-nowrap pointer-events-none backdrop-blur-md border ${
             isConflict 
-              ? 'bg-red-950/90 text-red-200 border-red-500 shadow-neon-red font-bold' 
-              : 'bg-surface-100/90 text-white border-brand-primary/40'
+              ? 'bg-red-950/90 text-red-200 border-red-500 shadow-neon-red' 
+              : 'bg-surface-100/95 text-white border-brand-primary/40'
           }`}>
-            {isConflict ? '⚠️ CONFLICT: ' : ''}{unit.ulpin3D.split('.').pop()} ({unit.carpetAreaSqm}m²)
+            <div className={`font-bold ${isConflict ? 'text-red-300' : 'text-brand-primary-light'}`}>
+              {isConflict ? '⚠️ CONFLICT: ' : ''}{unit.ulpin3D.split('.').pop()} ({unit.carpetAreaSqm}m²)
+            </div>
+            
+            <div className="flex flex-col gap-0.5 mt-1 pt-1 border-t border-white/10 text-[9px]">
+              {unit.georeference ? (
+                <>
+                  <div className="flex items-center justify-between gap-4">
+                    <span className="text-slate-400">Anchor:</span>
+                    <span className="text-emerald-400 font-bold">{unit.georeference.surveySource?.gnssStationOrCorsId || 'Unknown'} <span className="bg-emerald-900/50 text-emerald-300 px-1 rounded text-[8px] uppercase">{unit.georeference.dataSource}</span></span>
+                  </div>
+                  <div className="flex items-center justify-between gap-4">
+                    <span className="text-slate-400">Datum:</span>
+                    <span className="text-slate-300 capitalize">{unit.georeference.verticalDatum} ({unit.georeference.crs})</span>
+                  </div>
+                  <div className="flex items-center justify-between gap-4">
+                    <span className="text-slate-400">Accuracy:</span>
+                    <span className="text-slate-300">±{unit.georeference.surveySource?.verticalAccuracyM || '?'}m (V)</span>
+                  </div>
+                  {unit.georeference.dsmComparisonM !== undefined && (
+                    <div className="flex flex-col gap-1 mt-1.5 pt-1.5 border-t border-red-500/30 text-amber-400 whitespace-normal w-[200px]">
+                      <div className="flex items-center gap-1 font-bold"><AlertCircle className="w-3 h-3" /> DSM Mismatch Warning</div>
+                      <div className="text-[8px] leading-tight text-amber-200/80">Modeled stack height diverges from as-built surface ({unit.georeference.dsmComparisonM}m)</div>
+                    </div>
+                  )}
+                </>
+              ) : (
+                <div className="text-amber-400/90 italic font-sans whitespace-normal w-[160px] leading-snug py-1">
+                  Elevation not survey-anchored — relative spacing shown.
+                </div>
+              )}
+            </div>
           </div>
         </Html>
       )}
@@ -844,35 +880,6 @@ export const Exploded3DViewer: React.FC = () => {
             </div>
           )}
 
-          {/* Quick Switch Building Dropdown */}
-          <div className="pt-3 border-t border-white/5">
-            <label className="text-[11px] font-medium text-slate-500">Switch Drill-Down</label>
-            <BuildingSelect
-              buildings={[
-                ...(bldg.id.startsWith('osm-') ? [bldg] : []),
-                ...SAMPLE_BUILDINGS.filter(b => b.id !== bldg.id)
-              ]}
-              value={bldg.id}
-              onChange={(id) => {
-                const found = SAMPLE_BUILDINGS.find(b => b.id === id);
-                if (found) setSelectedBuilding(found);
-              }}
-            />
-          </div>
-          
-          {/* Toggle View Mode */}
-          <div className="pt-3 border-t border-white/5">
-            <button
-              onClick={() => setShowBuilding(!showBuilding)}
-              className={`w-full py-2 px-3 rounded-lg text-xs font-bold transition-all border ${
-                showBuilding 
-                  ? 'bg-white/5 text-slate-300 border-white/10 hover:bg-white/10'
-                  : 'bg-cyan-500/20 text-cyan-300 border-cyan-500/50 hover:bg-cyan-500/30 shadow-[0_0_15px_rgba(6,182,212,0.15)]'
-              }`}
-            >
-              {showBuilding ? 'Hide Buildings (Isolate Pipes)' : 'Show Buildings'}
-            </button>
-          </div>
         </div>
 
         {activeUndergroundLayerIds.length > 0 && (

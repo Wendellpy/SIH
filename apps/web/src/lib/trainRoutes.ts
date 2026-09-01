@@ -41,6 +41,7 @@ export interface TrainState {
   destination: string;
   progress: number; // 0 to 1 (0 = start of line, 1 = end of line)
   speedKmH: number;
+  totalLength: number;
 }
 
 // Generate some initial trains
@@ -58,7 +59,8 @@ export function generateInitialTrains(count: number): TrainState[] {
       source: isDown ? 'Churchgate' : 'Borivali',
       destination: isDown ? 'Borivali' : 'Churchgate',
       progress: Math.random(), // Random initial position along the line
-      speedKmH: 45 + Math.random() * 20 // 45 to 65 km/h
+      speedKmH: 45 + Math.random() * 20, // 45 to 65 km/h
+      totalLength: lineLength
     });
   }
   return trains;

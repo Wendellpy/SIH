@@ -115,6 +115,25 @@ export interface Building {
   reraStatus?: string;
 }
 
+export type VerticalUnitGeoreference = {
+  crs: string;                          // e.g. "EPSG:4979" (geodetic 3D)
+  ellipsoidHeightM?: number;            // raw GNSS output
+  groundElevationM?: number;            // from DEM at the parcel footprint
+  floorElevationAboveGroundM?: number;  // derived: unit elevation − groundElevationM
+  surveySource?: {
+    gnssStationOrCorsId?: string;
+    surveyDate?: string;
+    horizontalAccuracyM?: number;
+    verticalAccuracyM?: number;
+  };
+  demSource?: string;                   // which DEM produced groundElevationM
+  dsmComparisonM?: number;              // optional: DSM-derived surface height at same footprint
+  dataSource: 'verified' | 'demo' | 'proposed';
+} & (
+  | { verticalDatum: 'ellipsoidal'; orthometricHeightM?: never; geoidModel?: never }
+  | { verticalDatum: 'orthometric'; orthometricHeightM: number; geoidModel: string }
+);
+
 export interface VerticalUnit {
   id: string;
   buildingId: string;
@@ -143,6 +162,7 @@ export interface VerticalUnit {
   createdAt: string;
   updatedAt: string;
   visibleTo?: string[];
+  georeference?: VerticalUnitGeoreference;
 }
 
 export interface UndergroundAsset {
@@ -176,6 +196,66 @@ export interface GNSSMetaData {
   satellitesUsed: number;
   crs: string; // e.g. WGS84
   isProposed?: boolean; // Label for features not yet built live
+}
+
+// ---------------------------------------------------------
+// PUBLIC AMENITIES
+// ---------------------------------------------------------
+export type PublicFeatureCategory = 'parking' | 'park' | 'school' | 'hospital' | 'other';
+
+export interface PublicFeature {
+  id: string;
+  category: PublicFeatureCategory;
+  name?: string;
+  geometry: any; // GeoJSON Point or Polygon
+  operator?: string;
+  capacity?: number;
+  dataSource: 'verified' | 'demo' | 'proposed';
+  sourceName?: string;
+}
+
+// ---------------------------------------------------------
+// ELEVATED CORRIDORS (e.g. Metro)
+// ---------------------------------------------------------
+export interface ElevatedCorridor {
+  id: string;
+  corridorType: 'metro' | 'monorail' | 'flyover' | 'skywalk';
+  lineName?: string;
+  geometry: any; // GeoJSON LineString
+  verticalPosition: 'elevated';
+  heightAboveGroundM?: number;
+  operator?: string;
+  status: 'operational' | 'under_construction' | 'planned';
+  stations?: MetroStation[];
+  dataSource: 'verified' | 'demo' | 'proposed';
+  sourceName?: string;
+}
+
+export interface MetroStation {
+  id: string;
+  name: string;
+  geometry: any; // GeoJSON Point
+  corridorId: string;
+  interchangeWith?: string[];
+}
+
+// ---------------------------------------------------------
+// REGULATED BOUNDARIES
+// ---------------------------------------------------------
+export type RegulatedBoundaryType = 'eco_sensitive_zone' | 'national_park' | 'wildlife_sanctuary' | 'crz' | 'other_protected';
+
+export interface RegulatedBoundary {
+  id: string;
+  boundaryType: RegulatedBoundaryType;
+  name?: string;
+  geometry: any; // GeoJSON Polygon | MultiPolygon
+  crzCategory?: 'CRZ-I' | 'CRZ-II' | 'CRZ-III' | 'CRZ-IV';
+  notifyingAuthority?: string;
+  notificationDate?: string;
+  notificationReference?: string;
+  restrictions?: string;
+  dataSource: 'verified' | 'demo' | 'proposed';
+  sourceName?: string;
 }
 
 export interface TerrainMetrics {

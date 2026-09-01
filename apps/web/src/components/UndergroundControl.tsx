@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { useAppStore } from '../lib/store';
-import { Layers, Zap, Truck, AlertTriangle, Eye, EyeOff, Loader2, Box, Mountain } from 'lucide-react';
+import { Layers, Zap, Truck, AlertTriangle, Eye, EyeOff, Loader2, Box, Mountain, MapPin, GraduationCap, TreePine, HeartPulse, TrainTrack, ShieldAlert } from 'lucide-react';
 import { BorderBeam } from './ui/BorderBeam';
 
 interface UndergroundLayer {
@@ -84,7 +84,7 @@ export const UndergroundControl: React.FC = () => {
           <div className="p-1.5 rounded-lg bg-indigo-500/20 text-indigo-400">
             <Layers className="w-4 h-4" />
           </div>
-          <h3 className="text-[11px] font-bold text-white tracking-widest uppercase">Underground</h3>
+          <h3 className="text-[11px] font-bold text-white tracking-widest uppercase">Platform Layers</h3>
         </div>
         <button onClick={() => setIsOpen(false)} className="text-slate-400 hover:text-white">
           <EyeOff className="w-4 h-4" />
@@ -185,6 +185,77 @@ export const UndergroundControl: React.FC = () => {
               <span className="text-[11px] font-bold tracking-wide">Mining Intelligence</span>
             </div>
             {layers.mining ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
+          </button>
+        </div>
+
+        {/* Public Amenities */}
+        <div className="space-y-2 pt-2 border-t border-white/5">
+          <div className="flex items-center gap-2 mb-2 px-1">
+            <span className="text-[9px] font-bold text-slate-500 uppercase tracking-widest">Public Amenities</span>
+          </div>
+          
+          {[
+            { id: 'publicAmenitiesParking', label: 'Parking', icon: MapPin, color: 'blue' },
+            { id: 'publicAmenitiesParks', label: 'Parks & Recreation', icon: TreePine, color: 'emerald' },
+            { id: 'publicAmenitiesSchools', label: 'Schools & Education', icon: GraduationCap, color: 'orange' },
+            { id: 'publicAmenitiesHospitals', label: 'Hospitals & Health', icon: HeartPulse, color: 'rose' }
+          ].map(amenity => {
+            const isEnabled = layers[amenity.id as keyof typeof layers];
+            const Icon = amenity.icon;
+            
+            return (
+              <button 
+                key={amenity.id}
+                onClick={() => toggleLayer(amenity.id as keyof typeof layers)}
+                className={`w-full flex items-center justify-between p-2 rounded-xl border transition-all duration-300 group ${
+                  isEnabled 
+                    ? `bg-${amenity.color}-900/30 border-${amenity.color}-500/40 text-${amenity.color}-100 shadow-[0_0_15px_rgba(var(--${amenity.color}-500),0.15)]` 
+                    : 'bg-white/5 border-white/5 text-slate-400 hover:bg-white/10 hover:text-slate-300'
+                }`}
+              >
+                <div className="flex items-center gap-2.5">
+                  <Icon className={`w-3.5 h-3.5 ${isEnabled ? `text-${amenity.color}-400` : `text-slate-500 group-hover:text-${amenity.color}-400/50 transition-colors`}`} />
+                  <span className="text-[11px] font-bold tracking-wide">{amenity.label}</span>
+                </div>
+                {isEnabled ? <Eye className="w-3.5 h-3.5" /> : <EyeOff className="w-3.5 h-3.5" />}
+              </button>
+            )
+          })}
+        </div>
+
+        {/* Elevated Corridors */}
+        <div className="space-y-2 pt-2 border-t border-white/5">
+          <button 
+            onClick={() => toggleLayer('elevatedCorridors')}
+            className={`w-full flex items-center justify-between p-2.5 rounded-xl border transition-all duration-300 group ${
+              layers.elevatedCorridors 
+                ? 'bg-purple-900/30 border-purple-500/40 text-purple-100 shadow-[0_0_15px_rgba(168,85,247,0.15)]' 
+                : 'bg-white/5 border-white/5 text-slate-400 hover:bg-white/10 hover:text-slate-300'
+            }`}
+          >
+            <div className="flex items-center gap-2.5">
+              <TrainTrack className={`w-4 h-4 ${layers.elevatedCorridors ? 'text-purple-400' : 'text-slate-500 group-hover:text-purple-400/50 transition-colors'}`} />
+              <span className="text-[11px] font-bold tracking-wide">Elevated Corridors</span>
+            </div>
+            {layers.elevatedCorridors ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
+          </button>
+        </div>
+
+        {/* Regulated Boundaries */}
+        <div className="space-y-2 pt-2 border-t border-white/5">
+          <button 
+            onClick={() => toggleLayer('regulatedBoundaries')}
+            className={`w-full flex items-center justify-between p-2.5 rounded-xl border transition-all duration-300 group ${
+              layers.regulatedBoundaries 
+                ? 'bg-green-900/30 border-green-500/40 text-green-100 shadow-[0_0_15px_rgba(34,197,94,0.15)]' 
+                : 'bg-white/5 border-white/5 text-slate-400 hover:bg-white/10 hover:text-slate-300'
+            }`}
+          >
+            <div className="flex items-center gap-2.5">
+              <ShieldAlert className={`w-4 h-4 ${layers.regulatedBoundaries ? 'text-green-400' : 'text-slate-500 group-hover:text-green-400/50 transition-colors'}`} />
+              <span className="text-[11px] font-bold tracking-wide">Protected & Regulated Zones</span>
+            </div>
+            {layers.regulatedBoundaries ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
           </button>
         </div>
         

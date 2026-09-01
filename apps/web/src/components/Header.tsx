@@ -17,7 +17,8 @@ import {
   UserCheck,
   User,
   Map as MapIcon,
-  Box
+  Box,
+  Loader2
 } from 'lucide-react';
 import { useAppStore } from '@/lib/store';
 import { SAMPLE_PARCELS, SAMPLE_BUILDINGS, SAMPLE_VERTICAL_UNITS, SAMPLE_UNDERGROUND_ASSETS } from '@sih/sample-data';
@@ -36,7 +37,7 @@ export const Header: React.FC = () => {
     searchQuery,
     setSearchQuery,
     setFlyToTarget,
-
+    setSearchedParcelGeoJSON
   } = useAppStore();
 
   const [isSearchOpen, setIsSearchOpen] = useState(false);
@@ -79,7 +80,7 @@ export const Header: React.FC = () => {
           setResults([]);
         })
         .finally(() => setIsSearching(false));
-    }, 300);
+    }, 600);
 
     return () => clearTimeout(timeoutId);
   }, [searchQuery]);
@@ -124,6 +125,22 @@ export const Header: React.FC = () => {
     } else if (result.type === 'UNDERGROUND') {
       setSelectedUnderground(result.raw);
       setActiveTab('MAPLIBRE_3D');
+      
+    } else if (result.type === 'LOCATION') {
+      // Clear selections so it doesn't try to highlight a fake building
+      setSelectedBuilding(null);
+      setSelectedParcel(null);
+      setSelectedUnit(null);
+      
+      const lng = parseFloat(result.raw.lon);
+      const lat = parseFloat(result.raw.lat);
+      
+      if (result.raw.feature) {
+        setSearchedParcelGeoJSON(result.raw.feature);
+      }
+      
+      setFlyToTarget({ lng, lat, zoom: 17, pitch: 45 });
+      setActiveTab('MAPLIBRE_3D');
     }
   };
 
@@ -164,38 +181,54 @@ export const Header: React.FC = () => {
         </div>
 
         {/* Dropdown Results */}
-        {isSearchOpen && results.length > 0 && (
+        {isSearchOpen && (searchQuery.trim().length > 0) && (
           <div className="absolute top-full left-0 right-0 mt-2 glass-panel rounded-xl shadow-2xl overflow-hidden z-50 max-h-72 overflow-y-auto animate-in slide-in-from-top-2 duration-200">
-            <div className="px-3 py-1 text-[9px] font-semibold text-slate-400 uppercase tracking-wider bg-surface-200/50 border-b border-white/5">
-              Cadastral Matches ({results.length})
-            </div>
-            {results.map((res, idx) => (
-              <button
-                key={idx}
-                onClick={() => handleSelectResult(res)}
-                className="w-full text-left px-3 py-1.5 hover:bg-white/5 border-b border-white/5 flex items-center justify-between group transition-colors"
-              >
-                <div className="min-w-0 flex-1 pr-2">
-                  <div className="flex items-center gap-1.5">
-                    <span className={`text-[8px] px-1 py-0.2 rounded font-mono font-semibold uppercase ${
-                      res.type === '3D_UNIT' ? 'bg-cyan-500/20 text-cyan-300' :
-                      res.type === 'PARCEL' ? 'bg-emerald-500/20 text-emerald-300' :
-                      res.type === 'BUILDING' ? 'bg-indigo-500/20 text-indigo-300' :
-                      'bg-amber-500/20 text-amber-300'
-                    }`}>
-                      {res.type.replace('_', ' ')}
-                    </span>
-                    <span className="text-xs font-medium text-slate-100 truncate group-hover:text-brand-primary transition-colors">
-                      {res.title}
-                    </span>
-                  </div>
-                  <p className="text-[10px] text-slate-400 truncate font-mono">
-                    {res.subtitle}
-                  </p>
+            {isSearching ? (
+              <div className="p-4 text-center text-slate-400 text-xs flex items-center justify-center gap-2">
+                <Loader2 className="w-4 h-4 animate-spin text-brand-primary" />
+                Searching cadastre...
+              </div>
+            ) : results.length > 0 ? (
+              <>
+                <div className="px-3 py-1 text-[9px] font-semibold text-slate-400 uppercase tracking-wider bg-surface-200/50 border-b border-white/5">
+                  Cadastral Matches ({results.length})
                 </div>
-                <ChevronRight className="w-3 h-3 text-slate-500 group-hover:text-brand-primary transform group-hover:translate-x-0.5 transition-all flex-shrink-0" />
-              </button>
-            ))}
+                {results.map((res, idx) => (
+                  <button
+                    key={idx}
+                    onClick={() => handleSelectResult(res)}
+                    className="w-full text-left px-3 py-1.5 hover:bg-white/5 border-b border-white/5 flex items-center justify-between group transition-colors"
+                  >
+                    <div className="min-w-0 flex-1 pr-2">
+                      <div className="flex items-center gap-1.5">
+                        <span className={`text-[8px] px-1 py-0.2 rounded font-mono font-semibold uppercase ${
+                          res.type === '3D_UNIT' ? 'bg-cyan-500/20 text-cyan-300' :
+                          res.type === 'PARCEL' ? 'bg-emerald-500/20 text-emerald-300' :
+                          res.type === 'BUILDING' ? 'bg-indigo-500/20 text-indigo-300' :
+                          res.type === 'LOCATION' ? 'bg-purple-500/20 text-purple-300' :
+                          'bg-amber-500/20 text-amber-300'
+                        }`}>
+                          {res.type.replace('_', ' ')}
+                        </span>
+                        <span className="text-xs font-medium text-slate-100 truncate group-hover:text-brand-primary transition-colors">
+                          {res.title}
+                        </span>
+                      </div>
+                      <p className="text-[10px] text-slate-400 truncate font-mono">
+                        {res.subtitle}
+                      </p>
+                    </div>
+                    <ChevronRight className="w-3 h-3 text-slate-500 group-hover:text-brand-primary transform group-hover:translate-x-0.5 transition-all flex-shrink-0" />
+                  </button>
+                ))}
+              </>
+            ) : (
+              <div className="p-4 text-center text-slate-400 text-xs flex flex-col items-center gap-1">
+                <AlertTriangle className="w-5 h-5 text-slate-500 mb-1" />
+                <span>No cadastral records found.</span>
+                <span className="text-[10px] text-slate-500">Try searching by 3D ULPIN, owner name, or village.</span>
+              </div>
+            )}
           </div>
         )}
       </div>
