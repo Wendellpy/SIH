@@ -393,6 +393,36 @@ export const InspectorPanel: React.FC = () => {
         );
       })()}
 
+      {/* Lineage / Subdivision Alerts */}
+      {parcel?.parcelStatus === 'superseded' && (
+        <div className="p-4 rounded-xl bg-slate-900/50 border border-slate-700/50 text-slate-300 space-y-2">
+          <div className="flex items-center gap-2 text-[13px] font-semibold text-slate-100">
+            <Layers className="w-4 h-4 text-slate-400" />
+            <span>Superseded Parcel</span>
+          </div>
+          <p className="text-[12px] leading-relaxed">
+            Subdivided on {parcel.supersededDate ? new Date(parcel.supersededDate).toLocaleDateString() : 'Unknown'} into {parcel.supersededBy?.length || 0} parcels.
+          </p>
+          {parcel.supersededBy && parcel.supersededBy.length > 0 && (
+            <div className="text-[11px] font-mono text-slate-400 bg-black/20 px-3 py-2 rounded-lg border border-white/5">
+              Child ULPINs: <br/> {parcel.supersededBy.join(', ')}
+            </div>
+          )}
+        </div>
+      )}
+
+      {parcel?.parentParcel && (
+        <div className="p-3.5 rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-200 flex flex-col gap-1 text-[12px]">
+          <div className="flex items-center gap-2 font-medium">
+            <Layers className="w-4 h-4 text-indigo-400" />
+            <span>Subdivided Parcel</span>
+          </div>
+          <span className="text-[11px] text-indigo-300/80">
+            Split from <span className="font-mono bg-black/20 px-1 rounded">{parcel.parentParcel}</span>
+          </span>
+        </div>
+      )}
+
       {/* Validation & Conflict Status Alert */}
       {unit?.validationStatus === 'CONFLICT' || conflictLog ? (
         <div className="p-4 rounded-xl bg-red-500/10 border border-red-500/20 text-red-200 space-y-2">

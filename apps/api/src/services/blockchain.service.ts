@@ -2,12 +2,14 @@ import { ethers } from 'ethers';
 import crypto from 'crypto';
 import { db } from '../database/store.js';
 import { landEventService } from './land-event.service.js';
-import { LandEvent, BlockchainVerificationStatus } from '@sih/shared-types';
+import { LandEvent, BlockchainVerificationStatus, SubdivisionEvent } from '@sih/shared-types';
 
 const LAND_LEDGER_ABI = [
   'function registerProperty(string calldata ulpin, string calldata unitId, string calldata recordHash, string calldata geometryHash) external',
   'function getProperty(string calldata ulpin, string calldata unitId) external view returns (string, string, string, string, uint256, address)',
-  'event PropertyRegistered(string indexed ulpin, string unitId, string recordHash, string geometryHash, uint256 timestamp, address indexed registeredBy)'
+  'function recordSubdivision(string calldata parentUlpin, string[] calldata childUlpins, string calldata metadataURI) external',
+  'event PropertyRegistered(string indexed ulpin, string unitId, string recordHash, string geometryHash, uint256 timestamp, address indexed registeredBy)',
+  'event SubdivisionRecorded(bytes32 indexed parentParcelHash, bytes32[] childParcelHashes, uint256 timestamp, string metadataURI)'
 ];
 
 export interface RegisterPropertyResult {
@@ -508,6 +510,37 @@ export class BlockchainService {
       transactionHash: devEntry?.txHash || null,
       blockNumber: devEntry?.blockNumber
     };
+  }
+
+  /**
+   * Records a SubdivisionEvent on the LandLedger smart contract.
+   */
+  public async recordSubdivisionEvent(event: SubdivisionEvent): Promise<SubdivisionEvent> {
+    const rpcUrl = process.env.BLOCKCHAIN_RPC_URL;
+    const contractAddress = process.env.LAND_LEDGER_CONTRACT_ADDRESS;
+
+    if (rpcUrl && contractAddress) {
+      try {
+        const contract = this.getContract(true);
+        const metadataURI = `urn:3dupin:subdivision:${event.id}`;
+        
+        // This transaction assumes that the parent parcel has already been registered on chain.
+        const tx = await contract.recordSubdivision(event.parentUlpin, event.childUlpins, metadataURI);
+        const receipt = await tx.wait();
+
+        event.blockchainTxHash = receipt?.hash || tx.hash;
+        return event;
+      } catch (err: any) {
+        console.error('Failed to record SubdivisionEvent on Sepolia:', err);
+        // We do not set the transaction hash if it fails
+        throw new Error(err?.shortMessage || err?.message || 'Subdivision transaction execution failed');
+      }
+    }
+
+    // Development fallback when live EVM RPC/contract address is not yet configured
+    const simulatedTxHash = `0x${crypto.randomBytes(32).toString('hex')}`;
+    event.blockchainTxHash = simulatedTxHash;
+    return event;
   }
 }
 

@@ -7,7 +7,8 @@ import {
   AuditLog, 
   AIJob,
   AccessLog,
-  LandEvent
+  LandEvent,
+  SubdivisionEvent
 } from '@sih/shared-types';
 import { 
   SAMPLE_PARCELS, 
@@ -32,6 +33,7 @@ export class CadastreStore {
   private accessLogs: AccessLog[] = [];
   private jobs: Map<string, AIJob> = new Map();
   private landEvents: Map<string, LandEvent> = new Map();
+  private subdivisionEvents: Map<string, SubdivisionEvent> = new Map();
 
   constructor() {
     this.seedInitialData();
@@ -258,6 +260,14 @@ export class CadastreStore {
       }
     ];
     initialEvents.forEach(e => this.landEvents.set(e.id, e));
+
+    // DEMO: Automatically subdivide one parcel to show lineage UI
+    setTimeout(() => {
+      this.subdivideParcel('MH13BOM04521901', ['MH13BOM04521901-A', 'MH13BOM04521901-B'], {
+        authority: 'BMC Ward H/East',
+        reason: 'Partition'
+      }).catch(console.error);
+    }, 2000);
   }
 
   // --- Parcel Operations ---
@@ -535,6 +545,60 @@ export class CadastreStore {
       event.resolvedAt = new Date().toISOString();
     }
     this.landEvents.set(id, event);
+    return event;
+  }
+
+  // --- Subdivision Events ---
+  getSubdivisionEvent(id: string): SubdivisionEvent | undefined {
+    return this.subdivisionEvents.get(id);
+  }
+
+  getSubdivisionEventsByParent(parentUlpin: string): SubdivisionEvent[] {
+    return Array.from(this.subdivisionEvents.values()).filter(e => e.parentUlpin === parentUlpin);
+  }
+
+  addSubdivisionEvent(event: SubdivisionEvent): SubdivisionEvent {
+    this.subdivisionEvents.set(event.id, event);
+    return event;
+  }
+
+  async subdivideParcel(parentUlpin: string, childUlpins: string[], metadata?: any): Promise<SubdivisionEvent> {
+    const parent = this.getParcelByUlpin(parentUlpin);
+    if (!parent) {
+      throw new Error(`Parent parcel ${parentUlpin} not found.`);
+    }
+
+    // Never delete - mark as superseded
+    parent.parcelStatus = 'superseded';
+    parent.supersededDate = new Date().toISOString();
+    parent.supersededBy = childUlpins;
+
+    const event: SubdivisionEvent = {
+      id: `subdiv-${crypto.randomUUID().slice(0, 8)}`,
+      parentUlpin,
+      childUlpins,
+      subdivisionDate: new Date().toISOString(),
+      dataSource: parent.dataSource,
+      authority: metadata?.authority,
+      reason: metadata?.reason
+    };
+
+    // Import blockchain service dynamically or from top level (assumed imported if not, we use try-catch)
+    // The instructions say "wire the off-chain -> on-chain write path (Section 3)"
+    try {
+      const { blockchainService } = await import('../services/blockchain.service.js');
+      await blockchainService.recordSubdivisionEvent(event);
+    } catch (err: any) {
+      console.warn("Failed to record subdivision on chain:", err.message);
+      // It is marked pending/failed
+      event.blockchainTxHash = "FAILED: " + err.message;
+    }
+
+    parent.subdivisionEventId = event.id;
+
+    this.addSubdivisionEvent(event);
+    this.parcels.set(parent.id, parent); // Ensure updated in store
+    
     return event;
   }
 }

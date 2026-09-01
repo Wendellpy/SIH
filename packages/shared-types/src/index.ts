@@ -96,9 +96,25 @@ export interface Parcel {
    * 'proposed'  → parcel exists in a draft/planning stage, not yet officially surveyed.
    */
   dataSource: 'verified' | 'demo' | 'proposed';
+  parcelStatus?: 'active' | 'superseded';
+  supersededDate?: string;
+  supersededBy?: string[]; // ULPINs of children
+  parentParcel?: string;   // ULPIN of parent
+  subdivisionEventId?: string;
   simulated: boolean;
   createdAt: string;
   updatedAt: string;
+}
+
+export interface SubdivisionEvent {
+  id: string;
+  parentUlpin: string;
+  childUlpins: string[];
+  subdivisionDate: string;
+  authority?: string;
+  reason?: string;
+  dataSource: 'verified' | 'demo' | 'proposed';
+  blockchainTxHash?: string;
 }
 
 export interface Building {

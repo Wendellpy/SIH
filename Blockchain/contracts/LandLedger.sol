@@ -84,4 +84,34 @@ contract LandLedger {
             prop.registeredBy
         );
     }
+
+    event SubdivisionRecorded(
+        bytes32 indexed parentParcelHash,
+        bytes32[] childParcelHashes,
+        uint256 timestamp,
+        string metadataURI
+    );
+
+    function recordSubdivision(
+        string calldata parentUlpin,
+        string[] calldata childUlpins,
+        string calldata metadataURI
+    ) external {
+        string memory parentKey = _getKey(parentUlpin, "BASE");
+        require(properties[parentKey].exists, "Parent property not registered");
+
+        bytes32 parentHash = keccak256(abi.encodePacked(parentUlpin, "#BASE"));
+        bytes32[] memory childHashes = new bytes32[](childUlpins.length);
+        
+        for (uint256 i = 0; i < childUlpins.length; i++) {
+            childHashes[i] = keccak256(abi.encodePacked(childUlpins[i], "#BASE"));
+        }
+
+        emit SubdivisionRecorded(
+            parentHash,
+            childHashes,
+            block.timestamp,
+            metadataURI
+        );
+    }
 }
