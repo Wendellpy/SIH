@@ -197,7 +197,7 @@ export const useAppStore = create<AppState>((set, get) => ({
     publicAmenitiesParks: false,
     publicAmenitiesSchools: false,
     publicAmenitiesHospitals: false,
-    elevatedCorridors: true,
+    elevatedCorridors: false,
     regulatedBoundaries: false
   },
   activeUndergroundLayerIds: [],
