@@ -19,8 +19,13 @@ import {
   ExternalLink,
   ShieldCheck,
   AlertCircle,
-  X
+  X,
+  Image as ImageIcon,
+  Box as BoxIcon,
+  FileText,
+  CheckCircle2
 } from 'lucide-react';
+import { FloorPlan3D } from './FloorPlan3D';
 import { useAppStore } from '@/lib/store';
 import { formatUlpin3D, Building } from '@sih/shared-types';
 import MapboxDraw from '@mapbox/mapbox-gl-draw';
@@ -103,6 +108,7 @@ export const MapLibre3DMap: React.FC = () => {
   const [copied, setCopied] = useState(false);
   const [selectedFloor, setSelectedFloor] = useState<string>('Ground Floor');
   const [showAquariaFloorPlan, setShowAquariaFloorPlan] = useState(false);
+  const [aquariaViewMode, setAquariaViewMode] = useState<'2D' | '3D'>('3D');
   const [selectedUnit, setSelectedUnit] = useState<string>('101');
   const { activeTab, layers, setActiveTab, setSelectedBuilding, setSelectedMiningArea, flyToTarget, setFlyToTarget, activeUndergroundLayerIds, currentRole, temporalYear, floodSimulation, searchedParcelGeoJSON, mapViewState, setMapViewState, searchedUlpin3D } = useAppStore();
 
@@ -2537,33 +2543,59 @@ export const MapLibre3DMap: React.FC = () => {
             <div className="flex items-center justify-between p-4 border-b border-white/10 bg-slate-800/50">
               <h2 className="text-lg font-bold text-white flex items-center gap-2">
                 <Layers className="text-emerald-400" />
-                Aquaria Grande - 3D Mockups & Floor Plans
+                Aquaria Grande - Mockups & Floor Plans
               </h2>
+              
+              <div className="flex items-center gap-2 bg-black/40 p-1 rounded-lg border border-white/5">
+                <button
+                  onClick={() => setAquariaViewMode('2D')}
+                  className={`px-3 py-1.5 rounded-md text-xs font-semibold flex items-center gap-1.5 transition-all ${
+                    aquariaViewMode === '2D' ? 'bg-white/20 text-white shadow-sm' : 'text-slate-400 hover:text-white'
+                  }`}
+                >
+                  <ImageIcon className="w-3.5 h-3.5" />
+                  2D Scraped Plans
+                </button>
+                <button
+                  onClick={() => setAquariaViewMode('3D')}
+                  className={`px-3 py-1.5 rounded-md text-xs font-semibold flex items-center gap-1.5 transition-all ${
+                    aquariaViewMode === '3D' ? 'bg-emerald-500/20 text-emerald-300 shadow-sm border border-emerald-500/30' : 'text-slate-400 hover:text-emerald-400'
+                  }`}
+                >
+                  <BoxIcon className="w-3.5 h-3.5" />
+                  Interactive 3D
+                </button>
+              </div>
+
               <button 
                 onClick={() => setShowAquariaFloorPlan(false)}
-                className="p-1 rounded-full hover:bg-white/10 text-slate-400 hover:text-white transition-colors"
+                className="p-1 rounded-full hover:bg-white/10 text-slate-400 hover:text-white transition-colors ml-4"
               >
                 <X className="w-6 h-6" />
               </button>
             </div>
             
             <div className="flex-1 p-6 overflow-y-auto custom-scrollbar flex flex-col gap-8 items-center bg-slate-900">
-              {[
-                'https://img.staticmb.com/mbimages/project/2023/11/08/Master-Plan-25-Wadhwa-Aquaria-Grande-Mumbai-5029949_462_700.jpg',
-                'https://img.staticmb.com/mbimages/project/Floor-Plan-2-Wadhwa-Aquaria-Grande-Mumbai-5029949_700_1024.jpg',
-                'https://img.staticmb.com/mbimages/project/Floor-Plan-23-Wadhwa-Aquaria-Grande-Mumbai-5029949_618_1024.jpg',
-                'https://img.staticmb.com/mbimages/project/Floor-Plan-24-Wadhwa-Aquaria-Grande-Mumbai-5029949_596_1024.jpg',
-                'https://img.staticmb.com/mbimages/project/Floor-Plan-3-Wadhwa-Aquaria-Grande-Mumbai-5029949_700_1024.jpg'
-              ].map((src, idx) => (
-                <div key={idx} className="w-full bg-white rounded-xl p-2 flex justify-center">
-                  <img 
-                    src={src} 
-                    alt={`Floor plan ${idx + 1}`} 
-                    className="max-w-full h-auto object-contain rounded-lg"
-                    style={{ maxHeight: '70vh' }}
-                  />
-                </div>
-              ))}
+              {aquariaViewMode === '3D' ? (
+                <FloorPlan3D />
+              ) : (
+                [
+                  'https://img.staticmb.com/mbimages/project/2023/11/08/Master-Plan-25-Wadhwa-Aquaria-Grande-Mumbai-5029949_462_700.jpg',
+                  'https://img.staticmb.com/mbimages/project/Floor-Plan-2-Wadhwa-Aquaria-Grande-Mumbai-5029949_700_1024.jpg',
+                  'https://img.staticmb.com/mbimages/project/Floor-Plan-23-Wadhwa-Aquaria-Grande-Mumbai-5029949_618_1024.jpg',
+                  'https://img.staticmb.com/mbimages/project/Floor-Plan-24-Wadhwa-Aquaria-Grande-Mumbai-5029949_596_1024.jpg',
+                  'https://img.staticmb.com/mbimages/project/Floor-Plan-3-Wadhwa-Aquaria-Grande-Mumbai-5029949_700_1024.jpg'
+                ].map((src, idx) => (
+                  <div key={idx} className="w-full bg-white rounded-xl p-2 flex justify-center">
+                    <img 
+                      src={src} 
+                      alt={`Floor plan ${idx + 1}`} 
+                      className="max-w-full h-auto object-contain rounded-lg"
+                      style={{ maxHeight: '70vh' }}
+                    />
+                  </div>
+                ))
+              )}
             </div>
           </div>
         </div>
