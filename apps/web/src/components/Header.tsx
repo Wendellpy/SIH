@@ -72,6 +72,8 @@ export const Header: React.FC = () => {
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [geocodedResults, setGeocodedResults] = useState<Array<{ name: string; lat: number; lng: number; type: string; address: string }>>([]);
   const [isGeocoding, setIsGeocoding] = useState(false);
+  const [apiResults, setApiResults] = useState<any[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
   const searchRef = useRef<HTMLDivElement>(null);
   const geocodeTimer = useRef<NodeJS.Timeout | null>(null);
 
@@ -85,16 +87,6 @@ export const Header: React.FC = () => {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-<<<<<<< HEAD
-  const [results, setResults] = useState<any[]>([]);
-  const [isSearching, setIsSearching] = useState(false);
-
-  useEffect(() => {
-    const q = searchQuery.trim();
-    if (!q) {
-      setResults([]);
-      return;
-=======
   // Debounced Nominatim geocoding for building name search
   useEffect(() => {
     const q = searchQuery.trim();
@@ -129,21 +121,72 @@ export const Header: React.FC = () => {
     return () => { if (geocodeTimer.current) clearTimeout(geocodeTimer.current); };
   }, [searchQuery]);
 
+  useEffect(() => {
+    const q = searchQuery.trim();
+    if (!q) {
+      setApiResults([]);
+      return;
+    }
+    
+    setIsSearching(true);
+    const timeoutId = setTimeout(() => {
+      fetch(`/api/v1/search?q=${encodeURIComponent(q)}`)
+        .then(res => res.json())
+        .then(data => {
+          if (data.status === 'success' && data.data) {
+            setApiResults(data.data.slice(0, 8).map((r: any) => ({ ...r, raw: r.metadata })));
+          } else {
+            setApiResults([]);
+          }
+        })
+        .catch(err => {
+          console.error('Search API failed', err);
+          setApiResults([]);
+        })
+        .finally(() => setIsSearching(false));
+    }, 600);
+
+    return () => clearTimeout(timeoutId);
+  }, [searchQuery]);
+
   const getResults = () => {
     const q = searchQuery.trim().toLowerCase();
     if (!q) return [];
 
-    const results: Array<{
-      type: '3D_UNIT' | 'PARCEL' | 'BUILDING' | 'UNDERGROUND' | 'GEOCODED';
-      title: string;
-      subtitle: string;
-      raw: any;
-    }> = [];
+    const combinedResults: Array<any> = [...apiResults];
+
+    // Decode ULPIN direct search
+    if (q.startsWith('mh1') && q.length >= 14) {
+      const cleanUlpin = q.toUpperCase().split('.')[0];
+      const latStr = cleanUlpin.substring(3, 8);
+      const lngStr = cleanUlpin.substring(8, 14);
+      
+      const lat = parseInt(latStr, 36) / 1000000;
+      const lng = parseInt(lngStr, 36) / 1000000;
+      
+      console.log('[ULPIN Search] query:', q);
+      console.log('[ULPIN Search] cleanUlpin:', cleanUlpin, 'len:', cleanUlpin.length);
+      console.log('[ULPIN Search] latStr:', latStr, 'lngStr:', lngStr);
+      console.log('[ULPIN Search] decoded lat:', lat, 'lng:', lng);
+      
+      // Validate coordinates are within India bounds (roughly)
+      const isValidCoords = !isNaN(lat) && !isNaN(lng) && lat > 8 && lat < 37 && lng > 68 && lng < 98;
+      console.log('[ULPIN Search] valid coords:', isValidCoords);
+      
+      if (isValidCoords) {
+        combinedResults.unshift({
+          type: 'GEOCODED',
+          title: `3D ULPIN Match`,
+          subtitle: `Location encoded in ${cleanUlpin}`,
+          raw: { lat, lng, name: `Synthesized ULPIN`, address: cleanUlpin, fullUlpin: q }
+        });
+      }
+    }
 
     // 0. Known buildings with coordinates (instant, no API call)
     for (const [key, bldg] of Object.entries(KNOWN_BUILDINGS_GEO)) {
       if (key.includes(q) || bldg.name.toLowerCase().includes(q) || bldg.area.toLowerCase().includes(q)) {
-        results.push({
+        combinedResults.push({
           type: 'GEOCODED',
           title: bldg.name,
           subtitle: `${bldg.floors} Floors | ${bldg.type} | ${bldg.area}`,
@@ -152,56 +195,12 @@ export const Header: React.FC = () => {
       }
     }
 
-    SAMPLE_VERTICAL_UNITS.forEach(u => {
-      if (u.ulpin3D.toLowerCase().includes(q) || u.unitName.toLowerCase().includes(q) || u.ownerName.toLowerCase().includes(q)) {
-        results.push({
-          type: '3D_UNIT',
-          title: u.unitName,
-          subtitle: `3D ULPIN: ${u.ulpin3D} | Level: ${u.levelCode} | ${u.ownerName}`,
-          raw: u
-        });
-      }
-    });
-
-    SAMPLE_PARCELS.forEach(p => {
-      if (p.ulpin.toLowerCase().includes(q) || p.village.toLowerCase().includes(q) || p.surveyNumber.toLowerCase().includes(q)) {
-        results.push({
-          type: 'PARCEL',
-          title: `Parcel ${p.ulpin} (${p.village})`,
-          subtitle: `Survey No: ${p.surveyNumber} | Area: ${p.areaSqm} sqm`,
-          raw: p
-        });
-      }
-    });
-
-    SAMPLE_BUILDINGS.forEach(b => {
-      if (b.name.toLowerCase().includes(q) || b.address.toLowerCase().includes(q)) {
-        results.push({
-          type: 'BUILDING',
-          title: b.name,
-          subtitle: `${b.numFloors} Floors | ${b.address}`,
-          raw: b
-        });
-      }
-    });
-
-    SAMPLE_UNDERGROUND_ASSETS.forEach(a => {
-      if (a.ulpin3D.toLowerCase().includes(q) || a.assetType.toLowerCase().includes(q) || a.owningAgency.toLowerCase().includes(q)) {
-        results.push({
-          type: 'UNDERGROUND',
-          title: `3D Utility: ${a.assetType}`,
-          subtitle: `${a.ulpin3D} | Depth: ${a.depthMinM}m to ${a.depthMaxM}m`,
-          raw: a
-        });
-      }
-    });
-
     // Geocoded results from Nominatim (async, with deduplication against known buildings)
     if (geocodedResults.length > 0) {
-      const knownNames = new Set(results.map(r => r.title.toLowerCase()));
+      const knownNames = new Set(combinedResults.map(r => r.title.toLowerCase()));
       geocodedResults.forEach(gr => {
         if (!knownNames.has(gr.name.toLowerCase())) {
-          results.push({
+          combinedResults.push({
             type: 'GEOCODED',
             title: gr.name,
             subtitle: gr.address.length > 60 ? gr.address.substring(0, 60) + '…' : gr.address,
@@ -211,129 +210,10 @@ export const Header: React.FC = () => {
       });
     }
 
-    if (results.length === 0) {
-      const parsed = parseUlpin3D(searchQuery.trim());
-      if (parsed) {
-        let baseLng = 72.8280;
-        let baseLat = 18.9960;
-        let address = 'Simulated Address, Mumbai';
+    return combinedResults.slice(0, 8);
+  };
 
-        const matchingParcel = SAMPLE_PARCELS.find(p => p.ulpin === parsed.baseUlpin);
-        if (matchingParcel) {
-          baseLng = matchingParcel.centroid[0];
-          baseLat = matchingParcel.centroid[1];
-          address = `${matchingParcel.village}, ${matchingParcel.tehsil}, ${matchingParcel.district}`;
-        } else if (parsed.baseUlpin.startsWith('MH1') && parsed.baseUlpin.length === 14) {
-          // Geospatially decode the Base36 embedded coordinates
-          const latStr = parsed.baseUlpin.substring(3, 8).toLowerCase();
-          const lngStr = parsed.baseUlpin.substring(8, 14).toLowerCase();
-          const parsedLat = parseInt(latStr, 36) / 1000000;
-          const parsedLng = parseInt(lngStr, 36) / 1000000;
-          
-          if (!isNaN(parsedLat) && !isNaN(parsedLng)) {
-            baseLat = parsedLat;
-            baseLng = parsedLng;
-            address = `Decoded Coordinate (${baseLat.toFixed(4)}, ${baseLng.toFixed(4)})`;
-          } else {
-            // Fallback deterministic hash if malformed
-            let hash = 0;
-            for (let i = 0; i < parsed.baseUlpin.length; i++) {
-              hash = parsed.baseUlpin.charCodeAt(i) + ((hash << 5) - hash);
-            }
-            baseLng = 72.80 + (Math.abs(Math.sin(hash)) * 10000 % 1) * 0.15;
-            baseLat = 18.90 + (Math.abs(Math.cos(hash)) * 10000 % 1) * 0.35;
-            address = `Extrapolated Location from ULPIN, Mumbai`;
-          }
-        } else {
-          // Hackathon Mockup: Deterministically pseudo-decode unknown ULPINs to a coordinate in Mumbai
-          let hash = 0;
-          for (let i = 0; i < parsed.baseUlpin.length; i++) {
-            hash = parsed.baseUlpin.charCodeAt(i) + ((hash << 5) - hash);
-          }
-          const randLng = Math.abs(Math.sin(hash)) * 10000 % 1;
-          const randLat = Math.abs(Math.cos(hash)) * 10000 % 1;
-          
-          baseLng = 72.80 + randLng * (72.95 - 72.80);
-          baseLat = 18.90 + randLat * (19.25 - 18.90);
-          address = `Extrapolated Location from ULPIN, Mumbai`;
-        }
-
-        results.push({
-          type: '3D_UNIT',
-          title: `Simulated Unit ${parsed.unitCode}`,
-          subtitle: `3D ULPIN: ${parsed.rawString} | Simulated Record`,
-          raw: {
-            unit: {
-              id: `sim-${Date.now()}`,
-              buildingId: 'simulated-building',
-              parcelId: 'simulated-parcel',
-              ulpin3D: parsed.rawString,
-              domainCode: parsed.domainCode,
-              levelCode: parsed.levelCode,
-              unitCode: parsed.unitCode,
-              floorNumber: parsed.levelNumber,
-              unitName: `Simulated Unit ${parsed.unitCode}`,
-              useType: 'Mixed',
-              ownerName: 'Simulated Owner (MyBMC)',
-              ownerId: 'SIM-MH-9999',
-              carpetAreaSqm: 500.0,
-              builtupAreaSqm: 575.0,
-              volumeCum: 2000.0,
-              zMin: parsed.levelNumber * 3.8,
-              zMax: (parsed.levelNumber + 1) * 3.8,
-              verticalDatum: 'WGS84 MSL',
-              bounds: { minLng: baseLng, maxLng: baseLng + 0.0002, minLat: baseLat, maxLat: baseLat + 0.0002, minZ: 0, maxZ: 10 },
-              validationStatus: 'VALID',
-              provenance: 'DRONE_LIDAR',
-              taxStatus: 'PAID',
-              simulated: true,
-              createdAt: new Date().toISOString(),
-              updatedAt: new Date().toISOString()
-            },
-            building: {
-              id: 'simulated-building',
-              parcelId: 'simulated-parcel',
-              name: `Simulated Building (${parsed.baseUlpin})`,
-              footprint: { 
-                type: 'Polygon', 
-                coordinates: [[[baseLng, baseLat], [baseLng + 0.0002, baseLat], [baseLng + 0.0002, baseLat + 0.0002], [baseLng, baseLat + 0.0002], [baseLng, baseLat]]] 
-              },
-              eavesHeightM: (Math.max(4, parsed.levelNumber + 2)) * 3.8,
-              roofHeightM: (Math.max(4, parsed.levelNumber + 2)) * 3.8 + 2,
-              numFloors: Math.max(4, parsed.levelNumber + 2),
-              numBasements: 0,
-              plinthElevationM: 0,
-              totalBuiltupAreaSqm: 10000,
-              address: address,
-              simulated: true
-            }
-          }
-        });
-      }
->>>>>>> ba1b3817 (feat: add building name search with 30+ known Mumbai landmarks and live Nominatim geocoding)
-    }
-    
-    setIsSearching(true);
-    const timeoutId = setTimeout(() => {
-      fetch(`/api/v1/search?q=${encodeURIComponent(q)}`)
-        .then(res => res.json())
-        .then(data => {
-          if (data.status === 'success' && data.data) {
-            // Map 'metadata' from API to 'raw' so handleSelectResult works seamlessly
-            setResults(data.data.slice(0, 8).map((r: any) => ({ ...r, raw: r.metadata })));
-          } else {
-            setResults([]);
-          }
-        })
-        .catch(err => {
-          console.error('Search API failed', err);
-          setResults([]);
-        })
-        .finally(() => setIsSearching(false));
-    }, 600);
-
-    return () => clearTimeout(timeoutId);
-  }, [searchQuery]);
+  const results = getResults();
 
   const handleSelectResult = (result: any) => {
     setIsSearchOpen(false);
@@ -375,6 +255,18 @@ export const Header: React.FC = () => {
     } else if (result.type === 'UNDERGROUND') {
       setSelectedUnderground(result.raw);
       setActiveTab('MAPLIBRE_3D');
+    } else if (result.type === 'GEOCODED') {
+      // Fly to geocoded building location
+      const { lat, lng, fullUlpin } = result.raw;
+      
+      console.log('[GEOCODED Select] lat:', lat, 'lng:', lng, 'fullUlpin:', fullUlpin);
+      
+      if (fullUlpin) {
+        useAppStore.getState().setSearchedUlpin3D(fullUlpin.toUpperCase());
+      }
+      
+      setFlyToTarget({ lng, lat, zoom: 18.5, pitch: 65 });
+      setActiveTab('MAPLIBRE_3D');
     } else if (result.type === 'LOCATION') {
       // Clear selections so it doesn't try to highlight a fake building
       setSelectedBuilding(null);
@@ -389,11 +281,15 @@ export const Header: React.FC = () => {
       }
       
       setFlyToTarget({ lng, lat, zoom: 17, pitch: 45 });
-    } else if (result.type === 'GEOCODED') {
-      // Fly to geocoded building location
-      const { lat, lng, name } = result.raw;
-      setFlyToTarget({ lng, lat, zoom: 17.5, pitch: 60 });
       setActiveTab('MAPLIBRE_3D');
+    }
+  };
+
+  const handleSubmit = (e: any) => {
+    e.preventDefault();
+    const r = getResults();
+    if (r.length > 0) {
+      handleSelectResult(r[0]);
     }
   };
 
@@ -417,6 +313,14 @@ export const Header: React.FC = () => {
                   setSearchQuery(e.target.value);
                   setIsSearchOpen(true);
                 }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    const r = getResults();
+                    console.log('[Search Enter] results:', r.length, r[0]?.type, r[0]?.raw?.lat, r[0]?.raw?.lng);
+                    if (r.length > 0) handleSelectResult(r[0]);
+                  }
+                }}
                 onFocus={() => setIsSearchOpen(true)}
                 placeholder="Search building name, ULPIN, owner, address..."
                 className="w-full bg-transparent text-[14px] text-slate-200 placeholder-slate-500 focus:outline-none transition-all"
@@ -436,7 +340,7 @@ export const Header: React.FC = () => {
         {/* Dropdown Results */}
         {isSearchOpen && (searchQuery.trim().length > 0) && (
           <div className="absolute top-full left-0 right-0 mt-2 glass-panel rounded-xl shadow-2xl overflow-hidden z-50 max-h-72 overflow-y-auto animate-in slide-in-from-top-2 duration-200">
-            {isSearching ? (
+            {isSearching || isGeocoding ? (
               <div className="p-4 text-center text-slate-400 text-xs flex items-center justify-center gap-2">
                 <Loader2 className="w-4 h-4 animate-spin text-brand-primary" />
                 Searching cadastre...
