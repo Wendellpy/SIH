@@ -516,6 +516,29 @@ export const MapLibre3DMap: React.FC = () => {
           }
         });
 
+        // ULDPIN labels for underground assets (tunnels/nodes)
+        map.addLayer({
+          id: 'mining-underground-labels',
+          type: 'symbol',
+          source: 'mining-underground',
+          filter: ['==', 'type', 'tunnel'],
+          layout: {
+            visibility: 'visible',
+            'symbol-placement': 'line',
+            'text-field': ['get', 'id'], // 'id' contains the ULDPIN
+            'text-font': ['Open Sans Bold', 'Arial Unicode MS Bold'],
+            'text-size': 10,
+            'text-letter-spacing': 0.1,
+            'text-offset': [0, -1]
+          },
+          paint: {
+            'text-color': '#d8b4fe', // purple-300
+            'text-halo-color': '#111827', // gray-900 halo for readability
+            'text-halo-width': 1.5,
+            'text-opacity': 0.9
+          }
+        });
+
         map.on('click', 'mining-tunnels-line', (e) => {
           if (!e.features || e.features.length === 0) return;
           const props = e.features[0].properties;
@@ -1618,8 +1641,25 @@ export const MapLibre3DMap: React.FC = () => {
             'circle-stroke-color': '#ffffff',
             'circle-stroke-width': 2,
             'circle-pitch-alignment': 'map'
-          },
           filter: ['==', ['geometry-type'], 'Point']
+        }, 'poi-labels');
+
+        map.addLayer({
+          id: 'searched-parcel-label',
+          type: 'symbol',
+          source: 'searched-parcel-source',
+          layout: {
+            'text-field': ['get', 'ulpin'], // try ulpin first
+            'text-font': ['Open Sans Bold', 'Arial Unicode MS Bold'],
+            'text-size': 14,
+            'text-anchor': 'center',
+            'symbol-placement': 'point'
+          },
+          paint: {
+            'text-color': '#ffffff',
+            'text-halo-color': '#065f46', // emerald-900
+            'text-halo-width': 2
+          }
         }, 'poi-labels');
       } else {
         (map.getSource('searched-parcel-source') as maplibregl.GeoJSONSource).setData(searchedParcelGeoJSON);
@@ -1628,6 +1668,7 @@ export const MapLibre3DMap: React.FC = () => {
       if (map.getLayer('searched-parcel-fill')) map.removeLayer('searched-parcel-fill');
       if (map.getLayer('searched-parcel-line')) map.removeLayer('searched-parcel-line');
       if (map.getLayer('searched-parcel-point')) map.removeLayer('searched-parcel-point');
+      if (map.getLayer('searched-parcel-label')) map.removeLayer('searched-parcel-label');
       if (map.getSource('searched-parcel-source')) map.removeSource('searched-parcel-source');
     }
   }, [searchedParcelGeoJSON, mapLoaded]);
