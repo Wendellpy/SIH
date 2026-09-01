@@ -162,7 +162,7 @@ cadastreRouter.get('/search', async (req: Request, res: Response) => {
         `&returnGeometry=true&outSR=4326&f=json&resultRecordCount=5`;
 
       const bmcRes = await fetch(bmcUrl, { signal: AbortSignal.timeout(5000) });
-      const bmcData = await bmcRes.json();
+      const bmcData = await bmcRes.json() as any;
 
       if (bmcData?.features?.length) {
         const seen = new Set<string>();
@@ -215,7 +215,7 @@ cadastreRouter.get('/search', async (req: Request, res: Response) => {
           `https://photon.komoot.io/api/?q=${encodeURIComponent(query)}&limit=4&bbox=${mumbai_bbox}&lang=en`,
           { headers: { 'Accept-Language': 'en' }, signal: AbortSignal.timeout(5000) }
         );
-        const extData = await extRes.json();
+        const extData = await extRes.json() as any;
         if (extData?.features) {
           extData.features.forEach((f: any) => {
             const cityLabel = [f.properties.district, f.properties.city].filter(Boolean).join(', ');

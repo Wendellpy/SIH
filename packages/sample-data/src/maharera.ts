@@ -46,7 +46,8 @@ export const MAHARERA_PARCELS: Parcel[] = [
     "ownershipType": "Private",
     "simulated": true,
     "createdAt": "2026-08-28T10:21:56.535Z",
-    "updatedAt": "2026-08-28T10:21:56.536Z"
+    "updatedAt": "2026-08-28T10:21:56.536Z",
+    "dataSource": "demo"
   },
   {
     "id": "parcel-maharera-1",
@@ -92,7 +93,8 @@ export const MAHARERA_PARCELS: Parcel[] = [
     "ownershipType": "Private",
     "simulated": true,
     "createdAt": "2026-08-28T10:21:56.536Z",
-    "updatedAt": "2026-08-28T10:21:56.536Z"
+    "updatedAt": "2026-08-28T10:21:56.536Z",
+    "dataSource": "demo"
   },
   {
     "id": "parcel-maharera-2",
@@ -138,7 +140,8 @@ export const MAHARERA_PARCELS: Parcel[] = [
     "ownershipType": "Private",
     "simulated": true,
     "createdAt": "2026-08-28T10:21:56.536Z",
-    "updatedAt": "2026-08-28T10:21:56.536Z"
+    "updatedAt": "2026-08-28T10:21:56.536Z",
+    "dataSource": "demo"
   },
   {
     "id": "parcel-maharera-3",
@@ -184,7 +187,8 @@ export const MAHARERA_PARCELS: Parcel[] = [
     "ownershipType": "Private",
     "simulated": true,
     "createdAt": "2026-08-28T10:21:56.536Z",
-    "updatedAt": "2026-08-28T10:21:56.536Z"
+    "updatedAt": "2026-08-28T10:21:56.536Z",
+    "dataSource": "demo"
   },
   {
     "id": "parcel-maharera-4",
@@ -230,7 +234,8 @@ export const MAHARERA_PARCELS: Parcel[] = [
     "ownershipType": "Private",
     "simulated": true,
     "createdAt": "2026-08-28T10:21:56.536Z",
-    "updatedAt": "2026-08-28T10:21:56.536Z"
+    "updatedAt": "2026-08-28T10:21:56.536Z",
+    "dataSource": "demo"
   },
   {
     "id": "parcel-maharera-5",
@@ -276,7 +281,8 @@ export const MAHARERA_PARCELS: Parcel[] = [
     "ownershipType": "Private",
     "simulated": true,
     "createdAt": "2026-08-28T10:21:56.536Z",
-    "updatedAt": "2026-08-28T10:21:56.536Z"
+    "updatedAt": "2026-08-28T10:21:56.536Z",
+    "dataSource": "demo"
   },
   {
     "id": "parcel-maharera-6",
@@ -322,7 +328,8 @@ export const MAHARERA_PARCELS: Parcel[] = [
     "ownershipType": "Private",
     "simulated": true,
     "createdAt": "2026-08-28T10:21:56.536Z",
-    "updatedAt": "2026-08-28T10:21:56.536Z"
+    "updatedAt": "2026-08-28T10:21:56.536Z",
+    "dataSource": "demo"
   },
   {
     "id": "parcel-maharera-7",
@@ -368,7 +375,8 @@ export const MAHARERA_PARCELS: Parcel[] = [
     "ownershipType": "Private",
     "simulated": true,
     "createdAt": "2026-08-28T10:21:56.536Z",
-    "updatedAt": "2026-08-28T10:21:56.536Z"
+    "updatedAt": "2026-08-28T10:21:56.536Z",
+    "dataSource": "demo"
   },
   {
     "id": "parcel-maharera-8",
@@ -414,7 +422,8 @@ export const MAHARERA_PARCELS: Parcel[] = [
     "ownershipType": "Private",
     "simulated": true,
     "createdAt": "2026-08-28T10:21:56.536Z",
-    "updatedAt": "2026-08-28T10:21:56.536Z"
+    "updatedAt": "2026-08-28T10:21:56.536Z",
+    "dataSource": "demo"
   },
   {
     "id": "parcel-maharera-9",
@@ -460,7 +469,8 @@ export const MAHARERA_PARCELS: Parcel[] = [
     "ownershipType": "Private",
     "simulated": true,
     "createdAt": "2026-08-28T10:21:56.536Z",
-    "updatedAt": "2026-08-28T10:21:56.536Z"
+    "updatedAt": "2026-08-28T10:21:56.536Z",
+    "dataSource": "demo"
   },
   {
     "id": "parcel-maharera-10",
@@ -506,7 +516,8 @@ export const MAHARERA_PARCELS: Parcel[] = [
     "ownershipType": "Private",
     "simulated": true,
     "createdAt": "2026-08-28T10:21:56.536Z",
-    "updatedAt": "2026-08-28T10:21:56.536Z"
+    "updatedAt": "2026-08-28T10:21:56.536Z",
+    "dataSource": "demo"
   },
   {
     "id": "parcel-maharera-11",
@@ -552,7 +563,8 @@ export const MAHARERA_PARCELS: Parcel[] = [
     "ownershipType": "Private",
     "simulated": true,
     "createdAt": "2026-08-28T10:21:56.537Z",
-    "updatedAt": "2026-08-28T10:21:56.537Z"
+    "updatedAt": "2026-08-28T10:21:56.537Z",
+    "dataSource": "demo"
   },
   {
     "id": "parcel-maharera-12",
@@ -598,7 +610,8 @@ export const MAHARERA_PARCELS: Parcel[] = [
     "ownershipType": "Private",
     "simulated": true,
     "createdAt": "2026-08-28T10:21:56.537Z",
-    "updatedAt": "2026-08-28T10:21:56.537Z"
+    "updatedAt": "2026-08-28T10:21:56.537Z",
+    "dataSource": "demo"
   },
   {
     "id": "parcel-maharera-13",
@@ -644,7 +657,8 @@ export const MAHARERA_PARCELS: Parcel[] = [
     "ownershipType": "Private",
     "simulated": true,
     "createdAt": "2026-08-28T10:21:56.537Z",
-    "updatedAt": "2026-08-28T10:21:56.537Z"
+    "updatedAt": "2026-08-28T10:21:56.537Z",
+    "dataSource": "demo"
   },
   {
     "id": "parcel-maharera-14",
@@ -690,7 +704,8 @@ export const MAHARERA_PARCELS: Parcel[] = [
     "ownershipType": "Private",
     "simulated": true,
     "createdAt": "2026-08-28T10:21:56.537Z",
-    "updatedAt": "2026-08-28T10:21:56.537Z"
+    "updatedAt": "2026-08-28T10:21:56.537Z",
+    "dataSource": "demo"
   },
   {
     "id": "parcel-maharera-15",
@@ -736,7 +751,8 @@ export const MAHARERA_PARCELS: Parcel[] = [
     "ownershipType": "Private",
     "simulated": true,
     "createdAt": "2026-08-28T10:21:56.537Z",
-    "updatedAt": "2026-08-28T10:21:56.537Z"
+    "updatedAt": "2026-08-28T10:21:56.537Z",
+    "dataSource": "demo"
   },
   {
     "id": "parcel-maharera-16",
@@ -782,7 +798,8 @@ export const MAHARERA_PARCELS: Parcel[] = [
     "ownershipType": "Private",
     "simulated": true,
     "createdAt": "2026-08-28T10:21:56.537Z",
-    "updatedAt": "2026-08-28T10:21:56.537Z"
+    "updatedAt": "2026-08-28T10:21:56.537Z",
+    "dataSource": "demo"
   },
   {
     "id": "parcel-maharera-17",
@@ -828,7 +845,8 @@ export const MAHARERA_PARCELS: Parcel[] = [
     "ownershipType": "Private",
     "simulated": true,
     "createdAt": "2026-08-28T10:21:56.537Z",
-    "updatedAt": "2026-08-28T10:21:56.537Z"
+    "updatedAt": "2026-08-28T10:21:56.537Z",
+    "dataSource": "demo"
   },
   {
     "id": "parcel-maharera-18",
@@ -874,7 +892,8 @@ export const MAHARERA_PARCELS: Parcel[] = [
     "ownershipType": "Private",
     "simulated": true,
     "createdAt": "2026-08-28T10:21:56.537Z",
-    "updatedAt": "2026-08-28T10:21:56.537Z"
+    "updatedAt": "2026-08-28T10:21:56.537Z",
+    "dataSource": "demo"
   },
   {
     "id": "parcel-maharera-19",
@@ -920,7 +939,8 @@ export const MAHARERA_PARCELS: Parcel[] = [
     "ownershipType": "Private",
     "simulated": true,
     "createdAt": "2026-08-28T10:21:56.537Z",
-    "updatedAt": "2026-08-28T10:21:56.537Z"
+    "updatedAt": "2026-08-28T10:21:56.537Z",
+    "dataSource": "demo"
   },
   {
     "id": "parcel-maharera-20",
@@ -966,7 +986,8 @@ export const MAHARERA_PARCELS: Parcel[] = [
     "ownershipType": "Private",
     "simulated": true,
     "createdAt": "2026-08-28T10:21:56.537Z",
-    "updatedAt": "2026-08-28T10:21:56.537Z"
+    "updatedAt": "2026-08-28T10:21:56.537Z",
+    "dataSource": "demo"
   },
   {
     "id": "parcel-maharera-21",
@@ -1012,7 +1033,8 @@ export const MAHARERA_PARCELS: Parcel[] = [
     "ownershipType": "Private",
     "simulated": true,
     "createdAt": "2026-08-28T10:21:56.537Z",
-    "updatedAt": "2026-08-28T10:21:56.537Z"
+    "updatedAt": "2026-08-28T10:21:56.537Z",
+    "dataSource": "demo"
   },
   {
     "id": "parcel-maharera-22",
@@ -1058,7 +1080,8 @@ export const MAHARERA_PARCELS: Parcel[] = [
     "ownershipType": "Private",
     "simulated": true,
     "createdAt": "2026-08-28T10:21:56.537Z",
-    "updatedAt": "2026-08-28T10:21:56.537Z"
+    "updatedAt": "2026-08-28T10:21:56.537Z",
+    "dataSource": "demo"
   },
   {
     "id": "parcel-maharera-23",
@@ -1104,7 +1127,8 @@ export const MAHARERA_PARCELS: Parcel[] = [
     "ownershipType": "Private",
     "simulated": true,
     "createdAt": "2026-08-28T10:21:56.537Z",
-    "updatedAt": "2026-08-28T10:21:56.537Z"
+    "updatedAt": "2026-08-28T10:21:56.537Z",
+    "dataSource": "demo"
   },
   {
     "id": "parcel-maharera-24",
@@ -1150,7 +1174,8 @@ export const MAHARERA_PARCELS: Parcel[] = [
     "ownershipType": "Private",
     "simulated": true,
     "createdAt": "2026-08-28T10:21:56.537Z",
-    "updatedAt": "2026-08-28T10:21:56.537Z"
+    "updatedAt": "2026-08-28T10:21:56.537Z",
+    "dataSource": "demo"
   },
   {
     "id": "parcel-maharera-25",
@@ -1196,7 +1221,8 @@ export const MAHARERA_PARCELS: Parcel[] = [
     "ownershipType": "Private",
     "simulated": true,
     "createdAt": "2026-08-28T10:21:56.537Z",
-    "updatedAt": "2026-08-28T10:21:56.537Z"
+    "updatedAt": "2026-08-28T10:21:56.537Z",
+    "dataSource": "demo"
   },
   {
     "id": "parcel-maharera-26",
@@ -1242,7 +1268,8 @@ export const MAHARERA_PARCELS: Parcel[] = [
     "ownershipType": "Private",
     "simulated": true,
     "createdAt": "2026-08-28T10:21:56.537Z",
-    "updatedAt": "2026-08-28T10:21:56.537Z"
+    "updatedAt": "2026-08-28T10:21:56.537Z",
+    "dataSource": "demo"
   },
   {
     "id": "parcel-maharera-27",
@@ -1288,7 +1315,8 @@ export const MAHARERA_PARCELS: Parcel[] = [
     "ownershipType": "Private",
     "simulated": true,
     "createdAt": "2026-08-28T10:21:56.537Z",
-    "updatedAt": "2026-08-28T10:21:56.537Z"
+    "updatedAt": "2026-08-28T10:21:56.537Z",
+    "dataSource": "demo"
   },
   {
     "id": "parcel-maharera-28",
@@ -1334,7 +1362,8 @@ export const MAHARERA_PARCELS: Parcel[] = [
     "ownershipType": "Private",
     "simulated": true,
     "createdAt": "2026-08-28T10:21:56.537Z",
-    "updatedAt": "2026-08-28T10:21:56.537Z"
+    "updatedAt": "2026-08-28T10:21:56.537Z",
+    "dataSource": "demo"
   },
   {
     "id": "parcel-maharera-29",
@@ -1380,7 +1409,8 @@ export const MAHARERA_PARCELS: Parcel[] = [
     "ownershipType": "Private",
     "simulated": true,
     "createdAt": "2026-08-28T10:21:56.537Z",
-    "updatedAt": "2026-08-28T10:21:56.537Z"
+    "updatedAt": "2026-08-28T10:21:56.537Z",
+    "dataSource": "demo"
   },
   {
     "id": "parcel-maharera-30",
@@ -1426,7 +1456,8 @@ export const MAHARERA_PARCELS: Parcel[] = [
     "ownershipType": "Private",
     "simulated": true,
     "createdAt": "2026-08-28T10:21:56.540Z",
-    "updatedAt": "2026-08-28T10:21:56.540Z"
+    "updatedAt": "2026-08-28T10:21:56.540Z",
+    "dataSource": "demo"
   },
   {
     "id": "parcel-maharera-31",
@@ -1472,7 +1503,8 @@ export const MAHARERA_PARCELS: Parcel[] = [
     "ownershipType": "Private",
     "simulated": true,
     "createdAt": "2026-08-28T10:21:56.540Z",
-    "updatedAt": "2026-08-28T10:21:56.540Z"
+    "updatedAt": "2026-08-28T10:21:56.540Z",
+    "dataSource": "demo"
   },
   {
     "id": "parcel-maharera-32",
@@ -1518,7 +1550,8 @@ export const MAHARERA_PARCELS: Parcel[] = [
     "ownershipType": "Private",
     "simulated": true,
     "createdAt": "2026-08-28T10:21:56.540Z",
-    "updatedAt": "2026-08-28T10:21:56.540Z"
+    "updatedAt": "2026-08-28T10:21:56.540Z",
+    "dataSource": "demo"
   },
   {
     "id": "parcel-maharera-33",
@@ -1564,7 +1597,8 @@ export const MAHARERA_PARCELS: Parcel[] = [
     "ownershipType": "Private",
     "simulated": true,
     "createdAt": "2026-08-28T10:21:56.540Z",
-    "updatedAt": "2026-08-28T10:21:56.540Z"
+    "updatedAt": "2026-08-28T10:21:56.540Z",
+    "dataSource": "demo"
   },
   {
     "id": "parcel-maharera-34",
@@ -1610,7 +1644,8 @@ export const MAHARERA_PARCELS: Parcel[] = [
     "ownershipType": "Private",
     "simulated": true,
     "createdAt": "2026-08-28T10:21:56.540Z",
-    "updatedAt": "2026-08-28T10:21:56.540Z"
+    "updatedAt": "2026-08-28T10:21:56.540Z",
+    "dataSource": "demo"
   },
   {
     "id": "parcel-maharera-35",
@@ -1656,7 +1691,8 @@ export const MAHARERA_PARCELS: Parcel[] = [
     "ownershipType": "Private",
     "simulated": true,
     "createdAt": "2026-08-28T10:21:56.541Z",
-    "updatedAt": "2026-08-28T10:21:56.541Z"
+    "updatedAt": "2026-08-28T10:21:56.541Z",
+    "dataSource": "demo"
   },
   {
     "id": "parcel-maharera-36",
@@ -1702,7 +1738,8 @@ export const MAHARERA_PARCELS: Parcel[] = [
     "ownershipType": "Private",
     "simulated": true,
     "createdAt": "2026-08-28T10:21:56.541Z",
-    "updatedAt": "2026-08-28T10:21:56.541Z"
+    "updatedAt": "2026-08-28T10:21:56.541Z",
+    "dataSource": "demo"
   },
   {
     "id": "parcel-maharera-37",
@@ -1748,7 +1785,8 @@ export const MAHARERA_PARCELS: Parcel[] = [
     "ownershipType": "Private",
     "simulated": true,
     "createdAt": "2026-08-28T10:21:56.541Z",
-    "updatedAt": "2026-08-28T10:21:56.541Z"
+    "updatedAt": "2026-08-28T10:21:56.541Z",
+    "dataSource": "demo"
   },
   {
     "id": "parcel-maharera-38",
@@ -1794,7 +1832,8 @@ export const MAHARERA_PARCELS: Parcel[] = [
     "ownershipType": "Private",
     "simulated": true,
     "createdAt": "2026-08-28T10:21:56.541Z",
-    "updatedAt": "2026-08-28T10:21:56.541Z"
+    "updatedAt": "2026-08-28T10:21:56.541Z",
+    "dataSource": "demo"
   },
   {
     "id": "parcel-maharera-39",
@@ -1840,7 +1879,8 @@ export const MAHARERA_PARCELS: Parcel[] = [
     "ownershipType": "Private",
     "simulated": true,
     "createdAt": "2026-08-28T10:21:56.541Z",
-    "updatedAt": "2026-08-28T10:21:56.541Z"
+    "updatedAt": "2026-08-28T10:21:56.541Z",
+    "dataSource": "demo"
   },
   {
     "id": "parcel-maharera-40",
@@ -1886,7 +1926,8 @@ export const MAHARERA_PARCELS: Parcel[] = [
     "ownershipType": "Private",
     "simulated": true,
     "createdAt": "2026-08-28T10:21:56.541Z",
-    "updatedAt": "2026-08-28T10:21:56.541Z"
+    "updatedAt": "2026-08-28T10:21:56.541Z",
+    "dataSource": "demo"
   },
   {
     "id": "parcel-maharera-41",
@@ -1932,7 +1973,8 @@ export const MAHARERA_PARCELS: Parcel[] = [
     "ownershipType": "Private",
     "simulated": true,
     "createdAt": "2026-08-28T10:21:56.541Z",
-    "updatedAt": "2026-08-28T10:21:56.541Z"
+    "updatedAt": "2026-08-28T10:21:56.541Z",
+    "dataSource": "demo"
   },
   {
     "id": "parcel-maharera-42",
@@ -1978,7 +2020,8 @@ export const MAHARERA_PARCELS: Parcel[] = [
     "ownershipType": "Private",
     "simulated": true,
     "createdAt": "2026-08-28T10:21:56.541Z",
-    "updatedAt": "2026-08-28T10:21:56.541Z"
+    "updatedAt": "2026-08-28T10:21:56.541Z",
+    "dataSource": "demo"
   },
   {
     "id": "parcel-maharera-43",
@@ -2024,7 +2067,8 @@ export const MAHARERA_PARCELS: Parcel[] = [
     "ownershipType": "Private",
     "simulated": true,
     "createdAt": "2026-08-28T10:21:56.541Z",
-    "updatedAt": "2026-08-28T10:21:56.541Z"
+    "updatedAt": "2026-08-28T10:21:56.541Z",
+    "dataSource": "demo"
   },
   {
     "id": "parcel-maharera-44",
@@ -2070,7 +2114,8 @@ export const MAHARERA_PARCELS: Parcel[] = [
     "ownershipType": "Private",
     "simulated": true,
     "createdAt": "2026-08-28T10:21:56.541Z",
-    "updatedAt": "2026-08-28T10:21:56.541Z"
+    "updatedAt": "2026-08-28T10:21:56.541Z",
+    "dataSource": "demo"
   },
   {
     "id": "parcel-maharera-45",
@@ -2116,7 +2161,8 @@ export const MAHARERA_PARCELS: Parcel[] = [
     "ownershipType": "Private",
     "simulated": true,
     "createdAt": "2026-08-28T10:21:56.541Z",
-    "updatedAt": "2026-08-28T10:21:56.541Z"
+    "updatedAt": "2026-08-28T10:21:56.541Z",
+    "dataSource": "demo"
   },
   {
     "id": "parcel-maharera-46",
@@ -2162,7 +2208,8 @@ export const MAHARERA_PARCELS: Parcel[] = [
     "ownershipType": "Private",
     "simulated": true,
     "createdAt": "2026-08-28T10:21:56.541Z",
-    "updatedAt": "2026-08-28T10:21:56.541Z"
+    "updatedAt": "2026-08-28T10:21:56.541Z",
+    "dataSource": "demo"
   },
   {
     "id": "parcel-maharera-47",
@@ -2208,7 +2255,8 @@ export const MAHARERA_PARCELS: Parcel[] = [
     "ownershipType": "Private",
     "simulated": true,
     "createdAt": "2026-08-28T10:21:56.541Z",
-    "updatedAt": "2026-08-28T10:21:56.541Z"
+    "updatedAt": "2026-08-28T10:21:56.541Z",
+    "dataSource": "demo"
   },
   {
     "id": "parcel-maharera-48",
@@ -2254,7 +2302,8 @@ export const MAHARERA_PARCELS: Parcel[] = [
     "ownershipType": "Private",
     "simulated": true,
     "createdAt": "2026-08-28T10:21:56.541Z",
-    "updatedAt": "2026-08-28T10:21:56.541Z"
+    "updatedAt": "2026-08-28T10:21:56.541Z",
+    "dataSource": "demo"
   },
   {
     "id": "parcel-maharera-49",
@@ -2300,7 +2349,8 @@ export const MAHARERA_PARCELS: Parcel[] = [
     "ownershipType": "Private",
     "simulated": true,
     "createdAt": "2026-08-28T10:21:56.541Z",
-    "updatedAt": "2026-08-28T10:21:56.541Z"
+    "updatedAt": "2026-08-28T10:21:56.541Z",
+    "dataSource": "demo"
   }
 ];
 
@@ -2344,7 +2394,7 @@ export const MAHARERA_BUILDINGS: Building[] = [
     "yearBuilt": 2022,
     "totalBuiltupAreaSqm": 6000,
     "address": "Mumbai Suburban - 400077",
-    "simulated": true
+    "simulated": true,
   },
   {
     "id": "bldg-maharera-1",
@@ -2385,7 +2435,7 @@ export const MAHARERA_BUILDINGS: Building[] = [
     "yearBuilt": 2022,
     "totalBuiltupAreaSqm": 7200,
     "address": "R R Thakur Marg, Maharaj Bhavan, Mumbai Suburban - 400060",
-    "simulated": true
+    "simulated": true,
   },
   {
     "id": "bldg-maharera-2",
@@ -2426,7 +2476,7 @@ export const MAHARERA_BUILDINGS: Building[] = [
     "yearBuilt": 2022,
     "totalBuiltupAreaSqm": 8400,
     "address": "Dr E Moses, Worli, Mumbai City - 400018",
-    "simulated": true
+    "simulated": true,
   },
   {
     "id": "bldg-maharera-3",
@@ -2467,7 +2517,7 @@ export const MAHARERA_BUILDINGS: Building[] = [
     "yearBuilt": 2022,
     "totalBuiltupAreaSqm": 9600,
     "address": "AAREY ROAD, GOREGAON EAST, Mumbai Suburban - 400063",
-    "simulated": true
+    "simulated": true,
   },
   {
     "id": "bldg-maharera-4",
@@ -2508,7 +2558,7 @@ export const MAHARERA_BUILDINGS: Building[] = [
     "yearBuilt": 2022,
     "totalBuiltupAreaSqm": 10800,
     "address": "3rd Road, Santacruz E, Mumbai Suburban - 400055",
-    "simulated": true
+    "simulated": true,
   },
   {
     "id": "bldg-maharera-5",
@@ -2549,7 +2599,7 @@ export const MAHARERA_BUILDINGS: Building[] = [
     "yearBuilt": 2022,
     "totalBuiltupAreaSqm": 12000,
     "address": "Pirojshanagar, Vikhroli East, Mumbai Suburban - 400079",
-    "simulated": true
+    "simulated": true,
   },
   {
     "id": "bldg-maharera-6",
@@ -2590,7 +2640,7 @@ export const MAHARERA_BUILDINGS: Building[] = [
     "yearBuilt": 2022,
     "totalBuiltupAreaSqm": 13200,
     "address": "1ST DOMINIC LANE, ORLEM, Mumbai Suburban - 400067",
-    "simulated": true
+    "simulated": true,
   },
   {
     "id": "bldg-maharera-7",
@@ -2631,7 +2681,7 @@ export const MAHARERA_BUILDINGS: Building[] = [
     "yearBuilt": 2022,
     "totalBuiltupAreaSqm": 14400,
     "address": "MAZGAON, NEXT TO DIAMOND JUBILEE SCHOOL, Mumbai City - 400010",
-    "simulated": true
+    "simulated": true,
   },
   {
     "id": "bldg-maharera-8",
@@ -2672,7 +2722,7 @@ export const MAHARERA_BUILDINGS: Building[] = [
     "yearBuilt": 2022,
     "totalBuiltupAreaSqm": 15600,
     "address": "Tank Lane, Sunderpada, Mumbai Suburban - 400067",
-    "simulated": true
+    "simulated": true,
   },
   {
     "id": "bldg-maharera-9",
@@ -2713,7 +2763,7 @@ export const MAHARERA_BUILDINGS: Building[] = [
     "yearBuilt": 2022,
     "totalBuiltupAreaSqm": 16800,
     "address": "Mumbai City - 400012",
-    "simulated": true
+    "simulated": true,
   },
   {
     "id": "bldg-maharera-10",
@@ -2754,7 +2804,7 @@ export const MAHARERA_BUILDINGS: Building[] = [
     "yearBuilt": 2022,
     "totalBuiltupAreaSqm": 18000,
     "address": "Jeevan Vidya Mission Marg, Vikas Nagar, Mumbai Suburban - 400067",
-    "simulated": true
+    "simulated": true,
   },
   {
     "id": "bldg-maharera-11",
@@ -2795,7 +2845,7 @@ export const MAHARERA_BUILDINGS: Building[] = [
     "yearBuilt": 2022,
     "totalBuiltupAreaSqm": 19200,
     "address": "Datta Mandir Road, Vakola, Mumbai Suburban - 400055",
-    "simulated": true
+    "simulated": true,
   },
   {
     "id": "bldg-maharera-12",
@@ -2836,7 +2886,7 @@ export const MAHARERA_BUILDINGS: Building[] = [
     "yearBuilt": 2022,
     "totalBuiltupAreaSqm": 20400,
     "address": "b p road, Dahisar west, Mumbai Suburban - 400068",
-    "simulated": true
+    "simulated": true,
   },
   {
     "id": "bldg-maharera-13",
@@ -2877,7 +2927,7 @@ export const MAHARERA_BUILDINGS: Building[] = [
     "yearBuilt": 2022,
     "totalBuiltupAreaSqm": 21600,
     "address": "Mumbai Suburban - 400088",
-    "simulated": true
+    "simulated": true,
   },
   {
     "id": "bldg-maharera-14",
@@ -2918,7 +2968,7 @@ export const MAHARERA_BUILDINGS: Building[] = [
     "yearBuilt": 2022,
     "totalBuiltupAreaSqm": 22800,
     "address": "Andheri-Ghatkopar Link Road, Nityananad Nagar, Mumbai Suburban - 400086",
-    "simulated": true
+    "simulated": true,
   },
   {
     "id": "bldg-maharera-15",
@@ -2959,7 +3009,7 @@ export const MAHARERA_BUILDINGS: Building[] = [
     "yearBuilt": 2022,
     "totalBuiltupAreaSqm": 6000,
     "address": "Mumbai City - 400015",
-    "simulated": true
+    "simulated": true,
   },
   {
     "id": "bldg-maharera-16",
@@ -3000,7 +3050,7 @@ export const MAHARERA_BUILDINGS: Building[] = [
     "yearBuilt": 2022,
     "totalBuiltupAreaSqm": 7200,
     "address": "SAKI VIHAR ROAD, SAKI NAKA, Mumbai Suburban - 400072",
-    "simulated": true
+    "simulated": true,
   },
   {
     "id": "bldg-maharera-17",
@@ -3041,7 +3091,7 @@ export const MAHARERA_BUILDINGS: Building[] = [
     "yearBuilt": 2022,
     "totalBuiltupAreaSqm": 8400,
     "address": "Andheri - Kurla Road, Sakinaka, Mumbai Suburban - 400072",
-    "simulated": true
+    "simulated": true,
   },
   {
     "id": "bldg-maharera-18",
@@ -3082,7 +3132,7 @@ export const MAHARERA_BUILDINGS: Building[] = [
     "yearBuilt": 2022,
     "totalBuiltupAreaSqm": 9600,
     "address": "Mumbai Suburban - 400054",
-    "simulated": true
+    "simulated": true,
   },
   {
     "id": "bldg-maharera-19",
@@ -3123,7 +3173,7 @@ export const MAHARERA_BUILDINGS: Building[] = [
     "yearBuilt": 2022,
     "totalBuiltupAreaSqm": 10800,
     "address": "Ram Joshi Marg, Barve Nagar Bhatwadi, Mumbai Suburban - 400084",
-    "simulated": true
+    "simulated": true,
   },
   {
     "id": "bldg-maharera-20",
@@ -3164,7 +3214,7 @@ export const MAHARERA_BUILDINGS: Building[] = [
     "yearBuilt": 2022,
     "totalBuiltupAreaSqm": 12000,
     "address": "Mumbai City - 400075",
-    "simulated": true
+    "simulated": true,
   },
   {
     "id": "bldg-maharera-21",
@@ -3205,7 +3255,7 @@ export const MAHARERA_BUILDINGS: Building[] = [
     "yearBuilt": 2022,
     "totalBuiltupAreaSqm": 13200,
     "address": "Mumbai Suburban - 400058",
-    "simulated": true
+    "simulated": true,
   },
   {
     "id": "bldg-maharera-22",
@@ -3246,7 +3296,7 @@ export const MAHARERA_BUILDINGS: Building[] = [
     "yearBuilt": 2022,
     "totalBuiltupAreaSqm": 14400,
     "address": "Mumbai City - 400022",
-    "simulated": true
+    "simulated": true,
   },
   {
     "id": "bldg-maharera-23",
@@ -3287,7 +3337,7 @@ export const MAHARERA_BUILDINGS: Building[] = [
     "yearBuilt": 2022,
     "totalBuiltupAreaSqm": 15600,
     "address": "MUMBAI, MUMBAI, Mumbai City - 400002",
-    "simulated": true
+    "simulated": true,
   },
   {
     "id": "bldg-maharera-24",
@@ -3328,7 +3378,7 @@ export const MAHARERA_BUILDINGS: Building[] = [
     "yearBuilt": 2022,
     "totalBuiltupAreaSqm": 16800,
     "address": "Mumbai Suburban - 400104",
-    "simulated": true
+    "simulated": true,
   },
   {
     "id": "bldg-maharera-25",
@@ -3369,7 +3419,7 @@ export const MAHARERA_BUILDINGS: Building[] = [
     "yearBuilt": 2022,
     "totalBuiltupAreaSqm": 18000,
     "address": "Mumbai Suburban - 400076",
-    "simulated": true
+    "simulated": true,
   },
   {
     "id": "bldg-maharera-26",
@@ -3410,7 +3460,7 @@ export const MAHARERA_BUILDINGS: Building[] = [
     "yearBuilt": 2022,
     "totalBuiltupAreaSqm": 19200,
     "address": "Mumbai City - 400014",
-    "simulated": true
+    "simulated": true,
   },
   {
     "id": "bldg-maharera-27",
@@ -3451,7 +3501,7 @@ export const MAHARERA_BUILDINGS: Building[] = [
     "yearBuilt": 2022,
     "totalBuiltupAreaSqm": 20400,
     "address": "Mumbai Suburban - 400080",
-    "simulated": true
+    "simulated": true,
   },
   {
     "id": "bldg-maharera-28",
@@ -3492,7 +3542,7 @@ export const MAHARERA_BUILDINGS: Building[] = [
     "yearBuilt": 2022,
     "totalBuiltupAreaSqm": 21600,
     "address": "Dattapada Road, Borivali East, Mumbai Suburban - 400066",
-    "simulated": true
+    "simulated": true,
   },
   {
     "id": "bldg-maharera-29",
@@ -3533,7 +3583,7 @@ export const MAHARERA_BUILDINGS: Building[] = [
     "yearBuilt": 2022,
     "totalBuiltupAreaSqm": 22800,
     "address": "Mumbai Suburban - 400067",
-    "simulated": true
+    "simulated": true,
   },
   {
     "id": "bldg-maharera-30",
@@ -3574,7 +3624,7 @@ export const MAHARERA_BUILDINGS: Building[] = [
     "yearBuilt": 2022,
     "totalBuiltupAreaSqm": 6000,
     "address": "Mumbai Suburban - 400080",
-    "simulated": true
+    "simulated": true,
   },
   {
     "id": "bldg-maharera-31",
@@ -3615,7 +3665,7 @@ export const MAHARERA_BUILDINGS: Building[] = [
     "yearBuilt": 2022,
     "totalBuiltupAreaSqm": 7200,
     "address": "Mumbai Suburban - 400060",
-    "simulated": true
+    "simulated": true,
   },
   {
     "id": "bldg-maharera-32",
@@ -3656,7 +3706,7 @@ export const MAHARERA_BUILDINGS: Building[] = [
     "yearBuilt": 2022,
     "totalBuiltupAreaSqm": 8400,
     "address": "Mumbai City - 400013",
-    "simulated": true
+    "simulated": true,
   },
   {
     "id": "bldg-maharera-33",
@@ -3697,7 +3747,7 @@ export const MAHARERA_BUILDINGS: Building[] = [
     "yearBuilt": 2022,
     "totalBuiltupAreaSqm": 9600,
     "address": "Mumbai Suburban - 400054",
-    "simulated": true
+    "simulated": true,
   },
   {
     "id": "bldg-maharera-34",
@@ -3738,7 +3788,7 @@ export const MAHARERA_BUILDINGS: Building[] = [
     "yearBuilt": 2022,
     "totalBuiltupAreaSqm": 10800,
     "address": "Mumbai Suburban - 400049",
-    "simulated": true
+    "simulated": true,
   },
   {
     "id": "bldg-maharera-35",
@@ -3779,7 +3829,7 @@ export const MAHARERA_BUILDINGS: Building[] = [
     "yearBuilt": 2022,
     "totalBuiltupAreaSqm": 12000,
     "address": "Mumbai City - 400028",
-    "simulated": true
+    "simulated": true,
   },
   {
     "id": "bldg-maharera-36",
@@ -3820,7 +3870,7 @@ export const MAHARERA_BUILDINGS: Building[] = [
     "yearBuilt": 2022,
     "totalBuiltupAreaSqm": 13200,
     "address": "Malwani, Malwani, Mumbai Suburban - 400095",
-    "simulated": true
+    "simulated": true,
   },
   {
     "id": "bldg-maharera-37",
@@ -3861,7 +3911,7 @@ export const MAHARERA_BUILDINGS: Building[] = [
     "yearBuilt": 2022,
     "totalBuiltupAreaSqm": 14400,
     "address": "Mumbai City - 400013",
-    "simulated": true
+    "simulated": true,
   },
   {
     "id": "bldg-maharera-38",
@@ -3902,7 +3952,7 @@ export const MAHARERA_BUILDINGS: Building[] = [
     "yearBuilt": 2022,
     "totalBuiltupAreaSqm": 15600,
     "address": "Mumbai City - 400015",
-    "simulated": true
+    "simulated": true,
   },
   {
     "id": "bldg-maharera-39",
@@ -3943,7 +3993,7 @@ export const MAHARERA_BUILDINGS: Building[] = [
     "yearBuilt": 2022,
     "totalBuiltupAreaSqm": 16800,
     "address": "Mumbai City - 400013",
-    "simulated": true
+    "simulated": true,
   },
   {
     "id": "bldg-maharera-40",
@@ -3984,7 +4034,7 @@ export const MAHARERA_BUILDINGS: Building[] = [
     "yearBuilt": 2022,
     "totalBuiltupAreaSqm": 18000,
     "address": "Mumbai City - 400014",
-    "simulated": true
+    "simulated": true,
   },
   {
     "id": "bldg-maharera-41",
@@ -4025,7 +4075,7 @@ export const MAHARERA_BUILDINGS: Building[] = [
     "yearBuilt": 2022,
     "totalBuiltupAreaSqm": 19200,
     "address": "Mumbai City - 400013",
-    "simulated": true
+    "simulated": true,
   },
   {
     "id": "bldg-maharera-42",
@@ -4066,7 +4116,7 @@ export const MAHARERA_BUILDINGS: Building[] = [
     "yearBuilt": 2022,
     "totalBuiltupAreaSqm": 20400,
     "address": "Mumbai City - 400022",
-    "simulated": true
+    "simulated": true,
   },
   {
     "id": "bldg-maharera-43",
@@ -4107,7 +4157,7 @@ export const MAHARERA_BUILDINGS: Building[] = [
     "yearBuilt": 2022,
     "totalBuiltupAreaSqm": 21600,
     "address": "Mumbai Suburban - 400064",
-    "simulated": true
+    "simulated": true,
   },
   {
     "id": "bldg-maharera-44",
@@ -4148,7 +4198,7 @@ export const MAHARERA_BUILDINGS: Building[] = [
     "yearBuilt": 2022,
     "totalBuiltupAreaSqm": 22800,
     "address": "Mumbai City - 400022",
-    "simulated": true
+    "simulated": true,
   },
   {
     "id": "bldg-maharera-45",
@@ -4189,7 +4239,7 @@ export const MAHARERA_BUILDINGS: Building[] = [
     "yearBuilt": 2022,
     "totalBuiltupAreaSqm": 6000,
     "address": "Sahakar Nagar Road No.3, Chambur, Mumbai Suburban - 400071",
-    "simulated": true
+    "simulated": true,
   },
   {
     "id": "bldg-maharera-46",
@@ -4230,7 +4280,7 @@ export const MAHARERA_BUILDINGS: Building[] = [
     "yearBuilt": 2022,
     "totalBuiltupAreaSqm": 7200,
     "address": "Kannamwar Nagar-1, Vikhroli East, Mumbai Suburban - 400083",
-    "simulated": true
+    "simulated": true,
   },
   {
     "id": "bldg-maharera-47",
@@ -4271,7 +4321,7 @@ export const MAHARERA_BUILDINGS: Building[] = [
     "yearBuilt": 2022,
     "totalBuiltupAreaSqm": 8400,
     "address": "Mumbai Suburban - 400055",
-    "simulated": true
+    "simulated": true,
   },
   {
     "id": "bldg-maharera-48",
@@ -4312,7 +4362,7 @@ export const MAHARERA_BUILDINGS: Building[] = [
     "yearBuilt": 2022,
     "totalBuiltupAreaSqm": 9600,
     "address": "Sambar Road, Nehru Nagar, Mumbai Suburban - 400024",
-    "simulated": true
+    "simulated": true,
   },
   {
     "id": "bldg-maharera-49",
@@ -4353,7 +4403,7 @@ export const MAHARERA_BUILDINGS: Building[] = [
     "yearBuilt": 2022,
     "totalBuiltupAreaSqm": 10800,
     "address": "Mumbai City - 400012",
-    "simulated": true
+    "simulated": true,
   }
 ];
 

@@ -320,49 +320,78 @@ export const InspectorPanel: React.FC = () => {
       </div>
 
       {/* 3D ULPIN Identity Banner */}
-      {currentUlpin && (
-        <div className="bg-white/5 backdrop-blur-md rounded-2xl p-4 border border-white/10 shadow-lg">
-          <div className="flex items-center justify-between text-[11px] text-slate-500 mb-2">
-            <span className="font-medium tracking-wide flex items-center gap-1.5 text-slate-400">
-              <Hash className="w-3.5 h-3.5 text-blue-400" />
-              Unique 3D ULPIN
-            </span>
-            <button
-              onClick={() => handleCopy(currentUlpin)}
-              className="flex items-center gap-1 text-brand-primary hover:text-white transition-colors"
-            >
-              {copied ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3" />}
-              <span>{copied ? 'Copied' : 'Copy'}</span>
-            </button>
-          </div>
+      {currentUlpin && (() => {
+        // Determine whether this is a real ULPIN or a demo reference ID
+        const isParcelOnly = !unit && !underground && !building?.ulpin3D;
+        const parcelDataSource = parcel?.dataSource;
+        // For parcel-only view, label is driven by parcel.dataSource
+        // For vertical units, show as 3D ULPIN (the base format is always derived)
+        const isDemo = isParcelOnly && parcelDataSource === 'demo';
+        const isVerified = isParcelOnly && parcelDataSource === 'verified';
 
-          <div className="text-sm font-mono font-medium text-slate-100 tracking-wider break-all select-all bg-black/30 px-3 py-2 rounded-lg border border-white/5 shadow-inner">
-            {currentUlpin}
-          </div>
-
-          {/* 3D ULPIN Decomposition Breakdown */}
-          {parsedUlpin && (
-            <div className="mt-3 grid grid-cols-4 gap-1.5 text-center font-mono text-[9px] pt-3 border-t border-white/5">
-              <div className="bg-white/5 p-1.5 rounded-md">
-                <div className="text-slate-500 text-[9px] font-sans">BASE</div>
-                <div className="text-slate-300 font-medium truncate mt-0.5">{parsedUlpin.baseUlpin.slice(-6)}</div>
-              </div>
-              <div className="bg-white/5 p-1.5 rounded-md">
-                <div className="text-slate-500 text-[9px] font-sans">DOMAIN</div>
-                <div className="text-slate-300 font-medium mt-0.5">{parsedUlpin.domainCode}</div>
-              </div>
-              <div className="bg-white/5 p-1.5 rounded-md">
-                <div className="text-slate-500 text-[9px] font-sans">LEVEL</div>
-                <div className="text-slate-300 font-medium mt-0.5">{parsedUlpin.levelCode}</div>
-              </div>
-              <div className="bg-white/5 p-1.5 rounded-md">
-                <div className="text-slate-500 text-[9px] font-sans">UNIT</div>
-                <div className="text-slate-300 font-medium truncate mt-0.5">{parsedUlpin.unitCode}</div>
-              </div>
+        return (
+          <div className={`backdrop-blur-md rounded-2xl p-4 border shadow-lg ${
+            isDemo
+              ? 'bg-amber-950/30 border-amber-500/30'
+              : isVerified
+                ? 'bg-emerald-950/20 border-emerald-500/30'
+                : 'bg-white/5 border-white/10'
+          }`}>
+            <div className="flex items-center justify-between text-[11px] text-slate-500 mb-2">
+              <span className="font-medium tracking-wide flex items-center gap-1.5">
+                <Hash className="w-3.5 h-3.5 text-blue-400" />
+                {isDemo
+                  ? <span className="text-amber-400 font-semibold">Demo Reference ID</span>
+                  : isVerified
+                    ? <span className="text-emerald-400 font-semibold">ULPIN (Bhu-Aadhaar)</span>
+                    : <span className="text-slate-400">Unique 3D ULPIN</span>
+                }
+              </span>
+              <button
+                onClick={() => handleCopy(currentUlpin)}
+                className="flex items-center gap-1 text-brand-primary hover:text-white transition-colors"
+              >
+                {copied ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3" />}
+                <span>{copied ? 'Copied' : 'Copy'}</span>
+              </button>
             </div>
-          )}
-        </div>
-      )}
+
+            <div className="text-sm font-mono font-medium text-slate-100 tracking-wider break-all select-all bg-black/30 px-3 py-2 rounded-lg border border-white/5 shadow-inner">
+              {currentUlpin}
+            </div>
+
+            {/* Data source disclaimer for demo parcels */}
+            {isDemo && (
+              <div className="mt-2 flex items-start gap-1.5 text-[10px] text-amber-300/80 leading-relaxed bg-amber-500/10 rounded-lg px-2.5 py-2 border border-amber-500/20">
+                <AlertTriangle className="w-3 h-3 text-amber-400 flex-shrink-0 mt-0.5" />
+                <span>Synthetic placeholder — <strong>not a government-issued Bhu-Aadhaar ULPIN</strong>. For authentic records, consult Mahabhulekh (bhulekh.mahabhumi.gov.in).</span>
+              </div>
+            )}
+
+            {/* 3D ULPIN Decomposition Breakdown */}
+            {parsedUlpin && (
+              <div className="mt-3 grid grid-cols-4 gap-1.5 text-center font-mono text-[9px] pt-3 border-t border-white/5">
+                <div className="bg-white/5 p-1.5 rounded-md">
+                  <div className="text-slate-500 text-[9px] font-sans">BASE</div>
+                  <div className="text-slate-300 font-medium truncate mt-0.5">{parsedUlpin.baseUlpin.slice(-6)}</div>
+                </div>
+                <div className="bg-white/5 p-1.5 rounded-md">
+                  <div className="text-slate-500 text-[9px] font-sans">DOMAIN</div>
+                  <div className="text-slate-300 font-medium mt-0.5">{parsedUlpin.domainCode}</div>
+                </div>
+                <div className="bg-white/5 p-1.5 rounded-md">
+                  <div className="text-slate-500 text-[9px] font-sans">LEVEL</div>
+                  <div className="text-slate-300 font-medium mt-0.5">{parsedUlpin.levelCode}</div>
+                </div>
+                <div className="bg-white/5 p-1.5 rounded-md">
+                  <div className="text-slate-500 text-[9px] font-sans">UNIT</div>
+                  <div className="text-slate-300 font-medium truncate mt-0.5">{parsedUlpin.unitCode}</div>
+                </div>
+              </div>
+            )}
+          </div>
+        );
+      })()}
 
       {/* Validation & Conflict Status Alert */}
       {unit?.validationStatus === 'CONFLICT' || conflictLog ? (

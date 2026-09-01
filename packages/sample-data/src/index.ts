@@ -34,6 +34,7 @@ const _SAMPLE_PARCELS: Parcel[] = [
     crs: 'EPSG:4326',
     ownershipType: 'Leasehold',
     simulated: true,
+    dataSource: 'demo',
     createdAt: '2026-01-15T09:00:00Z',
     updatedAt: '2026-08-20T14:30:00Z'
   },
@@ -56,6 +57,7 @@ const _SAMPLE_PARCELS: Parcel[] = [
     crs: 'EPSG:4326',
     ownershipType: 'Leasehold',
     simulated: true,
+    dataSource: 'demo',
     createdAt: '2026-01-18T11:00:00Z',
     updatedAt: '2026-08-21T10:00:00Z'
   },
@@ -78,6 +80,7 @@ const _SAMPLE_PARCELS: Parcel[] = [
     crs: 'EPSG:4326',
     ownershipType: 'Leasehold',
     simulated: true,
+    dataSource: 'demo',
     createdAt: '2026-01-22T09:30:00Z',
     updatedAt: '2026-08-22T14:00:00Z'
   },
@@ -100,6 +103,7 @@ const _SAMPLE_PARCELS: Parcel[] = [
     crs: 'EPSG:4326',
     ownershipType: 'Leasehold',
     simulated: true,
+    dataSource: 'demo',
     createdAt: '2026-02-01T10:00:00Z',
     updatedAt: '2026-08-20T12:00:00Z'
   },
@@ -124,6 +128,7 @@ const _SAMPLE_PARCELS: Parcel[] = [
     crs: 'EPSG:4326',
     ownershipType: 'Private',
     simulated: true,
+    dataSource: 'demo',
     createdAt: '2026-02-10T10:15:00Z',
     updatedAt: '2026-08-22T11:00:00Z'
   },
@@ -146,6 +151,7 @@ const _SAMPLE_PARCELS: Parcel[] = [
     crs: 'EPSG:4326',
     ownershipType: 'Private',
     simulated: true,
+    dataSource: 'demo',
     createdAt: '2026-02-12T14:20:00Z',
     updatedAt: '2026-08-23T16:00:00Z'
   },
@@ -168,6 +174,7 @@ const _SAMPLE_PARCELS: Parcel[] = [
     crs: 'EPSG:4326',
     ownershipType: 'Leasehold',
     simulated: true,
+    dataSource: 'demo',
     createdAt: '2026-02-15T10:00:00Z',
     updatedAt: '2026-08-24T09:00:00Z'
   },
@@ -190,6 +197,7 @@ const _SAMPLE_PARCELS: Parcel[] = [
     crs: 'EPSG:4326',
     ownershipType: 'Government',
     simulated: true,
+    dataSource: 'demo',
     createdAt: '2026-02-18T08:00:00Z',
     updatedAt: '2026-08-20T10:00:00Z'
   },
@@ -214,6 +222,7 @@ const _SAMPLE_PARCELS: Parcel[] = [
     crs: 'EPSG:4326',
     ownershipType: 'Private',
     simulated: true,
+    dataSource: 'demo',
     createdAt: '2026-03-01T08:30:00Z',
     updatedAt: '2026-08-25T16:45:00Z'
   },
@@ -236,6 +245,7 @@ const _SAMPLE_PARCELS: Parcel[] = [
     crs: 'EPSG:4326',
     ownershipType: 'Private',
     simulated: true,
+    dataSource: 'demo',
     createdAt: '2026-03-05T09:15:00Z',
     updatedAt: '2026-08-26T11:30:00Z'
   },
@@ -258,6 +268,7 @@ const _SAMPLE_PARCELS: Parcel[] = [
     crs: 'EPSG:4326',
     ownershipType: 'Private',
     simulated: true,
+    dataSource: 'demo',
     createdAt: '2026-03-08T10:00:00Z',
     updatedAt: '2026-08-26T15:00:00Z'
   },
@@ -280,6 +291,7 @@ const _SAMPLE_PARCELS: Parcel[] = [
     crs: 'EPSG:4326',
     ownershipType: 'Private',
     simulated: true,
+    dataSource: 'demo',
     createdAt: '2026-03-10T12:00:00Z',
     updatedAt: '2026-08-25T17:00:00Z'
   },
@@ -304,6 +316,7 @@ const _SAMPLE_PARCELS: Parcel[] = [
     crs: 'EPSG:4326',
     ownershipType: 'Government',
     simulated: true,
+    dataSource: 'demo',
     createdAt: '2026-03-15T09:00:00Z',
     updatedAt: '2026-08-22T16:00:00Z'
   },
@@ -326,6 +339,7 @@ const _SAMPLE_PARCELS: Parcel[] = [
     crs: 'EPSG:4326',
     ownershipType: 'Private',
     simulated: true,
+    dataSource: 'demo',
     createdAt: '2026-03-18T10:30:00Z',
     updatedAt: '2026-08-24T14:30:00Z'
   },
@@ -350,6 +364,7 @@ const _SAMPLE_PARCELS: Parcel[] = [
     crs: 'EPSG:4326',
     ownershipType: 'Private',
     simulated: true,
+    dataSource: 'demo',
     createdAt: '2026-03-20T11:00:00Z',
     updatedAt: '2026-08-25T10:00:00Z'
   },
@@ -372,6 +387,7 @@ const _SAMPLE_PARCELS: Parcel[] = [
     crs: 'EPSG:4326',
     ownershipType: 'Leasehold',
     simulated: true,
+    dataSource: 'demo',
     createdAt: '2026-01-10T08:00:00Z',
     updatedAt: '2026-08-20T10:00:00Z'
   },
@@ -394,6 +410,7 @@ const _SAMPLE_PARCELS: Parcel[] = [
     crs: 'EPSG:4326',
     ownershipType: 'Private',
     simulated: true,
+    dataSource: 'demo',
     createdAt: '2026-01-10T08:00:00Z',
     updatedAt: '2026-08-20T10:00:00Z'
   }

@@ -89,6 +89,13 @@ export interface Parcel {
   ownershipType: 'Government' | 'Private' | 'Municipal' | 'Leasehold';
   zoningCategory?: string;
   visibleTo?: string[];
+  /**
+   * DATA PROVENANCE — mandatory field.
+   * 'verified'  → ulpin is a real government-issued Bhu-Aadhaar ID from Mahabhulekh.
+   * 'demo'      → ulpin is a synthetic placeholder; NOT a real government ULPIN.
+   * 'proposed'  → parcel exists in a draft/planning stage, not yet officially surveyed.
+   */
+  dataSource: 'verified' | 'demo' | 'proposed';
   simulated: boolean;
   createdAt: string;
   updatedAt: string;
