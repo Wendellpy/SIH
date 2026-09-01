@@ -1034,125 +1034,150 @@ export const MapLibre3DMap: React.FC = () => {
         });
 
         // Step 1.5: Fetch MyBMC Data asynchronously (now enforcing strict MyBMC selection & true geometry)
-        setIsFetchingBmc(true);
-        fetch(`https://mybmcid.mcgm.gov.in/server/rest/services/MCGM_UID/IPVS/FeatureServer/1/query?geometry=${queryLng},${queryLat}&geometryType=esriGeometryPoint&inSR=4326&spatialRel=esriSpatialRelIntersects&outFields=*&returnGeometry=true&outSR=4326&f=json`)
-          .then(res => res.json())
-          .then(bmcJson => {
-            if (bmcJson && bmcJson.features && bmcJson.features.length > 0) {
-              const bmcProps = bmcJson.features[0].attributes || bmcJson.features[0].properties;
-              const bmcData = {
-                sacNumber: bmcProps.SAC_NUMBER || 'UNKNOWN',
-                usage: bmcProps.USAGE || 'Unknown',
-                name: bmcProps.NAME || 'Unnamed BMC Building',
-                noOfFloorsStr: bmcProps.NO_OF_FLOO || '',
-                unitCount: parseInt(bmcProps.UNIT_CNT) || 0,
+        // Check if the click is within Mumbai boundaries
+        const isMumbai = queryLat >= 18.85 && queryLat <= 19.35 && queryLng >= 72.70 && queryLng <= 73.10;
+
+        const executeOverpassFallback = () => {
+          // Pan-India Fallback: Overpass API
+          // Search for any named feature (node, way, relation) within 30 meters, or just any building
+          const overpassQuery = `[out:json];(nwr(around:30,${queryLat},${queryLng})["name"];nwr(around:30,${queryLat},${queryLng})["building"];);out tags;`;
+          return fetch(`https://overpass-api.de/api/interpreter`, {
+            method: 'POST',
+            body: overpassQuery
+          }).then(r => r.json()).then(osmJson => {
+            if (osmJson && osmJson.elements && osmJson.elements.length > 0) {
+              // Prioritize elements that actually have a name
+              const bestElement = osmJson.elements.find((e: any) => e.tags && (e.tags.name || e.tags['name:en'])) || osmJson.elements[0];
+              const tags = bestElement.tags || {};
+              
+              let fallbackName = tags['building:levels'] ? `OSM Building (${tags['building:levels']} Floors)` : 'Generic OSM Structure';
+              
+              const osmData = {
+                sacNumber: `OSM-${bestElement.id}`,
+                usage: tags.building || tags.amenity || tags.shop || tags.office || 'Unknown',
+                name: tags.name || tags['name:en'] || fallbackName,
+                noOfFloorsStr: tags['building:levels'] || '',
+                unitCount: parseInt(tags['building:levels']) || 0,
               };
               
-              let parsedFloors = 0;
-              let hasBasement = false;
-              if (bmcData.noOfFloorsStr) {
-                 const str = bmcData.noOfFloorsStr.toLowerCase();
-                 if (str.includes('b') || str.includes('base')) hasBasement = true;
-                 const match = str.match(/\d+/);
-                 if (match) parsedFloors = parseInt(match[0], 10) + (str.includes('g') || str.includes('gr') ? 1 : 0);
-                 else if (str.includes('g') || str.includes('gr')) parsedFloors = 1;
-              }
-              
-              setSelectedBuildingInfo(prev => {
-                if (!prev) return prev;
-                // Update the dynamic building with accurate heights ONLY if BMC had valid floor data
-                let finalName = (bmcData.name && bmcData.name.trim().length > 1) ? bmcData.name : prev.building.name;
-                if (bmcData.usage && bmcData.usage !== 'Unknown' && !finalName.includes('[')) {
-                   finalName = `${finalName} [${bmcData.usage}]`;
-                }
-                const footprintArea = bmcProps['SHAPE.AREA'] || bmcProps.Shape__Area || bmcProps.SHAPE_Area || 650;
-                
-                const accurateFloors = parsedFloors > 0 ? parsedFloors : prev.floors;
-                const originalHeight = prev.height; // Always keep the building at its visual OSM height to prevent popping/climbing
-                
-                const updatedBuilding = {
-                  ...prev.building,
-                  numFloors: accurateFloors,
-                  numBasements: hasBasement ? 1 : prev.building.numBasements,
-                  totalBuiltupAreaSqm: accurateFloors * footprintArea,
-                  name: finalName
-                };
-                
-                return {
-                  ...prev,
-                  height: originalHeight,
-                  floors: accurateFloors,
-                  buildingName: updatedBuilding.name,
-                  building: updatedBuilding,
-                  bmcData
-                };
-              });
-            } else {
-              // Pan-India Fallback: Overpass API
-              // Search for any named feature (node, way, relation) within 30 meters, or just any building
-              const overpassQuery = `[out:json];(nwr(around:30,${queryLat},${queryLng})["name"];nwr(around:30,${queryLat},${queryLng})["building"];);out tags;`;
-              return fetch(`https://overpass-api.de/api/interpreter`, {
-                method: 'POST',
-                body: overpassQuery
-              }).then(r => r.json()).then(osmJson => {
-                if (osmJson && osmJson.elements && osmJson.elements.length > 0) {
-                  // Prioritize elements that actually have a name
-                  const bestElement = osmJson.elements.find((e: any) => e.tags && (e.tags.name || e.tags['name:en'])) || osmJson.elements[0];
-                  const tags = bestElement.tags || {};
-                  
-                  let fallbackName = tags['building:levels'] ? `OSM Building (${tags['building:levels']} Floors)` : 'Generic OSM Structure';
-                  
-                  const osmData = {
-                    sacNumber: `OSM-${bestElement.id}`,
-                    usage: tags.building || tags.amenity || tags.shop || tags.office || 'Unknown',
-                    name: tags.name || tags['name:en'] || fallbackName,
-                    noOfFloorsStr: tags['building:levels'] || '',
-                  };
-                  
-                  const updateState = (data: any) => {
-                    setSelectedBuildingInfo(prev => {
-                      if (!prev) return prev;
-                      let finalName = data.name !== 'Unnamed Building' ? data.name : prev.buildingName;
-                      if (data.usage && data.usage !== 'Unknown' && !finalName.includes('[')) {
-                         finalName = `${finalName} [${data.usage}]`;
-                      }
-                      return { 
-                        ...prev, 
-                        buildingName: finalName,
-                        building: { ...prev.building, name: finalName },
-                        bmcData: data 
-                      };
-                    });
-                  };
-
-                  if (!tags.name && !tags['name:en']) {
-                    // Stitch Layer: Nominatim Reverse Geocoding for nameless buildings
-                    fetch(`https://nominatim.openstreetmap.org/reverse?lat=${queryLat}&lon=${queryLng}&format=json`)
-                      .then(res => res.json())
-                      .then(nomData => {
-                        if (nomData && nomData.display_name) {
-                           osmData.name = nomData.display_name.split(',').slice(0, 2).join(', '); // Get short address
-                        }
-                        updateState(osmData);
-                      })
-                      .catch(() => updateState(osmData));
-                  } else {
-                    updateState(osmData);
+              const updateState = (data: any) => {
+                setSelectedBuildingInfo(prev => {
+                  if (!prev) return prev;
+                  let finalName = data.name !== 'Unnamed Building' ? data.name : prev.buildingName;
+                  if (data.usage && data.usage !== 'Unknown' && !finalName.includes('[')) {
+                     finalName = `${finalName} [${data.usage}]`;
                   }
-                } else {
-                  setSelectedBuildingInfo(prev => prev ? { ...prev, bmcData: { sacNumber: '', usage: '', name: '', noOfFloorsStr: '', unitCount: 0, notFound: true } } : prev);
-                }
-              });
+                  
+                  // Calculate area and floors for non-BMC properties
+                  const accurateFloors = parseInt(data.noOfFloorsStr) || prev.floors || 1;
+                  const originalHeight = prev.height; 
+                  
+                  const updatedBuilding = {
+                    ...prev.building,
+                    numFloors: accurateFloors,
+                    name: finalName
+                  };
+                  
+                  return { 
+                    ...prev, 
+                    height: originalHeight,
+                    floors: accurateFloors,
+                    buildingName: finalName,
+                    building: updatedBuilding,
+                    bmcData: data 
+                  };
+                });
+              };
+
+              if (!tags.name && !tags['name:en']) {
+                // Stitch Layer: Nominatim Reverse Geocoding for nameless buildings
+                fetch(`https://nominatim.openstreetmap.org/reverse?lat=${queryLat}&lon=${queryLng}&format=json`)
+                  .then(res => res.json())
+                  .then(nomData => {
+                    if (nomData && nomData.display_name) {
+                       osmData.name = nomData.display_name.split(',').slice(0, 2).join(', '); // Get short address
+                    }
+                    updateState(osmData);
+                  })
+                  .catch(() => updateState(osmData));
+              } else {
+                updateState(osmData);
+              }
+            } else {
+              setSelectedBuildingInfo(prev => prev ? { ...prev, bmcData: { sacNumber: '', usage: '', name: '', noOfFloorsStr: '', unitCount: 0, notFound: true } } : prev);
             }
-          })
-          .catch(err => {
-            console.warn('[MapLibre] Failed to fetch data', err);
-            setSelectedBuildingInfo(prev => prev ? {
-              ...prev,
-              bmcData: { sacNumber: '', usage: '', name: '', noOfFloorsStr: '', unitCount: 0, notFound: true }
-            } : null);
-          })
-          .finally(() => setIsFetchingBmc(false));
+          });
+        };
+
+        // Step 1.5: Fetch MyBMC Data asynchronously (now enforcing strict MyBMC selection & true geometry)
+        setIsFetchingBmc(true);
+        
+        if (isMumbai) {
+          fetch(`https://mybmcid.mcgm.gov.in/server/rest/services/MCGM_UID/IPVS/FeatureServer/1/query?geometry=${queryLng},${queryLat}&geometryType=esriGeometryPoint&inSR=4326&spatialRel=esriSpatialRelIntersects&outFields=*&returnGeometry=true&outSR=4326&f=json`)
+            .then(res => res.json())
+            .then(bmcJson => {
+              if (bmcJson && bmcJson.features && bmcJson.features.length > 0) {
+                const bmcProps = bmcJson.features[0].attributes || bmcJson.features[0].properties;
+                const bmcData = {
+                  sacNumber: bmcProps.SAC_NUMBER || 'UNKNOWN',
+                  usage: bmcProps.USAGE || 'Unknown',
+                  name: bmcProps.NAME || 'Unnamed BMC Building',
+                  noOfFloorsStr: bmcProps.NO_OF_FLOO || '',
+                  unitCount: parseInt(bmcProps.UNIT_CNT) || 0,
+                };
+                
+                let parsedFloors = 0;
+                let hasBasement = false;
+                if (bmcData.noOfFloorsStr) {
+                   const str = bmcData.noOfFloorsStr.toLowerCase();
+                   if (str.includes('b') || str.includes('base')) hasBasement = true;
+                   const match = str.match(/\d+/);
+                   if (match) parsedFloors = parseInt(match[0], 10) + (str.includes('g') || str.includes('gr') ? 1 : 0);
+                   else if (str.includes('g') || str.includes('gr')) parsedFloors = 1;
+                }
+                
+                setSelectedBuildingInfo(prev => {
+                  if (!prev) return prev;
+                  // Update the dynamic building with accurate heights ONLY if BMC had valid floor data
+                  let finalName = (bmcData.name && bmcData.name.trim().length > 1) ? bmcData.name : prev.building.name;
+                  if (bmcData.usage && bmcData.usage !== 'Unknown' && !finalName.includes('[')) {
+                     finalName = `${finalName} [${bmcData.usage}]`;
+                  }
+                  const footprintArea = bmcProps['SHAPE.AREA'] || bmcProps.Shape__Area || bmcProps.SHAPE_Area || 650;
+                  
+                  const accurateFloors = parsedFloors > 0 ? parsedFloors : prev.floors;
+                  const originalHeight = prev.height; // Always keep the building at its visual OSM height to prevent popping/climbing
+                  
+                  const updatedBuilding = {
+                    ...prev.building,
+                    numFloors: accurateFloors,
+                    numBasements: hasBasement ? 1 : prev.building.numBasements,
+                    totalBuiltupAreaSqm: accurateFloors * footprintArea,
+                    name: finalName
+                  };
+                  
+                  return {
+                    ...prev,
+                    height: originalHeight,
+                    floors: accurateFloors,
+                    buildingName: updatedBuilding.name,
+                    building: updatedBuilding,
+                    bmcData
+                  };
+                });
+              } else {
+                executeOverpassFallback();
+              }
+            })
+            .catch(err => {
+              console.warn('[MapLibre] Failed to fetch data', err);
+              executeOverpassFallback();
+            })
+            .finally(() => setIsFetchingBmc(false));
+        } else {
+          // Immediately use fallback for non-Mumbai regions
+          executeOverpassFallback().finally(() => setIsFetchingBmc(false));
+        }
 
         // Step 2: Fetch ownership data from API
         try {
