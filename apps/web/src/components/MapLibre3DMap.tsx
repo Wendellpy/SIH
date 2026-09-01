@@ -2575,26 +2575,30 @@ export const MapLibre3DMap: React.FC = () => {
               </button>
             </div>
             
-            <div className="flex-1 p-6 overflow-y-auto custom-scrollbar flex flex-col gap-8 items-center bg-slate-900">
+            <div className="flex-1 p-6 overflow-hidden flex flex-col bg-slate-900">
               {aquariaViewMode === '3D' ? (
-                <FloorPlan3D />
+                <div className="w-full h-full flex-1">
+                  <FloorPlan3D planIndex={parseInt(selectedUnit) || 0} />
+                </div>
               ) : (
-                [
-                  'https://img.staticmb.com/mbimages/project/2023/11/08/Master-Plan-25-Wadhwa-Aquaria-Grande-Mumbai-5029949_462_700.jpg',
-                  'https://img.staticmb.com/mbimages/project/Floor-Plan-2-Wadhwa-Aquaria-Grande-Mumbai-5029949_700_1024.jpg',
-                  'https://img.staticmb.com/mbimages/project/Floor-Plan-23-Wadhwa-Aquaria-Grande-Mumbai-5029949_618_1024.jpg',
-                  'https://img.staticmb.com/mbimages/project/Floor-Plan-24-Wadhwa-Aquaria-Grande-Mumbai-5029949_596_1024.jpg',
-                  'https://img.staticmb.com/mbimages/project/Floor-Plan-3-Wadhwa-Aquaria-Grande-Mumbai-5029949_700_1024.jpg'
-                ].map((src, idx) => (
-                  <div key={idx} className="w-full bg-white rounded-xl p-2 flex justify-center">
-                    <img 
-                      src={src} 
-                      alt={`Floor plan ${idx + 1}`} 
-                      className="max-w-full h-auto object-contain rounded-lg"
-                      style={{ maxHeight: '70vh' }}
-                    />
-                  </div>
-                ))
+                <div className="w-full h-full overflow-y-auto custom-scrollbar flex flex-col gap-8 items-center">
+                  {[
+                    'https://img.staticmb.com/mbimages/project/2023/11/08/Master-Plan-25-Wadhwa-Aquaria-Grande-Mumbai-5029949_462_700.jpg',
+                    'https://img.staticmb.com/mbimages/project/Floor-Plan-2-Wadhwa-Aquaria-Grande-Mumbai-5029949_700_1024.jpg',
+                    'https://img.staticmb.com/mbimages/project/Floor-Plan-23-Wadhwa-Aquaria-Grande-Mumbai-5029949_618_1024.jpg',
+                    'https://img.staticmb.com/mbimages/project/Floor-Plan-24-Wadhwa-Aquaria-Grande-Mumbai-5029949_596_1024.jpg',
+                    'https://img.staticmb.com/mbimages/project/Floor-Plan-3-Wadhwa-Aquaria-Grande-Mumbai-5029949_700_1024.jpg'
+                  ].map((src, idx) => (
+                    <div key={idx} className="w-full bg-white rounded-xl p-2 flex justify-center">
+                      <img 
+                        src={src} 
+                        alt={`Floor plan ${idx + 1}`} 
+                        className="max-w-full h-auto object-contain rounded-lg"
+                        style={{ maxHeight: '70vh' }}
+                      />
+                    </div>
+                  ))}
+                </div>
               )}
             </div>
           </div>
