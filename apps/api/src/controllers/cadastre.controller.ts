@@ -149,11 +149,10 @@ cadastreRouter.get('/search', async (req: Request, res: Response) => {
   const query = (req.query.q as string) || '';
   const results = ulpinService.search(query);
   
-  // Proxy to Photon (OSM) for fallback geocoding if query > 3 chars
+  // Proxy to Photon (OSM) / BMC for fallback geocoding if query > 2 chars and few local results
   const externalResults: any[] = [];
-  if (query.length > 2) {
+  if (query.length > 2 && results.length < 5) {
     // ── 1. BMC Official Building Registry (mybmcid.mcgm.gov.in Buildgs_SAC) ──
-    // Exact building-name search with real authoritative coordinates
     try {
       const sanitized = query.replace(/'/g, "''"); // escape SQL quotes
       const bmcUrl = `https://mybmcid.mcgm.gov.in/server/rest/services/MCGM_UID/IPVS/FeatureServer/1/query` +
@@ -161,7 +160,7 @@ cadastreRouter.get('/search', async (req: Request, res: Response) => {
         `&outFields=NAME,ADDRESS,WARD,USAGE,NO_OF_FLOO,POINT_X,POINT_Y,SAC_NUMBER` +
         `&returnGeometry=true&outSR=4326&f=json&resultRecordCount=5`;
 
-      const bmcRes = await fetch(bmcUrl, { signal: AbortSignal.timeout(5000) });
+      const bmcRes = await fetch(bmcUrl, { signal: AbortSignal.timeout(1500) });
       const bmcData = await bmcRes.json() as any;
 
       if (bmcData?.features?.length) {
@@ -173,7 +172,6 @@ cadastreRouter.get('/search', async (req: Request, res: Response) => {
           if (seen.has(dedupeKey)) return;
           seen.add(dedupeKey);
 
-          // Build centroid from polygon geometry if available
           let lat = attr.POINT_Y;
           let lon = attr.POINT_X;
           if (f.geometry?.rings?.length) {
@@ -202,18 +200,17 @@ cadastreRouter.get('/search', async (req: Request, res: Response) => {
           });
         });
       }
-    } catch (err) {
-      console.error('BMC building search failed:', err);
+    } catch {
+      // BMC search timed out or unavailable, proceed
     }
 
     // ── 2. Photon (OSM) fallback for areas / localities / roads ──
-    // Only kick in if BMC returned no results, or as supplement for area queries
     if (externalResults.length === 0) {
       try {
         const mumbai_bbox = '72.74,18.89,72.99,19.27';
         const extRes = await fetch(
           `https://photon.komoot.io/api/?q=${encodeURIComponent(query)}&limit=4&bbox=${mumbai_bbox}&lang=en`,
-          { headers: { 'Accept-Language': 'en' }, signal: AbortSignal.timeout(5000) }
+          { headers: { 'Accept-Language': 'en' }, signal: AbortSignal.timeout(1500) }
         );
         const extData = await extRes.json() as any;
         if (extData?.features) {
@@ -234,8 +231,8 @@ cadastreRouter.get('/search', async (req: Request, res: Response) => {
             });
           });
         }
-      } catch (err) {
-        console.error('Photon fallback failed:', err);
+      } catch {
+        // Photon fallback timed out or unavailable, proceed
       }
     }
   }

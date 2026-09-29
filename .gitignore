@@ -10,3 +10,4 @@ dist
 cache
 artifacts
 typechain-types
+.auto-accept.json

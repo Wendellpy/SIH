@@ -22,7 +22,7 @@ import puppeteer from 'puppeteer';
       });
       return await res.text();
     } catch (err) {
-      return err.toString();
+      return String(err);
     }
   }, sacNumber);
   

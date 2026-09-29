@@ -9,21 +9,33 @@ maharashtraRouter.get('/health', async (req: Request, res: Response) => {
 });
 
 maharashtraRouter.get('/districts', async (req: Request, res: Response) => {
-  const result = await maharashtraService.getDistricts();
-  res.status(result.success ? 200 : 502).json(result);
+  try {
+    const result = await maharashtraService.getDistricts();
+    res.status(result.success ? 200 : 502).json(result);
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: { message: err?.message || 'Failed to fetch districts' } });
+  }
 });
 
 maharashtraRouter.get('/talukas/:district', async (req: Request, res: Response) => {
-  const { district } = req.params;
-  const result = await maharashtraService.getTalukas(district);
-  res.status(result.success ? 200 : 502).json(result);
+  try {
+    const { district } = req.params;
+    const result = await maharashtraService.getTalukas(district);
+    res.status(result.success ? 200 : 502).json(result);
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: { message: err?.message || 'Failed to fetch talukas' } });
+  }
 });
 
 maharashtraRouter.get('/villages/:taluka', async (req: Request, res: Response) => {
-  const { taluka } = req.params;
-  const { district } = req.query;
-  const result = await maharashtraService.getVillages(district as string, taluka);
-  res.status(result.success ? 200 : 502).json(result);
+  try {
+    const { taluka } = req.params;
+    const { district } = req.query;
+    const result = await maharashtraService.getVillages(district as string, taluka);
+    res.status(result.success ? 200 : 502).json(result);
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: { message: err?.message || 'Failed to fetch villages' } });
+  }
 });
 
 maharashtraRouter.post('/cache/refresh', async (req: Request, res: Response) => {
@@ -37,9 +49,13 @@ maharashtraRouter.post('/cache/refresh', async (req: Request, res: Response) => 
 });
 
 maharashtraRouter.get('/ulpin/:ulpin', async (req: Request, res: Response) => {
-  const { ulpin } = req.params;
-  const result = await maharashtraService.getUlpin(ulpin);
-  res.status(result.success ? 200 : (result.error?.code === 'UPSTREAM_UNAVAILABLE' ? 502 : 400)).json(result);
+  try {
+    const { ulpin } = req.params;
+    const result = await maharashtraService.getUlpin(ulpin);
+    res.status(result.success ? 200 : (result.error?.code === 'UPSTREAM_UNAVAILABLE' ? 502 : 400)).json(result);
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: { message: err?.message || 'Failed to parse ULPIN' } });
+  }
 });
 
 maharashtraRouter.get('/parcel', async (req: Request, res: Response) => {

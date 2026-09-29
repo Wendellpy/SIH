@@ -41,20 +41,22 @@ bmcRouter.get('/bmc/:sacNumber/units', async (req: Request, res: Response) => {
       }
     });
 
-    await page.goto('https://mybmcid.mcgm.gov.in/portal/apps/MyBMCID_BMCcitizen/', { waitUntil: 'networkidle2' });
-    
-    // Attempt to type into the search box
     try {
-      await page.waitForSelector('.searchInput', { timeout: 8000 });
+      await page.goto('https://mybmcid.mcgm.gov.in/portal/apps/MyBMCID_BMCcitizen/', { 
+        waitUntil: 'domcontentloaded', 
+        timeout: 4000 
+      });
+      
+      // Attempt to type into the search box if loaded
+      await page.waitForSelector('.searchInput', { timeout: 3000 });
       await page.type('.searchInput', sacNumber);
       await page.keyboard.press('Enter');
-      // Wait for search results and network requests
-      await new Promise(resolve => setTimeout(resolve, 8000));
+      await new Promise(resolve => setTimeout(resolve, 3000));
     } catch (e) {
-      console.error('Puppeteer interaction error:', e);
+      // Gracefully fall back if live BMC portal is unavailable or timed out
+    } finally {
+      await browser.close().catch(() => {});
     }
-    
-    await browser.close();
 
     // If we failed to intercept real names, return empty so frontend handles fallback
     if (scrapedUnits.length === 0) {
