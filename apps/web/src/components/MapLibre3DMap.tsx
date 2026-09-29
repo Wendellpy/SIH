@@ -89,7 +89,8 @@ export const MapLibre3DMap: React.FC = () => {
       setBmcScrapedUnits(null);
       const floors = selectedBuildingInfo.floors || 1;
       const expectedUnits = selectedBuildingInfo.bmcData.unitCount || 0;
-      fetch(`http://localhost:4000/api/v1/bmc/${sac}/units?expectedFloors=${floors}&expectedUnits=${expectedUnits}`)
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
+      fetch(`${apiUrl}/api/v1/bmc/${sac}/units?expectedFloors=${floors}&expectedUnits=${expectedUnits}`)
         .then(r => r.json())
         .then(data => {
           if (data.success && data.unitsByFloor) {
@@ -513,6 +514,29 @@ export const MapLibre3DMap: React.FC = () => {
             'circle-radius': 4,
             'circle-stroke-width': 1,
             'circle-stroke-color': '#ffffff'
+          }
+        });
+
+        // ULDPIN labels for underground assets (tunnels/nodes)
+        map.addLayer({
+          id: 'mining-underground-labels',
+          type: 'symbol',
+          source: 'mining-underground',
+          filter: ['==', 'type', 'tunnel'],
+          layout: {
+            visibility: 'visible',
+            'symbol-placement': 'line',
+            'text-field': ['get', 'id'], // 'id' contains the ULDPIN
+            'text-font': ['Open Sans Bold', 'Arial Unicode MS Bold'],
+            'text-size': 10,
+            'text-letter-spacing': 0.1,
+            'text-offset': [0, -1]
+          },
+          paint: {
+            'text-color': '#d8b4fe', // purple-300
+            'text-halo-color': '#111827', // gray-900 halo for readability
+            'text-halo-width': 1.5,
+            'text-opacity': 0.9
           }
         });
 
@@ -1290,6 +1314,20 @@ export const MapLibre3DMap: React.FC = () => {
       map.on('click', 'searched-parcel-fill', (e) => {
         // We no longer change activeTab to 'INSPECTOR' because 'INSPECTOR' is not a valid tab.
         // Instead, the property card will simply be shown on the right side of the current view.
+        const feature = e.features?.[0];
+        if (feature) {
+          const props = feature.properties || {};
+          useAppStore.getState().setSelectedParcel({
+            id: props.ulpin || props.id || 'search-parcel',
+            parcelId: props.ulpin || props.id || 'search-parcel',
+            areaSqm: props.area || 0,
+            boundary: feature.geometry as any,
+            currentOwner: props.owner || 'Unknown',
+            landUse: props.landUse || 'Mixed',
+            surveyNumber: props.surveyNumber || undefined,
+            ulpin: props.ulpin || undefined
+          } as any);
+        }
       });
       
       map.on('mouseenter', 'searched-parcel-fill', () => { map.getCanvas().style.cursor = 'pointer'; });
@@ -1346,6 +1384,9 @@ export const MapLibre3DMap: React.FC = () => {
     }
 
     return () => {
+      if (animationRef.current) {
+        cancelAnimationFrame(animationRef.current);
+      }
       if (mapRef.current) {
         mapRef.current.remove();
         mapRef.current = null;
@@ -1612,6 +1653,24 @@ export const MapLibre3DMap: React.FC = () => {
           },
           filter: ['==', ['geometry-type'], 'Point']
         }, 'poi-labels');
+
+        map.addLayer({
+          id: 'searched-parcel-label',
+          type: 'symbol',
+          source: 'searched-parcel-source',
+          layout: {
+            'text-field': ['get', 'ulpin'], // try ulpin first
+            'text-font': ['Open Sans Bold', 'Arial Unicode MS Bold'],
+            'text-size': 14,
+            'text-anchor': 'center',
+            'symbol-placement': 'point'
+          },
+          paint: {
+            'text-color': '#ffffff',
+            'text-halo-color': '#065f46', // emerald-900
+            'text-halo-width': 2
+          }
+        }, 'poi-labels');
       } else {
         (map.getSource('searched-parcel-source') as maplibregl.GeoJSONSource).setData(searchedParcelGeoJSON);
       }
@@ -1619,6 +1678,7 @@ export const MapLibre3DMap: React.FC = () => {
       if (map.getLayer('searched-parcel-fill')) map.removeLayer('searched-parcel-fill');
       if (map.getLayer('searched-parcel-line')) map.removeLayer('searched-parcel-line');
       if (map.getLayer('searched-parcel-point')) map.removeLayer('searched-parcel-point');
+      if (map.getLayer('searched-parcel-label')) map.removeLayer('searched-parcel-label');
       if (map.getSource('searched-parcel-source')) map.removeSource('searched-parcel-source');
     }
   }, [searchedParcelGeoJSON, mapLoaded]);
@@ -1757,38 +1817,82 @@ export const MapLibre3DMap: React.FC = () => {
     const map = mapRef.current;
     if (!map.getLayer('3d-buildings')) return;
 
-    let global_progress = 1.0;
-    if (temporalYear < 2018) global_progress = 0.05;
-    else if (temporalYear === 2018) global_progress = 0.08;
-    else if (temporalYear === 2019) global_progress = 0.14;
-    else if (temporalYear === 2020) global_progress = 0.20;
-    else if (temporalYear === 2021) global_progress = 0.35;
-    else if (temporalYear === 2022) global_progress = 0.55;
-    else if (temporalYear === 2023) global_progress = 0.75;
-    else if (temporalYear >= 2024) global_progress = 1.0;
-
-    map.setPaintProperty('3d-buildings', 'fill-extrusion-height', [
+    if (activeTab === 'TIMELINE') {
+      map.setPaintProperty('3d-buildings', 'fill-extrusion-height', [
       'let',
       'render_ht', ['case', ['has', 'render_height'], ['get', 'render_height'], 18],
-      
       'seed', ['%', ['coalesce', ['id'], 0], 10],
+      'mock_year_built', ['+', 2016, ['var', 'seed']],
+      'yb', ['coalesce', ['get', 'year_built'], ['var', 'mock_year_built']],
+      'age', ['-', temporalYear, ['var', 'yb']],
       
       ['case',
-        ['>', ['var', 'render_ht'], 40], ['*', ['var', 'render_ht'], global_progress],
-        ['==', ['%', ['var', 'seed'], 2], 1], ['*', ['var', 'render_ht'], global_progress],
-        ['var', 'render_ht']
+        ['<', ['var', 'age'], 0], 0,
+        ['>=', ['var', 'age'], 4], ['var', 'render_ht'],
+        ['*', ['var', 'render_ht'], ['/', ['+', ['var', 'age'], 1], 5.0]]
+      ]
+    ]);
+
+    map.setPaintProperty('3d-buildings', 'fill-extrusion-color', [
+      'let',
+      'seed', ['%', ['coalesce', ['id'], 0], 10],
+      'mock_year_built', ['+', 2016, ['var', 'seed']],
+      'yb', ['coalesce', ['get', 'year_built'], ['var', 'mock_year_built']],
+      'age', ['-', temporalYear, ['var', 'yb']],
+      
+      ['case',
+        ['<', ['var', 'age'], 0], '#94a3b8',
+        ['==', ['var', 'age'], 0], '#38bdf8', // Neon blue when new
+        ['==', ['var', 'age'], 1], '#7dd3fc',
+        ['==', ['var', 'age'], 2], '#bae6fd',
+        '#94a3b8' // Slate 400 when mature
       ]
     ]);
 
     if (map.getLayer('authoritative-buildings-layer')) {
       map.setPaintProperty('authoritative-buildings-layer', 'fill-extrusion-height', [
-        'case',
-        ['<', temporalYear, ['get', 'year_built']], 0,
-        ['==', temporalYear, ['get', 'year_built']], ['*', ['get', 'render_height'], 0.5],
-        ['get', 'render_height']
+        'let',
+        'yb', ['coalesce', ['get', 'year_built'], 2020],
+        'rh', ['get', 'render_height'],
+        'age', ['-', temporalYear, ['var', 'yb']],
+        
+        ['case',
+          ['<', ['var', 'age'], 0], 0,
+          ['>=', ['var', 'age'], 2], ['var', 'rh'],
+          ['*', ['var', 'rh'], ['/', ['+', ['var', 'age'], 1], 3.0]]
+        ]
+      ]);
+
+      map.setPaintProperty('authoritative-buildings-layer', 'fill-extrusion-color', [
+        'let',
+        'yb', ['coalesce', ['get', 'year_built'], 2020],
+        'age', ['-', temporalYear, ['var', 'yb']],
+        
+        ['case',
+          ['<', ['var', 'age'], 0], '#10b981',
+          ['==', ['var', 'age'], 0], '#f59e0b', // Amber when new
+          ['==', ['var', 'age'], 1], '#fbbf24',
+          ['==', ['var', 'age'], 2], '#fcd34d',
+          '#10b981' // Emerald 500 when mature
+        ]
       ]);
     }
-  }, [temporalYear, mapLoaded]);
+  } else {
+    // Revert to static defaults for normal map viewing
+    map.setPaintProperty('3d-buildings', 'fill-extrusion-height', [
+      'case',
+      ['all', ['has', 'render_height'], ['>', ['get', 'render_height'], 0]],
+      ['case', ['>', ['get', 'render_height'], 400], 400, ['get', 'render_height']],
+      18
+    ]);
+    map.setPaintProperty('3d-buildings', 'fill-extrusion-color', '#94a3b8');
+    
+    if (map.getLayer('authoritative-buildings-layer')) {
+      map.setPaintProperty('authoritative-buildings-layer', 'fill-extrusion-height', ['get', 'render_height']);
+      map.setPaintProperty('authoritative-buildings-layer', 'fill-extrusion-color', '#10b981');
+    }
+  }
+  }, [temporalYear, mapLoaded, activeTab]);
 
   // Flood Simulation 
   useEffect(() => {
@@ -2463,7 +2567,9 @@ export const MapLibre3DMap: React.FC = () => {
             else if (temporalYear === 2021) progress = 0.35;
             else if (temporalYear === 2022) progress = 0.55;
             else if (temporalYear === 2023) progress = 0.75;
-            else if (temporalYear >= 2024) progress = 1.0;
+            else if (temporalYear === 2024) progress = 0.85;
+            else if (temporalYear === 2025) progress = 0.95;
+            else if (temporalYear >= 2026) progress = 1.0;
 
             if (!selectedBuildingInfo.isAnimated) progress = 1.0;
 
