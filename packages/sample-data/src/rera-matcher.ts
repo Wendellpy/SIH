@@ -15,7 +15,7 @@ export function applyReraMetadataToBuildings(buildings: Building[], parcels: Par
 
   for (const building of enhancedBuildings) {
     const parcel = parcels.find(p => p.id === building.parcelId);
-    if (!parcel) continue;
+    if (!parcel || !parcel.centroid) continue;
 
     const [bLng, bLat] = parcel.centroid;
 

@@ -19,7 +19,11 @@ const app = express();
 const server = http.createServer(app);
 const wss = new WebSocketServer({ server, path: '/ws' });
 
-app.use(cors({ origin: '*' }));
+const corsOrigins = process.env.CORS_ORIGIN
+  ? process.env.CORS_ORIGIN.split(',').map(s => s.trim())
+  : (process.env.FRONTEND_URL ? [process.env.FRONTEND_URL.trim()] : '*');
+
+app.use(cors({ origin: corsOrigins, credentials: true }));
 app.use(express.json());
 
 // API Documentation
@@ -67,10 +71,11 @@ jobsService.subscribe((job) => {
   });
 });
 
-const PORT = process.env.PORT || 4000;
+const PORT = Number(process.env.PORT) || 4000;
+const HOST = '0.0.0.0';
 
-server.listen(PORT, () => {
-  console.log(`🚀 3D ULPIN Cadastral API running at http://localhost:${PORT}`);
-  console.log(`📑 OpenAPI / Swagger Docs at http://localhost:${PORT}/api/docs`);
-  console.log(`⚡ WebSocket Server listening on ws://localhost:${PORT}/ws`);
+server.listen(PORT, HOST, () => {
+  console.log(`🚀 3D ULPIN Cadastral API running at http://${HOST}:${PORT}`);
+  console.log(`📑 OpenAPI / Swagger Docs at http://${HOST}:${PORT}/api/docs`);
+  console.log(`⚡ WebSocket Server listening on ws://${HOST}:${PORT}/ws`);
 });

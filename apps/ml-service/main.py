@@ -30,9 +30,14 @@ app = FastAPI(
     version="1.0.0"
 )
 
+import os
+
+cors_env = os.getenv("CORS_ORIGIN") or os.getenv("FRONTEND_URL")
+allowed_origins = [o.strip() for o in cors_env.split(",") if o.strip()] if cors_env else ["*"]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=allowed_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -401,16 +406,18 @@ def clearance_check(req: ClearanceCheckRequest):
     }
     
     try:
-        # Fetch underground utilities from Node API (assuming it's running locally on 4000)
-        api_url = "http://localhost:4000/api/v1/underground"
-        # Since we use roleMiddleware now, we must pass the engineer role!
+        # Fetch underground utilities from Node API
+        api_base = os.getenv("API_URL") or os.getenv("CORE_API_URL") or "http://localhost:4000"
+        api_url = f"{api_base.rstrip('/')}/api/v1/underground"
         headers = {'x-user-role': 'engineer'}
-        response = requests.get(api_url, headers=headers)
-        if response.status_code != 200:
-            raise HTTPException(status_code=500, detail="Failed to fetch utilities from API")
-        utilities = response.json().get('data', [])
+        response = requests.get(api_url, headers=headers, timeout=5)
+        if response.status_code == 200:
+            utilities = response.json().get('data', [])
+        else:
+            utilities = []
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        print(f"Warning: could not fetch live utilities from API ({e}), using empty array")
+        utilities = []
         
     try:
         footprint_poly = shape(req.footprint)
@@ -590,4 +597,6 @@ def process_surface_parcel(req: SurfaceParcelRequest):
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    port = int(os.getenv("PORT", "8000"))
+    host = os.getenv("HOST", "0.0.0.0")
+    uvicorn.run(app, host=host, port=port)

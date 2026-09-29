@@ -12,7 +12,8 @@ export const TimelineSlider: React.FC = () => {
 
   React.useEffect(() => {
     if (floodSimulation.active && floodSimulation.polygon) {
-      fetch('http://localhost:4000/api/v1/buildings')
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
+      fetch(`${apiUrl}/api/v1/buildings`)
         .then(res => res.json())
         .then(data => {
           if (data.status === 'success') {

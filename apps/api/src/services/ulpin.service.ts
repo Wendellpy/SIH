@@ -95,13 +95,13 @@ export class UlpinService {
     db.getParcels().forEach(p => {
       if (
         p.ulpin.toLowerCase().includes(q) ||
-        p.village.toLowerCase().includes(q) ||
-        p.surveyNumber.toLowerCase().includes(q)
+        (p.village && p.village.toLowerCase().includes(q)) ||
+        (p.surveyNumber && p.surveyNumber.toLowerCase().includes(q))
       ) {
         results.push({
           type: 'PARCEL',
-          title: `Parcel ${p.ulpin} (${p.village})`,
-          subtitle: `Survey No: ${p.surveyNumber} | Area: ${p.areaSqm} sqm`,
+          title: `Parcel ${p.ulpin}${p.village ? ` (${p.village})` : ''}`,
+          subtitle: `Survey No: ${p.surveyNumber || 'N/A'} | Area: ${p.areaSqm} sqm`,
           id: p.id,
           ulpin: p.ulpin,
           metadata: p

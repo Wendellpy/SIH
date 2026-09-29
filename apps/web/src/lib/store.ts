@@ -24,8 +24,8 @@ export type MumbaiRegionKey = 'ALL' | 'BKC' | 'NARIMAN' | 'WORLI' | 'ANDHERI' | 
 
 export interface AppState {
   // Navigation & View Modes
-  activeTab: 'MAP_3D' | 'MAPLIBRE_3D' | 'EXPLODED_3D' | 'AI_STUDIO' | 'ADMIN_PORTAL' | 'AUDIT_LEDGER' | 'MAHARASHTRA' | 'MINING';
-  setActiveTab: (tab: 'MAP_3D' | 'MAPLIBRE_3D' | 'EXPLODED_3D' | 'AI_STUDIO' | 'ADMIN_PORTAL' | 'AUDIT_LEDGER' | 'MAHARASHTRA' | 'MINING') => void;
+  activeTab: 'MAP_3D' | 'MAPLIBRE_3D' | 'EXPLODED_3D' | 'AI_STUDIO' | 'ADMIN_PORTAL' | 'AUDIT_LEDGER' | 'MAHARASHTRA' | 'MINING' | 'TIMELINE';
+  setActiveTab: (tab: 'MAP_3D' | 'MAPLIBRE_3D' | 'EXPLODED_3D' | 'AI_STUDIO' | 'ADMIN_PORTAL' | 'AUDIT_LEDGER' | 'MAHARASHTRA' | 'MINING' | 'TIMELINE') => void;
 
   // Role-Based Access Views
   currentRole: 'revenue' | 'engineer' | 'utility';

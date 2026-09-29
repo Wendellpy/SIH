@@ -7,10 +7,11 @@ const nextConfig = {
     return config;
   },
   async rewrites() {
+    const apiTarget = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000').replace(/\/$/, '');
     return [
       {
         source: '/api/:path*',
-        destination: 'http://localhost:4000/api/:path*'
+        destination: `${apiTarget}/api/:path*`
       }
     ];
   }

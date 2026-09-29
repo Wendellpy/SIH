@@ -138,8 +138,8 @@ export const MaharashtraPanel = () => {
     setSelectedUnit(null);
     setSelectedParcel({
       id: result.parcel.surveyNumber || result.parcel.ulpin || 'parcel-id',
-      ulpin: result.parcel.ulpin || undefined,
-      address: `${result.parcel.village?.name}, ${result.parcel.taluka?.name}, ${result.parcel.district?.name}`,
+      ulpin: result.parcel.ulpin || result.parcel.surveyNumber || 'MH13-PARCEL',
+      address: `${result.parcel.village?.name || ''}, ${result.parcel.taluka?.name || ''}, ${result.parcel.district?.name || ''}`,
       ownerName: result.parcel.attributes?.owner_name || 'Maharashtra Government',
       zoning: 'N/A',
       areaSqm: result.parcel.attributes?.area || 0,
@@ -181,11 +181,13 @@ export const MaharashtraPanel = () => {
     }
   };
 
+  const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:4000';
+
   const loadDistricts = (refresh = false) => {
     setApiError(null);
     setLoadingDistricts(true);
     if (refresh) {
-      fetch('http://127.0.0.1:4000/api/v1/maharashtra/cache/refresh', { method: 'POST', body: JSON.stringify({ scope: 'districts' }), headers: { 'Content-Type': 'application/json' } })
+      fetch(`${apiUrl}/api/v1/maharashtra/cache/refresh`, { method: 'POST', body: JSON.stringify({ scope: 'districts' }), headers: { 'Content-Type': 'application/json' } })
         .then(() => fetchDistricts())
         .catch(() => setApiError('Unable to refresh Maharashtra government data.'));
     } else {
@@ -197,7 +199,7 @@ export const MaharashtraPanel = () => {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 8000);
     
-    fetch('http://127.0.0.1:4000/api/v1/maharashtra/districts', { signal: controller.signal })
+    fetch(`${apiUrl}/api/v1/maharashtra/districts`, { signal: controller.signal })
       .then(res => res.json())
       .then(data => {
         clearTimeout(timeoutId);
@@ -214,7 +216,7 @@ export const MaharashtraPanel = () => {
         console.error('[Maharashtra] District fetch error:', err);
         // Retry once after 2 seconds
         setTimeout(() => {
-          fetch('http://127.0.0.1:4000/api/v1/maharashtra/districts')
+          fetch(`${apiUrl}/api/v1/maharashtra/districts`)
             .then(res => res.json())
             .then(data => {
               if (data.success) {
@@ -223,7 +225,7 @@ export const MaharashtraPanel = () => {
                 setApiError(null);
               }
             })
-            .catch(() => setApiError('Network Error: Backend not responding. Check that the API server is running on port 4000.'));
+            .catch(() => setApiError('Network Error: Backend not responding. Check that the API server is running.'));
         }, 2000);
       })
       .finally(() => setLoadingDistricts(false));
@@ -240,7 +242,7 @@ export const MaharashtraPanel = () => {
     setVillages([]);
     if (!selectedDistrict) return;
     setLoadingTalukas(true);
-    fetch(`http://127.0.0.1:4000/api/v1/maharashtra/talukas/${selectedDistrict}`)
+    fetch(`${apiUrl}/api/v1/maharashtra/talukas/${selectedDistrict}`)
       .then(res => res.json())
       .then(data => {
         if (data.success) {
@@ -257,7 +259,7 @@ export const MaharashtraPanel = () => {
     setVillages([]);
     if (!selectedTaluka) return;
     setLoadingVillages(true);
-    fetch(`http://127.0.0.1:4000/api/v1/maharashtra/villages/${selectedTaluka}?district=${selectedDistrict}`)
+    fetch(`${apiUrl}/api/v1/maharashtra/villages/${selectedTaluka}?district=${selectedDistrict}`)
       .then(res => res.json())
       .then(data => {
         if (data.success) {
@@ -277,10 +279,10 @@ export const MaharashtraPanel = () => {
     const cleanSearch = searchVal.trim().toUpperCase();
     const isUlpin = cleanSearch.startsWith('MH') && cleanSearch.length >= 14;
 
-    let url = 'http://127.0.0.1:4000/api/v1/maharashtra/parcel?';
+    let url = `${apiUrl}/api/v1/maharashtra/parcel?`;
     if (isUlpin) {
       // 3D ULPIN can have suffixes like .F1.101, but the base API accepts the 14-char or 3D ULPIN
-      url = `http://127.0.0.1:4000/api/v1/maharashtra/ulpin/${encodeURIComponent(cleanSearch)}`;
+      url = `${apiUrl}/api/v1/maharashtra/ulpin/${encodeURIComponent(cleanSearch)}`;
     } else {
       if (selectedDistrict) url += `district=${selectedDistrict}&`;
       if (selectedTaluka) url += `taluka=${selectedTaluka}&`;

@@ -266,17 +266,18 @@ export const Header: React.FC = () => {
         
         // Synthesize the parcel geometry so it highlights on the map
         const d = 0.0002;
+        const coords: [number, number][] = [
+          [lng - d, lat - d],
+          [lng + d, lat - d],
+          [lng + d, lat + d],
+          [lng - d, lat + d],
+          [lng - d, lat - d]
+        ];
         const feature = {
           type: "Feature",
           geometry: {
             type: "Polygon",
-            coordinates: [[
-              [lng - d, lat - d],
-              [lng + d, lat - d],
-              [lng + d, lat + d],
-              [lng - d, lat + d],
-              [lng - d, lat - d]
-            ]]
+            coordinates: [coords]
           },
           properties: { surveyNo: fullUlpin, simulated: true }
         };
@@ -291,8 +292,21 @@ export const Header: React.FC = () => {
           address: result.subtitle || 'Maharashtra',
           ownerName: 'Maharashtra Government',
           zoning: 'N/A',
+          zoningCategory: 'N/A',
           areaSqm: 400,
-          dataSource: 'verified'
+          dataSource: 'verified',
+          state: 'Maharashtra',
+          district: 'Mumbai Suburban',
+          tehsil: 'Andheri',
+          village: 'Bandra',
+          surveyNumber: fullUlpin,
+          centroid: [lng, lat],
+          boundary: { type: 'Polygon', coordinates: [coords] },
+          crs: 'EPSG:4326',
+          ownershipType: 'Government',
+          simulated: true,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString()
         });
       }
       

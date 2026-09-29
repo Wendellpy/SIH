@@ -188,7 +188,8 @@ export const InspectorPanel: React.FC = () => {
     setIsScraping(true);
     setFloorPlanUrl(null);
     try {
-      const res = await fetch(`http://localhost:4000/api/v1/rera/${id}/floorplan`);
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
+      const res = await fetch(`${apiUrl}/api/v1/rera/${id}/floorplan`);
       const data = await res.json();
       if (data.success) {
         setFloorPlanUrl(data.floorPlanUrl);
@@ -211,7 +212,8 @@ export const InspectorPanel: React.FC = () => {
         thumbnailBase64 = canvas.toDataURL('image/jpeg', 0.8);
       }
 
-      const response = await fetch(`http://localhost:4000/api/v1/units/${ulpin}/property-card`, {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
+      const response = await fetch(`${apiUrl}/api/v1/units/${ulpin}/property-card`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 

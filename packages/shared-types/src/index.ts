@@ -77,16 +77,26 @@ export interface BoundingBox3D {
 export interface Parcel {
   id: string;
   ulpin: string; // 14-char base ULPIN (e.g. MH13BOM04521873)
-  state: string; // Maharashtra
-  district: string; // Mumbai Suburban
-  tehsil: string; // Andheri / Kurla / Mumbai City
-  village: string; // BKC / Bandra / Nariman Point
-  surveyNumber: string;
+  state?: string; // Maharashtra
+  district?: string; // Mumbai Suburban
+  tehsil?: string; // Andheri / Kurla / Mumbai City
+  village?: string; // BKC / Bandra / Nariman Point
+  surveyNumber?: string;
   areaSqm: number;
-  centroid: [number, number]; // [lng, lat]
-  boundary: GeoPolygon2D;
-  crs: string; // EPSG:4326 / EPSG:32643
-  ownershipType: 'Government' | 'Private' | 'Municipal' | 'Leasehold';
+  centroid?: [number, number]; // [lng, lat]
+  boundary?: GeoPolygon2D;
+  crs?: string; // EPSG:4326 / EPSG:32643
+  ownershipType?: 'Government' | 'Private' | 'Municipal' | 'Leasehold';
+  ownerName?: string;
+  name?: string;
+  address?: string;
+  landUse?: string;
+  status?: string;
+  totalAreaSqm?: number;
+  totalBuiltupAreaSqm?: number;
+  footprint?: GeoPolygon2D;
+  geometry?: any;
+  zoning?: string;
   zoningCategory?: string;
   visibleTo?: string[];
   /**
@@ -101,9 +111,9 @@ export interface Parcel {
   supersededBy?: string[]; // ULPINs of children
   parentParcel?: string;   // ULPIN of parent
   subdivisionEventId?: string;
-  simulated: boolean;
-  createdAt: string;
-  updatedAt: string;
+  simulated?: boolean;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface SubdivisionEvent {

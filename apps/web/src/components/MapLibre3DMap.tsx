@@ -1269,7 +1269,8 @@ export const MapLibre3DMap: React.FC = () => {
 
         try {
           // Hit the ML service to calculate True Area
-          const res = await fetch('http://localhost:8000/api/v1/ml/process-surface-parcel', {
+          const mlUrl = process.env.NEXT_PUBLIC_ML_SERVICE_URL || 'http://localhost:8000';
+          const res = await fetch(`${mlUrl}/api/v1/ml/process-surface-parcel`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({

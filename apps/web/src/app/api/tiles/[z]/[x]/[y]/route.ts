@@ -3,14 +3,13 @@ import fs from 'fs';
 import path from 'path';
 import zlib from 'node:zlib';
 
-function getMbtilesPath(): string {
+function getMbtilesPath(): string | null {
   const envPath = process.env.MBTILES_PATH;
   if (envPath && fs.existsSync(envPath)) return envPath;
 
   const candidatePaths = [
-    'c:\\Users\\Wendell\\Downloads\\osm-2020-02-10-v3.11_india_mumbai.mbtiles',
-    'C:\\Users\\Wendell\\Downloads\\osm-2020-02-10-v3.11_india_mumbai.mbtiles',
     path.join(process.cwd(), 'data', 'osm-2020-02-10-v3.11_india_mumbai.mbtiles'),
+    path.join(process.cwd(), 'public', 'data', 'osm-2020-02-10-v3.11_india_mumbai.mbtiles'),
     path.join(process.cwd(), '..', '..', 'data', 'osm-2020-02-10-v3.11_india_mumbai.mbtiles')
   ];
 
@@ -18,7 +17,7 @@ function getMbtilesPath(): string {
     if (fs.existsSync(p)) return p;
   }
 
-  return 'c:\\Users\\Wendell\\Downloads\\osm-2020-02-10-v3.11_india_mumbai.mbtiles';
+  return null;
 }
 
 let dbInstance: any = null;
@@ -30,15 +29,13 @@ function getDatabase() {
     const { DatabaseSync } = require('node:sqlite');
     const mbtilesFile = getMbtilesPath();
 
-    if (!fs.existsSync(mbtilesFile)) {
-      console.warn(`[MBTiles] File not found at ${mbtilesFile}`);
+    if (!mbtilesFile || !fs.existsSync(mbtilesFile)) {
       return null;
     }
 
     dbInstance = new DatabaseSync(mbtilesFile, { open: true, readOnly: true });
     return dbInstance;
   } catch (err) {
-    console.error('[MBTiles] Failed to initialize SQLite database:', err);
     return null;
   }
 }

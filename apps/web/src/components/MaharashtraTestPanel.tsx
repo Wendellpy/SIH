@@ -17,7 +17,8 @@ export const MaharashtraTestPanel = () => {
 
   const fetchHealth = async () => {
     try {
-      const res = await fetch('http://localhost:4000/api/v1/maharashtra/health');
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
+      const res = await fetch(`${apiUrl}/api/v1/maharashtra/health`);
       if (res.ok) {
         setHealthData(await res.json());
       } else {

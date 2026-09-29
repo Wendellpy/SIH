@@ -33,8 +33,8 @@ export const ClearanceTool: React.FC<{
     }
     setLoading(true);
     try {
-      // The ML service runs on port 8000
-      const res = await fetch('http://localhost:8000/clearance-check', {
+      const mlUrl = process.env.NEXT_PUBLIC_ML_SERVICE_URL || 'http://localhost:8000';
+      const res = await fetch(`${mlUrl}/clearance-check`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -56,7 +56,8 @@ export const ClearanceTool: React.FC<{
   const handleExport = async () => {
     if (!clearanceResult) return;
     try {
-      const res = await fetch('http://localhost:4000/api/v1/certificate', {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
+      const res = await fetch(`${apiUrl}/api/v1/certificate`, {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json',

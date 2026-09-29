@@ -76,7 +76,8 @@ export const AdminPortal: React.FC = () => {
 
   useEffect(() => {
     if (activeSubTab === 'AUDIT_LOGS') {
-      fetch('http://localhost:4000/api/v1/access-log')
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
+      fetch(`${apiUrl}/api/v1/access-log`)
         .then(res => res.json())
         .then(data => {
           if (data.data) {

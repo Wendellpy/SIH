@@ -7,8 +7,8 @@ export const swaggerDocument = {
   },
   servers: [
     {
-      url: 'http://localhost:4000',
-      description: 'Local Development Server'
+      url: process.env.API_BASE_URL || '/',
+      description: 'API Server'
     }
   ],
   paths: {

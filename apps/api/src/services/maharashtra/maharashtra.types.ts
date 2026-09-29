@@ -1,6 +1,6 @@
 export interface ApiResult<T> {
   success: boolean;
-  source: 'maharashtra-government' | 'mock' | 'system';
+  source: 'maharashtra-government' | 'mock' | 'system' | 'cached_fallback';
   data?: T;
   error?: {
     code: string;
