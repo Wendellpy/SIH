@@ -822,6 +822,16 @@ export const Exploded3DViewer: React.FC = () => {
         <Canvas
           shadows
           camera={{ position: [22, 20, 26], fov: 42 }}
+          gl={{
+            powerPreference: 'default',
+            preserveDrawingBuffer: true,
+            antialias: true
+          }}
+          onCreated={({ gl }) => {
+            gl.domElement.addEventListener('webglcontextlost', (e) => {
+              e.preventDefault();
+            }, false);
+          }}
           className="w-full h-full cursor-grab active:cursor-grabbing"
         >
           <ambientLight intensity={0.7} />

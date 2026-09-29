@@ -58,17 +58,31 @@ bmcRouter.get('/bmc/:sacNumber/units', async (req: Request, res: Response) => {
       await browser.close().catch(() => {});
     }
 
-    // If we failed to intercept real names, return empty so frontend handles fallback
+    // If we failed to intercept real names, generate structured floor units as a reliable fallback
+    const expectedFloors = parseInt(req.query.expectedFloors as string, 10) || 4;
+    const expectedUnits = parseInt(req.query.expectedUnits as string, 10) || (expectedFloors * 4);
+    
     if (scrapedUnits.length === 0) {
+      const unitsPerFloor = Math.max(1, Math.round(expectedUnits / expectedFloors));
+      const fallbackUnitsByFloor: Record<string, string[]> = {};
+      for (let f = 0; f < expectedFloors; f++) {
+        const floorName = f === 0 ? 'Ground Floor' : `Floor ${f}`;
+        const floorUnits: string[] = [];
+        for (let u = 1; u <= unitsPerFloor; u++) {
+          floorUnits.push(`${f === 0 ? 'G' : f}${u.toString().padStart(2, '0')}`);
+        }
+        fallbackUnitsByFloor[floorName] = floorUnits;
+      }
       return res.json({
         success: true,
-        data: {},
-        isFallback: true
+        sacNumber,
+        isFallback: true,
+        unitsByFloor: fallbackUnitsByFloor,
+        source: 'Cadastral Unit Generator Fallback'
       });
     }
     // Process real scraped units if we caught them
     const uniqueScraped = Array.from(new Set(scrapedUnits));
-    const expectedFloors = parseInt(req.query.expectedFloors as string, 10) || 4;
     
     const unitsByFloor: Record<string, string[]> = {};
     const baseUnits = Math.floor(uniqueScraped.length / expectedFloors);
@@ -77,7 +91,7 @@ bmcRouter.get('/bmc/:sacNumber/units', async (req: Request, res: Response) => {
     let unitIndex = 0;
     for (let f = 0; f < expectedFloors; f++) {
       const unitsOnThisFloor = baseUnits + (f < remainder ? 1 : 0);
-      const floorName = f === 0 ? 'Ground Floor' : `F${f}`;
+      const floorName = f === 0 ? 'Ground Floor' : `Floor ${f}`;
       
       const floorUnits: string[] = [];
       for (let i = 0; i < unitsOnThisFloor; i++) {
@@ -99,7 +113,25 @@ bmcRouter.get('/bmc/:sacNumber/units', async (req: Request, res: Response) => {
     });
     
   } catch (error) {
-    console.error('Puppeteer Scraper Error:', error);
-    res.status(500).json({ success: false, error: 'Failed to scrape BMC Portal' });
+    console.warn('Puppeteer unavailable or timed out, returning structured fallback:', (error as Error).message);
+    const expectedFloors = parseInt(req.query.expectedFloors as string, 10) || 4;
+    const expectedUnits = parseInt(req.query.expectedUnits as string, 10) || (expectedFloors * 4);
+    const unitsPerFloor = Math.max(1, Math.round(expectedUnits / expectedFloors));
+    const fallbackUnitsByFloor: Record<string, string[]> = {};
+    for (let f = 0; f < expectedFloors; f++) {
+      const floorName = f === 0 ? 'Ground Floor' : `Floor ${f}`;
+      const floorUnits: string[] = [];
+      for (let u = 1; u <= unitsPerFloor; u++) {
+        floorUnits.push(`${f === 0 ? 'G' : f}${u.toString().padStart(2, '0')}`);
+      }
+      fallbackUnitsByFloor[floorName] = floorUnits;
+    }
+    res.json({
+      success: true,
+      sacNumber,
+      isFallback: true,
+      unitsByFloor: fallbackUnitsByFloor,
+      source: 'Cadastral Unit Generator Fallback'
+    });
   }
 });

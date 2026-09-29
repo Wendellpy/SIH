@@ -62,13 +62,19 @@ export function ArchitecturalBuildingViewer() {
     const renderer = new THREE.WebGLRenderer({
       canvas,
       antialias: true,
-      alpha: false,
-      powerPreference: 'high-performance',
+      alpha: true,
+      powerPreference: 'default',
     });
     renderer.setSize(width, height);
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     renderer.shadowMap.enabled = true;
     renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+
+    const handleContextLost = (e: Event) => {
+      e.preventDefault();
+      cancelAnimationFrame(animationFrameId);
+    };
+    canvas.addEventListener('webglcontextlost', handleContextLost, false);
 
     // 2. High-End Studio Lighting for Grey & Black Architecture
     const ambientLight = new THREE.AmbientLight(0xffffff, 1.25);
@@ -396,6 +402,7 @@ export function ArchitecturalBuildingViewer() {
       window.removeEventListener('resize', handleResize);
       container.removeEventListener('mousemove', handlePointerMove);
       container.removeEventListener('click', handlePointerClick);
+      canvas.removeEventListener('webglcontextlost', handleContextLost);
       renderer.dispose();
     };
   }, []);

@@ -89,7 +89,7 @@ export const MapLibre3DMap: React.FC = () => {
       setBmcScrapedUnits(null);
       const floors = selectedBuildingInfo.floors || 1;
       const expectedUnits = selectedBuildingInfo.bmcData.unitCount || 0;
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || '';
       fetch(`${apiUrl}/api/v1/bmc/${sac}/units?expectedFloors=${floors}&expectedUnits=${expectedUnits}`)
         .then(r => r.json())
         .then(data => {
@@ -201,7 +201,7 @@ export const MapLibre3DMap: React.FC = () => {
         style: {
           version: 8,
           name: 'Mumbai 3D Dark Cadastre',
-          glyphs: 'https://demotiles.maplibre.org/font/{fontstack}/{range}.pbf',
+          glyphs: 'https://tiles.openfreemap.org/fonts/{fontstack}/{range}.pbf',
           sources: {
             openmaptiles: {
               type: 'vector',
@@ -527,7 +527,7 @@ export const MapLibre3DMap: React.FC = () => {
             visibility: 'visible',
             'symbol-placement': 'line',
             'text-field': ['get', 'id'], // 'id' contains the ULDPIN
-            'text-font': ['Open Sans Bold', 'Arial Unicode MS Bold'],
+            'text-font': ['Noto Sans Bold'],
             'text-size': 10,
             'text-letter-spacing': 0.1,
             'text-offset': [0, -1]
@@ -1073,10 +1073,17 @@ export const MapLibre3DMap: React.FC = () => {
           // Pan-India Fallback: Overpass API
           // Search for any named feature (node, way, relation) within 30 meters, or just any building
           const overpassQuery = `[out:json];(nwr(around:30,${queryLat},${queryLng})["name"];nwr(around:30,${queryLat},${queryLng})["building"];);out tags;`;
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 6000);
           return fetch(`https://overpass-api.de/api/interpreter`, {
             method: 'POST',
-            body: overpassQuery
-          }).then(r => r.json()).then(osmJson => {
+            body: overpassQuery,
+            signal: controller.signal
+          }).then(r => {
+            clearTimeout(timeoutId);
+            if (!r.ok) throw new Error(`Overpass returned HTTP ${r.status}`);
+            return r.json();
+          }).then(osmJson => {
             if (osmJson && osmJson.elements && osmJson.elements.length > 0) {
               // Prioritize elements that actually have a name
               const bestElement = osmJson.elements.find((e: any) => e.tags && (e.tags.name || e.tags['name:en'])) || osmJson.elements[0];
@@ -1540,7 +1547,11 @@ export const MapLibre3DMap: React.FC = () => {
       let features: any[] = [];
       try {
         const query = `[out:json];(way[man_made=pipeline](${bbox});way[power=cable](${bbox});way[route=pipeline](${bbox}););out geom;`;
-        const res = await fetch(`https://overpass-api.de/api/interpreter`, { method: 'POST', body: query });
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 6000);
+        const res = await fetch(`https://overpass-api.de/api/interpreter`, { method: 'POST', body: query, signal: controller.signal });
+        clearTimeout(timeoutId);
+        if (!res.ok) throw new Error(`Overpass returned HTTP ${res.status}`);
         const osmJson = await res.json();
         
         // Use Real Data if it exists in OSM
@@ -1661,7 +1672,7 @@ export const MapLibre3DMap: React.FC = () => {
           source: 'searched-parcel-source',
           layout: {
             'text-field': ['get', 'ulpin'], // try ulpin first
-            'text-font': ['Open Sans Bold', 'Arial Unicode MS Bold'],
+            'text-font': ['Noto Sans Bold'],
             'text-size': 14,
             'text-anchor': 'center',
             'symbol-placement': 'point'
