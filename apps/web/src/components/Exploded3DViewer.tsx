@@ -634,16 +634,20 @@ export const Exploded3DViewer: React.FC = () => {
     setExplodedDistance,
     setActiveTab,
     activeUndergroundLayerIds,
-    searchedUlpin3D
+    searchedUlpin3D,
+    searchedParcelGeoJSON,
+    selectedParcel
   } = useAppStore();
 
   const [hoveredUnit, setHoveredUnit] = useState<VerticalUnit | null>(null);
   const [showBuilding, setShowBuilding] = useState<boolean>(true);
 
-  const bldg = selectedBuilding || SAMPLE_BUILDINGS[0];
+  const bldg = selectedBuilding || (!selectedParcel ? SAMPLE_BUILDINGS[0] : null);
 
   // Dynamically resolve or generate vertical units for selected building
   const bldgUnits = useMemo(() => {
+    if (!bldg) return [];
+    
     const existing = SAMPLE_VERTICAL_UNITS.filter(u => u.buildingId === bldg.id);
     if (existing.length > 0) return existing;
 
@@ -825,9 +829,9 @@ export const Exploded3DViewer: React.FC = () => {
           <pointLight position={[-10, 10, -10]} intensity={0.8} color="#0ea5e9" />
           <pointLight position={[10, 10, 10]} intensity={0.5} color="#10b981" />
 
-          {showBuilding && (
+          {showBuilding && bldg && (
             <BuildingScene
-              building={selectedBuilding}
+              building={bldg}
               buildingUnits={bldgUnits}
               explodedDist={explodedDistance}
               selectedUnit={selectedUnit}
@@ -837,28 +841,89 @@ export const Exploded3DViewer: React.FC = () => {
               searchedUlpin3D={searchedUlpin3D}
             />
           )}
+          {showBuilding && !bldg && searchedParcelGeoJSON && (
+            <group position={[0, -0.5, 0]}>
+              {(() => {
+                let coords = searchedParcelGeoJSON.geometry?.coordinates;
+                if (!coords || !coords[0]) return null;
+                // Unnest until we reach the polygon ring
+                while (coords.length > 0 && Array.isArray(coords[0]) && Array.isArray(coords[0][0]) && typeof coords[0][0][0] !== 'number') {
+                  coords = coords[0];
+                }
+                if (!Array.isArray(coords) || !Array.isArray(coords[0])) return null;
+
+                try {
+                  const firstPt = coords[0];
+                  const lastPt = coords[coords.length - 1];
+                  let polyCoords = [...coords];
+                  if (firstPt[0] !== lastPt[0] || firstPt[1] !== lastPt[1]) polyCoords.push([...firstPt]);
+                  
+                  let rawPoly = turf.polygon([polyCoords]);
+                  rawPoly = turf.rewind(rawPoly, { reverse: true, mutate: true }) as any;
+                  const centroid = turf.centroid(rawPoly);
+                  const cx = centroid.geometry.coordinates[0];
+                  const cy = centroid.geometry.coordinates[1];
+                  const METERS_PER_DEGREE_LAT = 111320;
+                  const METERS_PER_DEGREE_LNG = 111320 * Math.cos(cy * Math.PI / 180);
+
+                  const localCoords = rawPoly.geometry.coordinates[0].map(([lng, lat]) => [
+                    (lng - cx) * METERS_PER_DEGREE_LNG,
+                    (lat - cy) * METERS_PER_DEGREE_LAT
+                  ]);
+
+                  let localPoly = turf.polygon([localCoords]);
+                  localPoly = turf.rewind(localPoly, { reverse: true, mutate: true }) as any;
+                  const shape = new THREE.Shape();
+                  localPoly.geometry.coordinates[0].forEach((pt, i) => {
+                    if (i === 0) shape.moveTo(pt[0], pt[1]);
+                    else shape.lineTo(pt[0], pt[1]);
+                  });
+
+                  return (
+                    <mesh rotation={[-Math.PI / 2, 0, 0]}>
+                      <extrudeGeometry args={[shape, { depth: 1, bevelEnabled: false }]} />
+                      <meshStandardMaterial color="#0ea5e9" opacity={0.4} transparent wireframe />
+                      <meshStandardMaterial color="#0284c7" opacity={0.1} transparent />
+                    </mesh>
+                  );
+                } catch(e) {
+                  return null;
+                }
+              })()}
+            </group>
+          )}
           {!showBuilding && (
             <gridHelper args={[200, 200, '#0ea5e9', '#1e293b']} position={[0, -2.38, 0]} />
           )}
 
-          {/* Calculate building centroid for relative projection */}
+          {/* Calculate building/parcel centroid for relative projection */}
           {(() => {
             let cx = 72.8280;
             let cy = 18.9960;
-            const coordinates = bldg.footprint?.coordinates;
+            const coordinates = bldg?.footprint?.coordinates || searchedParcelGeoJSON?.geometry?.coordinates;
+            
             if (coordinates && coordinates[0] && coordinates[0].length >= 3) {
               let polyCoords = [...coordinates[0]];
+              // If it's a MultiPolygon or nested Polygon, try to find the outer ring
+              if (Array.isArray(polyCoords[0]) && Array.isArray(polyCoords[0][0])) {
+                polyCoords = [...polyCoords[0]];
+              }
+              
               const firstPt = polyCoords[0];
               const lastPt = polyCoords[polyCoords.length - 1];
-              if (firstPt[0] !== lastPt[0] || firstPt[1] !== lastPt[1]) {
+              if (firstPt && lastPt && (firstPt[0] !== lastPt[0] || firstPt[1] !== lastPt[1])) {
                 polyCoords.push([...firstPt]);
               }
               if (polyCoords.length >= 4) {
-                let rawPoly = turf.polygon([polyCoords]);
-                rawPoly = turf.rewind(rawPoly, { reverse: true, mutate: true }) as any;
-                const centroid = turf.centroid(rawPoly);
-                cx = centroid.geometry.coordinates[0];
-                cy = centroid.geometry.coordinates[1];
+                try {
+                  let rawPoly = turf.polygon([polyCoords]);
+                  rawPoly = turf.rewind(rawPoly, { reverse: true, mutate: true }) as any;
+                  const centroid = turf.centroid(rawPoly);
+                  cx = centroid.geometry.coordinates[0];
+                  cy = centroid.geometry.coordinates[1];
+                } catch(e) {
+                  console.warn("Could not calculate centroid for Exploded view", e);
+                }
               }
             }
             return (
@@ -889,23 +954,23 @@ export const Exploded3DViewer: React.FC = () => {
               <ArrowLeft className="w-4 h-4" />
             </button>
             <div className="p-1.5 rounded-lg bg-brand-primary/20 text-brand-primary">
-              <Building2 className="w-4 h-4" />
+              {bldg ? <Building2 className="w-4 h-4" /> : <Layers className="w-4 h-4" />}
             </div>
             <div className="flex-1 min-w-0">
               <h3 className="text-xs font-bold text-white leading-tight truncate">
-                {bldg.name}
+                {bldg?.name || selectedParcel?.ownerName || 'Maharashtra Cadastral Parcel'}
               </h3>
               <p className="text-[10px] text-slate-400 font-mono">
-                {bldg.roofHeightM}m Height &bull; {bldg.numFloors} Floors &bull; {bldgUnits.length} Units
+                {bldg ? `${bldg.roofHeightM}m Height \u2022 ${bldg.numFloors} Floors \u2022 ${bldgUnits.length} Units` : `Area: ${selectedParcel?.areaSqm || 0} m\u00B2`}
               </p>
             </div>
           </div>
 
           {/* Address / Coordinates if OSM building */}
-          {bldg.simulated && bldg.address && (
+          {(bldg?.simulated || selectedParcel) && (
             <div className="flex items-center gap-1.5 text-[10px] text-slate-400 font-mono">
               <MapPin className="w-3 h-3 text-cyan-400 flex-shrink-0" />
-              <span className="truncate">{bldg.address}</span>
+              <span className="truncate">{bldg?.address || selectedParcel?.address || 'Maharashtra, India'}</span>
             </div>
           )}
 

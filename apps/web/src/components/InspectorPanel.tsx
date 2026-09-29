@@ -39,7 +39,8 @@ export const InspectorPanel: React.FC = () => {
     resolveConflict,
     topologyLogs,
     changeEvents,
-    temporalYear
+    temporalYear,
+    resetSelection
   } = useAppStore();
 
   const [copied, setCopied] = useState(false);
@@ -313,10 +314,18 @@ export const InspectorPanel: React.FC = () => {
           </div>
         </div>
 
-        {/* Provenance Badge */}
-        <span className="text-[10px] px-2 py-0.5 rounded-full bg-surface-100 text-slate-300 border border-white/10 font-medium">
-          {unit?.provenance || 'BMC GIS'}
-        </span>
+        {/* Provenance Badge & Close Button */}
+        <div className="flex items-center gap-3">
+          <span className="text-[10px] px-2 py-0.5 rounded-full bg-surface-100 text-slate-300 border border-white/10 font-medium">
+            {unit?.provenance || 'BMC GIS'}
+          </span>
+          <button 
+            onClick={(e) => { e.stopPropagation(); resetSelection(); }}
+            className="p-2.5 -mr-2 -mt-1 rounded-full hover:bg-white/10 text-slate-400 hover:text-white transition-colors cursor-pointer"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </div>
       </div>
 
       {/* 3D ULPIN Identity Banner */}

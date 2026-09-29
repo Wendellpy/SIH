@@ -244,8 +244,8 @@ export const Header: React.FC = () => {
       
     } else if (result.type === 'PARCEL') {
       setSelectedParcel(result.raw);
-      const bldg = SAMPLE_BUILDINGS.find(b => b.parcelId === result.raw.id) || null;
-      setSelectedBuilding(bldg);
+      setSelectedBuilding(null);
+      setSelectedUnit(null);
       
       const lng = result.raw.centroid?.[0] || 72.8280;
       const lat = result.raw.centroid?.[1] || 18.9960;
@@ -263,6 +263,37 @@ export const Header: React.FC = () => {
       
       if (fullUlpin) {
         useAppStore.getState().setSearchedUlpin3D(fullUlpin.toUpperCase());
+        
+        // Synthesize the parcel geometry so it highlights on the map
+        const d = 0.0002;
+        const feature = {
+          type: "Feature",
+          geometry: {
+            type: "Polygon",
+            coordinates: [[
+              [lng - d, lat - d],
+              [lng + d, lat - d],
+              [lng + d, lat + d],
+              [lng - d, lat + d],
+              [lng - d, lat - d]
+            ]]
+          },
+          properties: { surveyNo: fullUlpin, simulated: true }
+        };
+        setSearchedParcelGeoJSON(feature as any);
+        
+        // Ensure property card appears with selected parcel data
+        useAppStore.getState().setSelectedBuilding(null);
+        useAppStore.getState().setSelectedUnit(null);
+        useAppStore.getState().setSelectedParcel({
+          id: fullUlpin,
+          ulpin: fullUlpin,
+          address: result.subtitle || 'Maharashtra',
+          ownerName: 'Maharashtra Government',
+          zoning: 'N/A',
+          areaSqm: 400,
+          dataSource: 'verified'
+        });
       }
       
       setFlyToTarget({ lng, lat, zoom: 18.5, pitch: 65 });

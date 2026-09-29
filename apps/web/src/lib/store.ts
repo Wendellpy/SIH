@@ -153,10 +153,10 @@ export const useAppStore = create<AppState>((set, get) => ({
   currentRole: 'revenue',
   setCurrentRole: (role) => set({ currentRole: role }),
 
-  selectedParcel: SAMPLE_PARCELS[0],
+  selectedParcel: null,
   setSelectedParcel: (parcel) => set({ selectedParcel: parcel }),
 
-  selectedBuilding: SAMPLE_BUILDINGS[0],
+  selectedBuilding: null,
   setSelectedBuilding: (building) => {
     set({ selectedBuilding: building });
     if (building) {
@@ -288,6 +288,7 @@ export const useAppStore = create<AppState>((set, get) => ({
 
   resetSelection: () =>
     set({
+      selectedParcel: null,
       selectedBuilding: null,
       selectedUnit: null,
       selectedUnderground: null,

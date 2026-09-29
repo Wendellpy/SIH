@@ -110,7 +110,7 @@ export const MapLibre3DMap: React.FC = () => {
   const [showAquariaFloorPlan, setShowAquariaFloorPlan] = useState(false);
   const [aquariaViewMode, setAquariaViewMode] = useState<'2D' | '3D'>('3D');
   const [selectedUnit, setSelectedUnit] = useState<string>('101');
-  const { activeTab, layers, setActiveTab, setSelectedBuilding, setSelectedMiningArea, flyToTarget, setFlyToTarget, activeUndergroundLayerIds, currentRole, temporalYear, floodSimulation, searchedParcelGeoJSON, mapViewState, setMapViewState, searchedUlpin3D } = useAppStore();
+  const { activeTab, layers, setActiveTab, setSelectedBuilding, resetSelection, setSelectedParcel, setSelectedMiningArea, flyToTarget, setFlyToTarget, activeUndergroundLayerIds, currentRole, temporalYear, floodSimulation, searchedParcelGeoJSON, mapViewState, setMapViewState, searchedUlpin3D } = useAppStore();
 
   const drawRef = useRef<MapboxDraw | null>(null);
   const dynamicBuildingsRef = useRef<any[]>([]);
@@ -825,6 +825,8 @@ export const MapLibre3DMap: React.FC = () => {
       });
 
       map.on('click', async (e) => {
+        resetSelection(); // Close the new UI (InspectorPanel) so they don't overlap
+
         // Expand hit area for better accuracy, especially if simulated
         let bldgs: any[] = [];
         try {
@@ -1112,6 +1114,9 @@ export const MapLibre3DMap: React.FC = () => {
             } else {
               setSelectedBuildingInfo(prev => prev ? { ...prev, bmcData: { sacNumber: '', usage: '', name: '', noOfFloorsStr: '', unitCount: 0, notFound: true } } : prev);
             }
+          }).catch(err => {
+            console.warn('[MapLibre] Overpass fetch failed:', err);
+            setSelectedBuildingInfo(prev => prev ? { ...prev, bmcData: { sacNumber: '', usage: '', name: '', noOfFloorsStr: '', unitCount: 0, notFound: true } } : prev);
           });
         };
 
@@ -1149,10 +1154,10 @@ export const MapLibre3DMap: React.FC = () => {
                   if (bmcData.usage && bmcData.usage !== 'Unknown' && !finalName.includes('[')) {
                      finalName = `${finalName} [${bmcData.usage}]`;
                   }
-                  const footprintArea = bmcProps['SHAPE.AREA'] || bmcProps.Shape__Area || bmcProps.SHAPE_Area || 650;
                   
+                  const footprintArea = bmcProps['SHAPE.AREA'] || bmcProps.Shape__Area || bmcProps.SHAPE_Area || 650;
                   const accurateFloors = parsedFloors > 0 ? parsedFloors : prev.floors;
-                  const originalHeight = prev.height; // Always keep the building at its visual OSM height to prevent popping/climbing
+                  const originalHeight = prev.height; 
                   
                   const updatedBuilding = {
                     ...prev.building,
@@ -1162,18 +1167,19 @@ export const MapLibre3DMap: React.FC = () => {
                     name: finalName
                   };
                   
-                  return {
-                    ...prev,
+                  return { 
+                    ...prev, 
                     height: originalHeight,
                     floors: accurateFloors,
-                    buildingName: updatedBuilding.name,
+                    buildingName: finalName,
                     building: updatedBuilding,
-                    bmcData
+                    bmcData 
                   };
                 });
               } else {
-                executeOverpassFallback();
+                setSelectedBuildingInfo(prev => prev ? { ...prev, bmcData: { sacNumber: '', usage: '', name: '', noOfFloorsStr: '', unitCount: 0, notFound: true } } : prev);
               }
+              executeOverpassFallback();
             })
             .catch(err => {
               console.warn('[MapLibre] Failed to fetch data', err);
@@ -1252,32 +1258,21 @@ export const MapLibre3DMap: React.FC = () => {
           const parcelId = `surface-parcel-${Date.now().toString(36)}`;
           const dynamicParcel: any = {
             id: parcelId,
-            parcelId: parcelId,
+            ulpin: mlData.ulpin_3d || baseUlpin,
             name: f?.properties?.name || `Satellite Extracted Surface`,
-            footprint: { type: 'Polygon', coordinates: [] }, // mock
+            areaSqm: mlData.surface_area_sqm,
+            boundary: { type: 'Polygon', coordinates: [polygon] },
+            dataSource: mlData.is_slope_corrected ? 'verified' : 'demo',
+            footprint: { type: 'Polygon', coordinates: [polygon] },
             totalBuiltupAreaSqm: mlData.surface_area_sqm,
             address: `True Area (SRTM Extracted)`,
             simulated: true,
           };
 
-          setSelectedBuildingInfo({
-            id: parcelId,
-            height: 0,
-            minHeight: 0,
-            floors: 0,
-            ulpin3D: mlData.ulpin_3d,
-            coordinates: [lng, lat],
-            building: dynamicParcel,
-            buildingName: dynamicParcel.name,
-            ownership: null,
-            bmcData: { 
-              sacNumber: `ML-SURF-${baseUlpin.slice(-6)}`, 
-              usage: mlData.is_slope_corrected ? 'Slope Corrected (Satellite)' : 'Planimetric Fallback', 
-              name: `True Area: ${mlData.surface_area_sqm} m²`, 
-              noOfFloorsStr: '0' 
-            },
-            isAnimated: false
-          });
+          setSelectedBuildingInfo(null); // Close the old building UI
+          setSelectedParcel(dynamicParcel); // Open the new UI (InspectorPanel)
+          setSelectedBuilding(null);
+          useAppStore.getState().setSelectedUnit(null);
         } catch (err) {
           console.error("Failed to extract surface parcel data:", err);
         }
@@ -1291,14 +1286,10 @@ export const MapLibre3DMap: React.FC = () => {
       map.on('mouseenter', 'landcover', () => { map.getCanvas().style.cursor = 'crosshair'; });
       map.on('mouseleave', 'landcover', () => { map.getCanvas().style.cursor = ''; });
 
-      // Highlight Polygon Click Handler -> Inspector
+      // Highlight Polygon Click Handler
       map.on('click', 'searched-parcel-fill', (e) => {
-        // Reuse already loaded data in the Zustand store
-        const state = useAppStore.getState();
-        if (state.selectedParcel || state.selectedBuilding || state.selectedUnit) {
-          // Open the main Inspector Panel
-          setActiveTab('INSPECTOR');
-        }
+        // We no longer change activeTab to 'INSPECTOR' because 'INSPECTOR' is not a valid tab.
+        // Instead, the property card will simply be shown on the right side of the current view.
       });
       
       map.on('mouseenter', 'searched-parcel-fill', () => { map.getCanvas().style.cursor = 'pointer'; });
@@ -2180,9 +2171,9 @@ export const MapLibre3DMap: React.FC = () => {
             </div>
             <button
               onClick={() => setSelectedBuildingInfo(null)}
-              className="text-slate-400 hover:text-white text-xs p-1"
+              className="p-2 -mr-2 -mt-2 rounded-full hover:bg-white/10 text-slate-400 hover:text-white transition-colors cursor-pointer"
             >
-              ✕
+              <X className="w-4 h-4" />
             </button>
           </div>
 
@@ -2530,7 +2521,7 @@ export const MapLibre3DMap: React.FC = () => {
               className="w-full mt-2 py-2.5 px-4 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white text-xs font-semibold flex items-center justify-center gap-1.5 shadow-neon-emerald transition-all duration-300 hover:scale-[1.02]"
             >
               <Layers className="w-3.5 h-3.5 text-emerald-200" />
-              View 3D Floor Plan & Mockups
+              View Floor Plans & Mockups
             </button>
           )}
         </div>
@@ -2539,31 +2530,22 @@ export const MapLibre3DMap: React.FC = () => {
       {/* Aquaria Grande Floor Plan Modal Overlay */}
       {showAquariaFloorPlan && (
         <div className="absolute inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-300">
-          <div className="relative w-full max-w-4xl max-h-full bg-slate-900 rounded-2xl shadow-2xl border border-white/10 flex flex-col overflow-hidden">
+          <div className="relative w-full max-w-4xl h-[85vh] bg-slate-900 rounded-2xl shadow-2xl border border-white/10 flex flex-col overflow-hidden">
             <div className="flex items-center justify-between p-4 border-b border-white/10 bg-slate-800/50">
               <h2 className="text-lg font-bold text-white flex items-center gap-2">
                 <Layers className="text-emerald-400" />
                 Aquaria Grande - Mockups & Floor Plans
               </h2>
               
-              <div className="flex items-center gap-2 bg-black/40 p-1 rounded-lg border border-white/5">
+              <div className="flex bg-slate-900 rounded-lg p-1 border border-white/10">
                 <button
                   onClick={() => setAquariaViewMode('2D')}
-                  className={`px-3 py-1.5 rounded-md text-xs font-semibold flex items-center gap-1.5 transition-all ${
-                    aquariaViewMode === '2D' ? 'bg-white/20 text-white shadow-sm' : 'text-slate-400 hover:text-white'
+                  className={`px-4 py-1.5 rounded-md text-xs font-semibold transition-all ${
+                    aquariaViewMode === '2D' ? 'bg-slate-700 text-white shadow-md' : 'text-slate-400 hover:text-white'
                   }`}
                 >
-                  <ImageIcon className="w-3.5 h-3.5" />
+                  <ImageIcon className="w-3.5 h-3.5 inline mr-1.5" />
                   2D Scraped Plans
-                </button>
-                <button
-                  onClick={() => setAquariaViewMode('3D')}
-                  className={`px-3 py-1.5 rounded-md text-xs font-semibold flex items-center gap-1.5 transition-all ${
-                    aquariaViewMode === '3D' ? 'bg-emerald-500/20 text-emerald-300 shadow-sm border border-emerald-500/30' : 'text-slate-400 hover:text-emerald-400'
-                  }`}
-                >
-                  <BoxIcon className="w-3.5 h-3.5" />
-                  Interactive 3D
                 </button>
               </div>
 
@@ -2578,7 +2560,7 @@ export const MapLibre3DMap: React.FC = () => {
             <div className="flex-1 p-6 overflow-hidden flex flex-col bg-slate-900">
               {aquariaViewMode === '3D' ? (
                 <div className="w-full h-full flex-1">
-                  <FloorPlan3D planIndex={parseInt(selectedUnit) || 0} />
+                  <FloorPlan3D planIndex={0} />
                 </div>
               ) : (
                 <div className="w-full h-full overflow-y-auto custom-scrollbar flex flex-col gap-8 items-center">

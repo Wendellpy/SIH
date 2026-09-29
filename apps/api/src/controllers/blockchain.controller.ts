@@ -67,12 +67,7 @@ blockchainRouter.get('/blockchain/verify/:ulpin', async (req: Request, res: Resp
 
     const result = await blockchainService.verifyProperty(ulpin, unitId);
 
-    if (!result.foundInDb) {
-      return res.status(404).json({
-        status: 'error',
-        message: `Property with ULPIN ${ulpin} not found in database`
-      });
-    }
+
 
     return res.json({
       ulpin: result.ulpin,

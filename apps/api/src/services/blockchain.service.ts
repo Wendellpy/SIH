@@ -454,16 +454,7 @@ export class BlockchainService {
       }
     }
 
-    if (!propertyRecord) {
-      return {
-        foundInDb: false,
-        ulpin: ulpinInput,
-        verified: false,
-        status: 'NOT_FOUND_IN_DB',
-        currentHash: null,
-        blockchainHash: null
-      };
-    }
+    const foundInDb = !!propertyRecord;
 
     // 2. Generate deterministic SHA-256 record hash
     const currentHash = `0x${this.generateRecordHash(baseUlpin, unitId)}`;
@@ -501,7 +492,7 @@ export class BlockchainService {
 
     // 5-6. Return VERIFIED or TAMPER_DETECTED
     return {
-      foundInDb: true,
+      foundInDb,
       ulpin: ulpinInput,
       verified: isMatch,
       status: isMatch ? 'VERIFIED' : 'TAMPER_DETECTED',

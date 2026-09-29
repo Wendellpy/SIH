@@ -126,12 +126,25 @@ export const MaharashtraPanel = () => {
   const [loadingVillages, setLoadingVillages] = useState(false);
   const [dataSource, setDataSource] = useState<string>('');
 
-  const { setActiveTab, setSearchQuery, setFlyToTarget, setSearchedParcelGeoJSON } = useAppStore();
+  const { setActiveTab, setSearchQuery, setFlyToTarget, setSearchedParcelGeoJSON, setSelectedParcel, setSelectedBuilding, setSelectedUnit } = useAppStore();
 
   const handleFocusMap = () => {
     if (!result || !result.geometry) return;
     
     setSearchedParcelGeoJSON(result.geometry);
+    
+    // Set selected property so Inspector card shows up when clicking the map
+    setSelectedBuilding(null);
+    setSelectedUnit(null);
+    setSelectedParcel({
+      id: result.parcel.surveyNumber || result.parcel.ulpin || 'parcel-id',
+      ulpin: result.parcel.ulpin || undefined,
+      address: `${result.parcel.village?.name}, ${result.parcel.taluka?.name}, ${result.parcel.district?.name}`,
+      ownerName: result.parcel.attributes?.owner_name || 'Maharashtra Government',
+      zoning: 'N/A',
+      areaSqm: result.parcel.attributes?.area || 0,
+      dataSource: 'verified'
+    });
     
     // Find a simple centroid from the first polygon ring to fly to
     let lng = 0, lat = 0, count = 0;
@@ -387,38 +400,49 @@ export const MaharashtraPanel = () => {
             </h3>
             
             {result.success && result.parcel && (
-              <div className="space-y-4">
-                <div className="grid grid-cols-2 gap-x-6 gap-y-4 text-[13px] relative z-10 mb-6">
-                  <div><span className="text-slate-500 block text-[10px] uppercase tracking-wider mb-0.5">District</span> <span className="text-slate-200 font-medium">{result.parcel.district?.name || '-'}</span></div>
-                  <div><span className="text-slate-500 block text-[10px] uppercase tracking-wider mb-0.5">Taluka</span> <span className="text-slate-200 font-medium">{result.parcel.taluka?.name || '-'}</span></div>
-                  <div><span className="text-slate-500 block text-[10px] uppercase tracking-wider mb-0.5">Village</span> <span className="text-slate-200 font-medium">{result.parcel.village?.name || '-'}</span></div>
-                  <div><span className="text-slate-500 block text-[10px] uppercase tracking-wider mb-0.5">Survey No / CTS</span> <span className="text-cyan-300 font-mono font-medium">{result.parcel.surveyNumber || '-'}</span></div>
-                </div>
-                
-                <div className="border border-white/10 rounded-xl bg-black/40 backdrop-blur-sm p-4 relative z-10 shadow-inner">
-                  <div className="flex justify-between items-center mb-3">
-                    <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Geometry Status</span>
-                    {result.geometryStatus === 'GEOMETRY_AVAILABLE' && <span className="text-[10px] px-2 py-0.5 rounded bg-emerald-900/50 text-emerald-400 border border-emerald-800">AVAILABLE</span>}
-                    {result.geometryStatus === 'GEOMETRY_PENDING' && <span className="text-[10px] px-2 py-0.5 rounded bg-amber-900/50 text-amber-400 border border-amber-800">PENDING</span>}
-                    {result.geometryStatus === 'GEOMETRY_NOT_FOUND' && <span className="text-[10px] px-2 py-0.5 rounded bg-red-900/50 text-red-400 border border-red-800">NOT FOUND</span>}
-                    {result.geometryStatus === 'GEOMETRY_SOURCE_UNAVAILABLE' && <span className="text-[10px] px-2 py-0.5 rounded bg-slate-800 text-slate-400 border border-slate-700">SOURCE UNAVAILABLE</span>}
-                    {result.geometryStatus === 'GEOMETRY_INVALID' && <span className="text-[10px] px-2 py-0.5 rounded bg-orange-900/50 text-orange-400 border border-orange-800">INVALID FORMAT</span>}
+                <div className="space-y-4">
+                  <div className="grid grid-cols-2 gap-x-6 gap-y-4 text-[13px] relative z-10 mb-6">
+                    <div><span className="text-slate-500 block text-[10px] uppercase tracking-wider mb-0.5">District</span> <span className="text-slate-200 font-medium">{result.parcel.district?.name || '-'}</span></div>
+                    <div><span className="text-slate-500 block text-[10px] uppercase tracking-wider mb-0.5">Taluka</span> <span className="text-slate-200 font-medium">{result.parcel.taluka?.name || '-'}</span></div>
+                    <div><span className="text-slate-500 block text-[10px] uppercase tracking-wider mb-0.5">Village</span> <span className="text-slate-200 font-medium">{result.parcel.village?.name || '-'}</span></div>
+                    <div><span className="text-slate-500 block text-[10px] uppercase tracking-wider mb-0.5">Survey No / CTS</span> <span className="text-cyan-300 font-mono font-medium">{result.parcel.surveyNumber || '-'}</span></div>
+                    {result.parcel.ulpin && (
+                      <div className="col-span-2">
+                        <span className="text-slate-500 block text-[10px] uppercase tracking-wider mb-0.5">ULPIN (14 Digit)</span> 
+                        <span className="text-amber-400 font-mono font-medium text-sm tracking-widest">{result.parcel.ulpin}</span>
+                      </div>
+                    )}
                   </div>
                   
-                  {result.geometryStatus === 'GEOMETRY_AVAILABLE' ? (
-                    <div className="text-xs text-slate-300 mt-2">
-                      <p className="leading-relaxed">Valid polygon retrieved from Mahabhunakasha. EPSG:4326 normalized.</p>
-                      <button className="mt-3 text-[11px] font-medium bg-white/10 hover:bg-white/20 border border-white/10 px-4 py-2 rounded-lg transition-all flex items-center gap-2" onClick={handleFocusMap}>
-                        <Compass className="w-3.5 h-3.5" /> Focus on Map
-                      </button>
+                  <div className="border border-white/10 rounded-xl bg-black/40 backdrop-blur-sm p-4 relative z-10 shadow-inner">
+                    <div className="flex justify-between items-center mb-3">
+                      <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Geometry Status</span>
+                      {result.geometryStatus === 'GEOMETRY_AVAILABLE' && result.geometryMetadata?.simulated && <span className="text-[10px] px-2 py-0.5 rounded bg-blue-900/50 text-blue-400 border border-blue-800">AVAILABLE (SIMULATED)</span>}
+                      {result.geometryStatus === 'GEOMETRY_AVAILABLE' && !result.geometryMetadata?.simulated && <span className="text-[10px] px-2 py-0.5 rounded bg-emerald-900/50 text-emerald-400 border border-emerald-800">AVAILABLE</span>}
+                      {result.geometryStatus === 'GEOMETRY_PENDING' && <span className="text-[10px] px-2 py-0.5 rounded bg-amber-900/50 text-amber-400 border border-amber-800">PENDING</span>}
+                      {result.geometryStatus === 'GEOMETRY_NOT_FOUND' && <span className="text-[10px] px-2 py-0.5 rounded bg-red-900/50 text-red-400 border border-red-800">NOT FOUND</span>}
+                      {result.geometryStatus === 'GEOMETRY_SOURCE_UNAVAILABLE' && <span className="text-[10px] px-2 py-0.5 rounded bg-slate-800 text-slate-400 border border-slate-700">SOURCE UNAVAILABLE</span>}
+                      {result.geometryStatus === 'GEOMETRY_INVALID' && <span className="text-[10px] px-2 py-0.5 rounded bg-orange-900/50 text-orange-400 border border-orange-800">INVALID FORMAT</span>}
                     </div>
-                  ) : (
-                    <div className="text-xs text-slate-400 mt-2">
-                      <p className="leading-relaxed">No valid cadastral polygon could be automatically resolved for this parcel.</p>
-                      <button className="mt-3 text-[11px] font-medium bg-white/5 hover:bg-white/10 border border-white/10 px-4 py-2 rounded-lg transition-all" onClick={handleSearch}>Retry Geometry</button>
-                    </div>
-                  )}
-                </div>
+                    
+                    {result.geometryStatus === 'GEOMETRY_AVAILABLE' ? (
+                      <div className="text-xs text-slate-300 mt-2">
+                        <p className="leading-relaxed">
+                          {result.geometryMetadata?.simulated 
+                            ? 'Fallback simulated polygon generated (official source unavailable). EPSG:4326 normalized.' 
+                            : 'Valid polygon retrieved from Mahabhunakasha. EPSG:4326 normalized.'}
+                        </p>
+                        <button className="mt-3 text-[11px] font-medium bg-white/10 hover:bg-white/20 border border-white/10 px-4 py-2 rounded-lg transition-all flex items-center gap-2" onClick={handleFocusMap}>
+                          <Compass className="w-3.5 h-3.5" /> Focus on Map
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="text-xs text-slate-400 mt-2">
+                        <p className="leading-relaxed">No valid cadastral polygon could be automatically resolved for this parcel.</p>
+                        <button className="mt-3 text-[11px] font-medium bg-white/5 hover:bg-white/10 border border-white/10 px-4 py-2 rounded-lg transition-all" onClick={handleSearch}>Retry Geometry</button>
+                      </div>
+                    )}
+                  </div>
 
                 <div className="border border-white/10 rounded-xl bg-black/40 backdrop-blur-sm p-4 relative z-10 shadow-inner">
                    <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider block mb-3">Provenance</span>

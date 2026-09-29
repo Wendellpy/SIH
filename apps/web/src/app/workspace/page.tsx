@@ -42,7 +42,7 @@ const Exploded3DViewer = dynamic(
 );
 
 export default function WorkspacePage() {
-  const { activeTab } = useAppStore();
+  const { activeTab, selectedParcel, selectedBuilding, selectedUnit, selectedUnderground } = useAppStore();
 
   return (
     <div className="flex flex-col h-screen w-screen bg-[#060911] text-slate-100 overflow-hidden">
@@ -56,8 +56,11 @@ export default function WorkspacePage() {
           {(activeTab === 'MAPLIBRE_3D' || activeTab === 'MINING') && (
             <div className="relative w-full h-full">
               <MapLibre3DMap />
-              <div className="absolute top-4 right-4 z-20 pointer-events-auto">
+              <div className="absolute top-4 right-4 h-[calc(100%-2rem)] flex flex-col gap-4 z-20 pointer-events-auto">
                 <UndergroundControl />
+                {(selectedParcel || selectedBuilding || selectedUnit || selectedUnderground) && (
+                  <InspectorPanel />
+                )}
               </div>
 
               {/* 4D Temporal Slider on Bottom-Center */}
