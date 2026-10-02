@@ -146,26 +146,37 @@ export const MaharashtraPanel = () => {
       dataSource: 'verified'
     });
     
-    // Find a simple centroid from the first polygon ring to fly to
+    // Find a simple centroid from the polygon coordinates to fly to
     let lng = 0, lat = 0, count = 0;
     try {
-      let coords = result.geometry.geometry.coordinates;
-      while (coords.length > 0 && Array.isArray(coords[0]) && Array.isArray(coords[0][0])) {
+      const rawGeom = result.geometry.geometry || result.geometry;
+      let coords = rawGeom.coordinates;
+      while (coords && coords.length > 0 && Array.isArray(coords[0]) && Array.isArray(coords[0][0])) {
         coords = coords[0];
       }
       
-      for (const pt of coords) {
-        lng += pt[0];
-        lat += pt[1];
-        count++;
+      if (Array.isArray(coords) && coords.length > 0) {
+        for (const pt of coords) {
+          if (Array.isArray(pt) && typeof pt[0] === 'number' && typeof pt[1] === 'number') {
+            lng += pt[0];
+            lat += pt[1];
+            count++;
+          }
+        }
       }
-      lng /= count;
-      lat /= count;
       
-      setFlyToTarget({ lng, lat, zoom: 17, pitch: 45 });
-      setActiveTab('MAPLIBRE_3D');
+      if (count > 0) {
+        lng /= count;
+        lat /= count;
+        setFlyToTarget({ lng, lat, zoom: 17, pitch: 45 });
+        setActiveTab('MAPLIBRE_3D');
+      } else {
+        // Fallback to district center if geometry coordinates couldn't be parsed
+        setActiveTab('MAPLIBRE_3D');
+      }
     } catch(e) {
-      console.warn("Could not parse geometry centroid for flyTo");
+      console.warn("Could not parse geometry centroid for flyTo", e);
+      setActiveTab('MAPLIBRE_3D');
     }
   };
 

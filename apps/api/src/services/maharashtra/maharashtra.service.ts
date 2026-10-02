@@ -4,6 +4,7 @@ import { ApiResult, District, Taluka, Village, ULPINDetails, ParcelDetails, RoRR
 import { jurisdictionScraper } from './maharashtra-jurisdiction.scraper.js';
 import { cadastralScraper } from './maharashtra-cadastral.scraper.js';
 import { db } from '../../database/store.js';
+import { MAHARASHTRA_DISTRICTS, findDistrict, generateLocationAnchoredPolygon } from './maharashtra-geo.utils.js';
 
 export class MaharashtraService {
   private restAdapter: MaharashtraRestAdapter;
@@ -38,7 +39,7 @@ export class MaharashtraService {
       return {
         success: true,
         source: 'mock',
-        data: [{ id: 'D01', name: 'Mumbai Suburban', sourceId: 'MH-MUM-SUB' }]
+        data: MAHARASHTRA_DISTRICTS.map(d => ({ id: d.id, name: d.name, sourceId: d.code, lat: d.lat, lng: d.lng }))
       };
     }
     try {
@@ -49,24 +50,7 @@ export class MaharashtraService {
       return {
         success: true,
         source: 'cached_fallback',
-        data: [
-          { id: '31', name: 'Mumbai Suburban', sourceId: 'MH-MUM-SUB' },
-          { id: '32', name: 'Mumbai City', sourceId: 'MH-MUM-CIT' },
-          { id: '25', name: 'Pune', sourceId: 'MH-PUN' },
-          { id: '21', name: 'Thane', sourceId: 'MH-THA' },
-          { id: '33', name: 'Raigad', sourceId: 'MH-RAI' },
-          { id: '30', name: 'Ratnagiri', sourceId: 'MH-RAT' },
-          { id: '22', name: 'Palghar', sourceId: 'MH-PAL' },
-          { id: '26', name: 'Satara', sourceId: 'MH-SAT' },
-          { id: '27', name: 'Sangli', sourceId: 'MH-SAN' },
-          { id: '28', name: 'Solapur', sourceId: 'MH-SOL' },
-          { id: '29', name: 'Kolhapur', sourceId: 'MH-KOL' },
-          { id: '10', name: 'Nashik', sourceId: 'MH-NAS' },
-          { id: '11', name: 'Ahmednagar', sourceId: 'MH-AHM' },
-          { id: '14', name: 'Aurangabad', sourceId: 'MH-AUR' },
-          { id: '06', name: 'Nagpur', sourceId: 'MH-NAG' },
-          { id: '09', name: 'Amravati', sourceId: 'MH-AMR' }
-        ]
+        data: MAHARASHTRA_DISTRICTS.map(d => ({ id: d.id, name: d.name, sourceId: d.code, lat: d.lat, lng: d.lng }))
       };
     }
   }
@@ -150,14 +134,14 @@ export class MaharashtraService {
         success: true,
         source: 'local-cadastre',
         parcel: {
-          district: localParcel.district || { name: 'Maharashtra' },
-          taluka: localParcel.taluka || { name: 'Local Record' },
-          village: localParcel.village || { name: 'Local Record' },
+          district: (localParcel as any).district || { name: (localParcel as any).districtName || 'Maharashtra' },
+          taluka: (localParcel as any).taluka || { name: (localParcel as any).tehsil || 'Local Record' },
+          village: (localParcel as any).village || { name: 'Local Record' },
           surveyNumber: localParcel.surveyNumber || cleanUlpin,
           ulpin: localParcel.ulpin,
-          landUse: localParcel.landUse,
-          status: localParcel.status,
-          totalAreaSqm: localParcel.totalAreaSqm
+          landUse: (localParcel as any).landUse || 'N/A',
+          status: (localParcel as any).status || 'ACTIVE',
+          totalAreaSqm: (localParcel as any).totalAreaSqm || (localParcel as any).areaSqm || 0
         },
         geometryStatus: 'GEOMETRY_AVAILABLE',
         geometry: localParcel.geometry
@@ -270,65 +254,42 @@ export class MaharashtraService {
   }
 
   async getParcel(district: string, taluka: string, village: string, cts: string): Promise<any> {
+    const districtInfo = findDistrict(district);
+    const resolvedDistrictName = districtInfo ? districtInfo.name : district;
+
     // Hidden DEMO trigger so judges/users have a guaranteed working cadastral polygon
     // while keeping the rest of the application connected to the real live dataset
     if (cts.toUpperCase() === 'DEMO-123') {
+      const demoGeo = generateLocationAnchoredPolygon(district, taluka, village, 'DEMO-123');
       return {
         success: true,
         source: 'maharashtra-government',
         parcel: {
-          district: { name: district || 'Mumbai Suburban' },
-          taluka: { name: taluka || 'Andheri' },
-          village: { name: village || 'Juhu' },
+          district: { id: district, name: resolvedDistrictName || 'Maharashtra' },
+          taluka: { name: taluka || 'Taluka Center' },
+          village: { name: village || 'Village Center' },
           surveyNumber: 'DEMO-123',
+          ulpin: demoGeo.ulpin
         },
         geometryStatus: 'GEOMETRY_AVAILABLE',
-        geometry: {
-          type: "Feature",
-          geometry: {
-            type: "Polygon",
-            coordinates: [[
-              [72.8232, 18.9322],
-              [72.8235, 18.9322],
-              [72.8235, 18.9325],
-              [72.8232, 18.9325],
-              [72.8232, 18.9322]
-            ]]
-          },
-          properties: {
-            surveyNo: 'DEMO-123'
-          }
-        }
+        geometry: demoGeo.geometry
       };
     }
 
     if (this.isMockMode()) {
+      const mockGeo = generateLocationAnchoredPolygon(district, taluka, village, cts);
       return {
         success: true,
         source: 'mock',
         parcel: {
-          district: { name: district },
+          district: { id: district, name: resolvedDistrictName || district },
           taluka: { name: taluka },
           village: { name: village },
           surveyNumber: cts,
+          ulpin: mockGeo.ulpin
         },
         geometryStatus: 'GEOMETRY_AVAILABLE',
-        geometry: {
-          type: "Feature",
-          geometry: {
-            type: "Polygon",
-            coordinates: [[
-              [72.8232, 18.9322],
-              [72.8235, 18.9322],
-              [72.8235, 18.9325],
-              [72.8232, 18.9325],
-              [72.8232, 18.9322]
-            ]]
-          },
-          properties: {
-            surveyNo: cts
-          }
-        }
+        geometry: mockGeo.geometry
       };
     }
 
@@ -341,37 +302,22 @@ export class MaharashtraService {
       console.warn(`[MaharashtraService] Upstream getParcel error for CTS ${cts}:`, err);
     }
 
-    // Fallback: derive coordinates from the search parameters so the parcel
-    // appears at a deterministic location spread across Maharashtra, not hardcoded Mumbai.
-    const { lat, lng } = this.hashToCoords(`${district}-${taluka}-${village}-${cts}`);
-    const d = 0.0002;
+    // Fallback: derive coordinates from the requested district, taluka, village, and CTS
+    // so the parcel is anchored precisely in that district's geographic region in Maharashtra.
+    const fallbackGeo = generateLocationAnchoredPolygon(district, taluka, village, cts);
     return {
       success: true,
       source: 'cached_fallback',
       parcel: {
-        district: { name: district },
+        district: { id: district, name: resolvedDistrictName || district },
         taluka: { name: taluka },
         village: { name: village },
         surveyNumber: cts,
+        ulpin: fallbackGeo.ulpin
       },
       geometryStatus: 'GEOMETRY_AVAILABLE',
-      geometryMetadata: { simulated: true, reason: 'Fallback simulated polygon — government geometry source unavailable.' },
-      geometry: {
-        type: "Feature",
-        geometry: {
-          type: "Polygon",
-          coordinates: [[
-            [lng - d, lat - d],
-            [lng + d, lat - d],
-            [lng + d, lat + d],
-            [lng - d, lat + d],
-            [lng - d, lat - d]
-          ]]
-        },
-        properties: {
-          surveyNo: cts
-        }
-      }
+      geometryMetadata: { simulated: true, reason: 'Fallback simulated polygon anchored to selected district — government live geometry source unavailable.' },
+      geometry: fallbackGeo.geometry
     };
   }
 
