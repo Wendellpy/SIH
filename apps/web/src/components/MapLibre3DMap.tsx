@@ -198,6 +198,14 @@ export const MapLibre3DMap: React.FC = () => {
         container: mapContainerRef.current,
         preserveDrawingBuffer: true,
         attributionControl: false,
+        transformRequest: (url, resourceType) => {
+          if (resourceType === 'Glyphs' && url.includes('openfreemap.org/fonts/')) {
+            // OpenFreeMap only hosts Noto Sans fonts. Fallback MapLibre's default fontstack to Noto Sans Regular.
+            const rewritten = url.replace(/Open(%20|\s)Sans(%20|\s)Regular.*?(?=\/\d+-\d+\.pbf)/, 'Noto%20Sans%20Regular');
+            return { url: rewritten };
+          }
+          return { url };
+        },
         style: {
           version: 8,
           name: 'Mumbai 3D Dark Cadastre',
@@ -359,6 +367,7 @@ export const MapLibre3DMap: React.FC = () => {
               minzoom: 13,
               layout: {
                 'text-field': ['get', 'name'],
+                'text-font': ['Noto Sans Regular'],
                 'text-size': 10,
                 'text-anchor': 'top',
                 'text-offset': [0, 0.5],
@@ -381,6 +390,7 @@ export const MapLibre3DMap: React.FC = () => {
               minzoom: 10,
               layout: {
                 'text-field': ['get', 'name'],
+                'text-font': ['Noto Sans Bold'],
                 'text-size': ['interpolate', ['linear'], ['zoom'], 10, 11, 14, 14],
                 'text-transform': 'uppercase',
                 'text-letter-spacing': 0.1,
