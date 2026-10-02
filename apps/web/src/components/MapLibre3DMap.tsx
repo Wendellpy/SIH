@@ -209,7 +209,7 @@ export const MapLibre3DMap: React.FC = () => {
         style: {
           version: 8,
           name: 'Mumbai 3D Dark Cadastre',
-          glyphs: 'https://tiles.openfreemap.org/fonts/{fontstack}/{range}.pbf',
+          glyphs: 'https://demotiles.maplibre.org/font/{fontstack}/{range}.pbf',
           sources: {
             openmaptiles: {
               type: 'vector',
