@@ -198,16 +198,11 @@ export const MaharashtraPanel = () => {
     }
   };
 
-  const apiUrl = process.env.NEXT_PUBLIC_API_URL || '';
+  const apiUrl = (process.env.NEXT_PUBLIC_API_URL || '').replace(/\/$/, '');
 
   const loadDistricts = (refresh = false) => {
     setApiError(null);
     setLoadingDistricts(true);
-    if (!apiUrl) {
-      setDistricts(DEFAULT_DISTRICTS);
-      setLoadingDistricts(false);
-      return;
-    }
     if (refresh) {
       fetch(`${apiUrl}/api/v1/maharashtra/cache/refresh`, { method: 'POST', body: JSON.stringify({ scope: 'districts' }), headers: { 'Content-Type': 'application/json' } })
         .then(() => fetchDistricts())
@@ -221,10 +216,6 @@ export const MaharashtraPanel = () => {
   };
 
   const fetchDistricts = () => {
-    if (!apiUrl) {
-      setDistricts(DEFAULT_DISTRICTS);
-      return;
-    }
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 6000);
     
@@ -240,7 +231,7 @@ export const MaharashtraPanel = () => {
           setDistricts(DEFAULT_DISTRICTS);
         }
       })
-      .catch(err => {
+      .catch(() => {
         clearTimeout(timeoutId);
         setDistricts(DEFAULT_DISTRICTS);
       })
@@ -266,8 +257,6 @@ export const MaharashtraPanel = () => {
     if (fallbackTalukas.length > 0 && (!selectedTaluka || !fallbackTalukas.some(t => t.id === selectedTaluka))) {
       setSelectedTaluka(fallbackTalukas[0].id);
     }
-
-    if (!apiUrl) return;
 
     setLoadingTalukas(true);
     fetch(`${apiUrl}/api/v1/maharashtra/talukas/${selectedDistrict}`)
@@ -296,8 +285,6 @@ export const MaharashtraPanel = () => {
       setSelectedVillage(fallbackVillages[0].id);
     }
 
-    if (!apiUrl) return;
-
     setLoadingVillages(true);
     fetch(`${apiUrl}/api/v1/maharashtra/villages/${selectedTaluka}?district=${selectedDistrict}`)
       .then(res => res.json())
@@ -318,22 +305,6 @@ export const MaharashtraPanel = () => {
 
     const cleanSearch = searchVal.trim().toUpperCase();
     const isUlpin = cleanSearch.startsWith('MH') && cleanSearch.length >= 14;
-
-    if (!apiUrl) {
-      // Direct high-precision offline resolution
-      setTimeout(() => {
-        const clientResult = generateClientParcelResult(
-          selectedDistrict || '30',
-          selectedTaluka || '3001',
-          selectedVillage || '300101',
-          searchVal || '45'
-        );
-        setResult(clientResult);
-        handleDataSourceInfo(clientResult);
-        setLoading(false);
-      }, 300);
-      return;
-    }
 
     let url = `${apiUrl}/api/v1/maharashtra/parcel?`;
     if (isUlpin) {
@@ -363,7 +334,7 @@ export const MaharashtraPanel = () => {
           handleDataSourceInfo(clientResult);
         }
       })
-      .catch(err => {
+      .catch(() => {
         // Fallback to client-side geographic anchor
         const clientResult = generateClientParcelResult(
           selectedDistrict || '30',

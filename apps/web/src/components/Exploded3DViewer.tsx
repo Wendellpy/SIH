@@ -890,11 +890,16 @@ export const Exploded3DViewer: React.FC = () => {
                   });
 
                   return (
-                    <mesh rotation={[-Math.PI / 2, 0, 0]}>
-                      <extrudeGeometry args={[shape, { depth: 1, bevelEnabled: false }]} />
-                      <meshStandardMaterial color="#0ea5e9" opacity={0.4} transparent wireframe />
-                      <meshStandardMaterial color="#0284c7" opacity={0.1} transparent />
-                    </mesh>
+                    <group rotation={[-Math.PI / 2, 0, 0]}>
+                      <mesh>
+                        <extrudeGeometry args={[shape, { depth: 1, bevelEnabled: false }]} />
+                        <meshStandardMaterial color="#0284c7" opacity={0.25} transparent />
+                      </mesh>
+                      <mesh>
+                        <extrudeGeometry args={[shape, { depth: 1, bevelEnabled: false }]} />
+                        <meshStandardMaterial color="#0ea5e9" opacity={0.5} transparent wireframe />
+                      </mesh>
+                    </group>
                   );
                 } catch(e) {
                   return null;

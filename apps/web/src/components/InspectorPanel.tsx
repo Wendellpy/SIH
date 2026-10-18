@@ -267,7 +267,7 @@ export const InspectorPanel: React.FC = () => {
       return;
     }
     setLoadingEvents(true);
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
+    const apiUrl = (process.env.NEXT_PUBLIC_API_URL || '').replace(/\/$/, '');
     fetch(`${apiUrl}/api/v1/parcels/${encodeURIComponent(currentUlpin)}/events`)
       .then(res => res.json())
       .then(resData => {
