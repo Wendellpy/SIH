@@ -27,6 +27,7 @@ import {
 } from 'lucide-react';
 import { useAppStore } from '@/lib/store';
 import { parseUlpin3D, LandEvent } from '@sih/shared-types';
+import { getApiBaseUrl } from '@/lib/apiConfig';
 
 export const InspectorPanel: React.FC = () => {
   const { 
@@ -75,7 +76,7 @@ export const InspectorPanel: React.FC = () => {
     if (!ulpinToVerify) return;
     setBlockchainState(prev => ({ ...prev, loading: true, error: null }));
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
+      const apiUrl = getApiBaseUrl();
       const res = await fetch(`${apiUrl}/api/v1/blockchain/verify/${encodeURIComponent(ulpinToVerify)}`);
       const data = await res.json();
 
@@ -110,7 +111,7 @@ export const InspectorPanel: React.FC = () => {
     setIsRegistering(true);
     setBlockchainState(prev => ({ ...prev, error: null }));
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
+      const apiUrl = getApiBaseUrl();
       const parts = ulpinToRegister.split('.');
       const ulpin = parts[0];
       const unitId = parts[1] || 'G00-LOB01';
@@ -143,7 +144,7 @@ export const InspectorPanel: React.FC = () => {
     const targetUlpin = currentUlpin || 'MH13BOM04521873.A+03-B302';
     setIsSubmittingEvent(true);
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
+      const apiUrl = getApiBaseUrl();
       const parts = targetUlpin.split('.');
       const base = parts[0];
       const newUnitId = `B03-U${Math.floor(100 + Math.random() * 900)}`;
@@ -188,7 +189,7 @@ export const InspectorPanel: React.FC = () => {
     setIsScraping(true);
     setFloorPlanUrl(null);
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
+      const apiUrl = getApiBaseUrl();
       const res = await fetch(`${apiUrl}/api/v1/rera/${id}/floorplan`);
       const data = await res.json();
       if (data.success) {
@@ -212,7 +213,7 @@ export const InspectorPanel: React.FC = () => {
         thumbnailBase64 = canvas.toDataURL('image/jpeg', 0.8);
       }
 
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
+      const apiUrl = getApiBaseUrl();
       const response = await fetch(`${apiUrl}/api/v1/units/${ulpin}/property-card`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -267,7 +268,7 @@ export const InspectorPanel: React.FC = () => {
       return;
     }
     setLoadingEvents(true);
-    const apiUrl = (process.env.NEXT_PUBLIC_API_URL || '').replace(/\/$/, '');
+    const apiUrl = getApiBaseUrl();
     fetch(`${apiUrl}/api/v1/parcels/${encodeURIComponent(currentUlpin)}/events`)
       .then(res => res.json())
       .then(resData => {

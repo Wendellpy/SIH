@@ -3,6 +3,7 @@
 import React from 'react';
 import { Clock, Droplets, Satellite, CalendarDays } from 'lucide-react';
 import { useAppStore } from '@/lib/store';
+import { getApiBaseUrl } from '@/lib/apiConfig';
 
 export const TimelineSlider: React.FC = () => {
   const { temporalYear, setTemporalYear, floodSimulation, setFloodSimulation } = useAppStore();
@@ -12,7 +13,7 @@ export const TimelineSlider: React.FC = () => {
 
   React.useEffect(() => {
     if (floodSimulation.active && floodSimulation.polygon) {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
+      const apiUrl = getApiBaseUrl();
       fetch(`${apiUrl}/api/v1/buildings`)
         .then(res => res.json())
         .then(data => {

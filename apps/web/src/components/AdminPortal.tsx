@@ -26,6 +26,7 @@ import {
 } from 'lucide-react';
 import { useAppStore } from '@/lib/store';
 import { LandEvent } from '@sih/shared-types';
+import { getApiBaseUrl } from '@/lib/apiConfig';
 
 export const AdminPortal: React.FC = () => {
   const { 
@@ -53,7 +54,7 @@ export const AdminPortal: React.FC = () => {
   // Fetch land events from backend
   const fetchLandEvents = () => {
     setLoading(true);
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
+    const apiUrl = getApiBaseUrl();
     fetch(`${apiUrl}/api/v1/land-events`)
       .then(res => res.json())
       .then(resData => {
@@ -76,7 +77,7 @@ export const AdminPortal: React.FC = () => {
 
   useEffect(() => {
     if (activeSubTab === 'AUDIT_LOGS') {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
+      const apiUrl = getApiBaseUrl();
       fetch(`${apiUrl}/api/v1/access-log`)
         .then(res => res.json())
         .then(data => {
@@ -113,7 +114,7 @@ export const AdminPortal: React.FC = () => {
 
   const handleResolveEvent = async (id: string, status: 'RESOLVED' | 'REJECTED' = 'RESOLVED') => {
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
+      const apiUrl = getApiBaseUrl();
       const res = await fetch(`${apiUrl}/api/v1/land-events/${id}/resolve`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },

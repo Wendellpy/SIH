@@ -7,7 +7,10 @@ const nextConfig = {
     return config;
   },
   async rewrites() {
-    const apiTarget = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000').replace(/\/$/, '');
+    const defaultTarget = process.env.NODE_ENV === 'production'
+      ? 'https://sih-api-vyvn.onrender.com'
+      : 'http://localhost:4000';
+    const apiTarget = (process.env.NEXT_PUBLIC_API_URL || defaultTarget).replace(/\/$/, '');
     return [
       {
         source: '/api/:path*',

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAppStore } from '@/lib/store';
 import { Download, AlertTriangle, CheckCircle, Crosshair } from 'lucide-react';
+import { getApiBaseUrl } from '@/lib/apiConfig';
 // Assuming MapboxDraw would be instantiated and controlled from MapLibre3DMap, 
 // this tool interacts with the drawn polygons. We'll simulate the state for now 
 // or accept it via props/store.
@@ -56,7 +57,7 @@ export const ClearanceTool: React.FC<{
   const handleExport = async () => {
     if (!clearanceResult) return;
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
+      const apiUrl = getApiBaseUrl();
       const res = await fetch(`${apiUrl}/api/v1/certificate`, {
         method: 'POST',
         headers: { 
