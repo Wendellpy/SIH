@@ -1,15 +1,8 @@
 'use client';
 
 import React, { useEffect, useRef, useState, useCallback } from 'react';
-import gsap from 'gsap';
-import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { ChevronLeft, ChevronRight, ArrowUpRight } from 'lucide-react';
 import Link from 'next/link';
-
-// Register GSAP ScrollTrigger on client
-if (typeof window !== 'undefined') {
-  gsap.registerPlugin(ScrollTrigger);
-}
 
 export interface CarouselCardData {
   id: string;
@@ -170,40 +163,30 @@ export function Cards3DCarousel() {
   const sectionRef = useRef<HTMLDivElement>(null);
   const trackRef = useRef<HTMLDivElement>(null);
   const [activeIndex, setActiveIndex] = useState<number>(0);
+  const [isHovered, setIsHovered] = useState<boolean>(false);
   const numCards = CAROUSEL_CARDS.length;
-
-  // Sync GSAP ScrollTrigger to scroll through cards
-  useEffect(() => {
-    const section = sectionRef.current;
-    if (!section) return;
-
-    const ctx = gsap.context(() => {
-      ScrollTrigger.create({
-        trigger: section,
-        start: 'top top',
-        end: '+=200%',
-        pin: true,
-        scrub: 0.8,
-        onUpdate: (self) => {
-          const targetIndex = Math.min(
-            numCards - 1,
-            Math.max(0, Math.floor(self.progress * numCards * 0.999))
-          );
-          setActiveIndex(targetIndex);
-        },
-      });
-    }, section);
-
-    return () => ctx.revert();
-  }, [numCards]);
 
   const goToCard = useCallback((idx: number) => {
     const nextIdx = Math.max(0, Math.min(numCards - 1, idx));
     setActiveIndex(nextIdx);
   }, [numCards]);
 
-  const handlePrev = () => goToCard(activeIndex - 1);
-  const handleNext = () => goToCard(activeIndex + 1);
+  const handlePrev = useCallback(() => {
+    setActiveIndex((prev) => (prev > 0 ? prev - 1 : numCards - 1));
+  }, [numCards]);
+
+  const handleNext = useCallback(() => {
+    setActiveIndex((prev) => (prev < numCards - 1 ? prev + 1 : 0));
+  }, [numCards]);
+
+  // Gentle auto-rotation when not hovered (pause when hovered or interacting)
+  useEffect(() => {
+    if (isHovered) return;
+    const timer = setInterval(() => {
+      setActiveIndex((prev) => (prev + 1) % numCards);
+    }, 4800);
+    return () => clearInterval(timer);
+  }, [isHovered, numCards]);
 
   // Touch / swipe handling
   const touchStartX = useRef<number>(0);
@@ -212,24 +195,44 @@ export function Cards3DCarousel() {
   };
   const handleTouchEnd = (e: React.TouchEvent) => {
     const diff = touchStartX.current - e.changedTouches[0].clientX;
-    if (diff > 40) handleNext();
-    else if (diff < -40) handlePrev();
+    if (diff > 45) handleNext();
+    else if (diff < -45) handlePrev();
   };
+
+  // Keyboard navigation when hovered
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (!isHovered) return;
+      if (e.key === 'ArrowLeft') handlePrev();
+      if (e.key === 'ArrowRight') handleNext();
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isHovered, handlePrev, handleNext]);
 
   return (
     <section
       id="about"
       ref={sectionRef}
-      className="relative w-full min-h-screen flex flex-col items-center justify-center bg-[#080B0F] overflow-hidden py-16 px-4 select-none"
+      className="relative w-full flex flex-col items-center justify-center bg-[#080B0F] overflow-hidden py-16 sm:py-20 px-4 select-none"
       onTouchStart={handleTouchStart}
       onTouchEnd={handleTouchEnd}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
     >
+      {/* Section Header Label */}
+      <div className="flex items-center gap-3 mb-6">
+        <div className="w-5 h-px bg-[#5FA8FF]" />
+        <span className="text-[9px] font-bold tracking-[0.18em] uppercase text-[#5FA8FF]">
+          Core Cadastral Pillars
+        </span>
+      </div>
+
       {/* 3D Carousel Stage */}
-      <div className="relative w-full max-w-6xl h-[520px] sm:h-[560px] flex items-center justify-center perspective-[1200px] z-10">
+      <div className="relative w-full max-w-6xl h-[500px] sm:h-[540px] flex items-center justify-center [perspective:1200px] z-10">
         <div
           ref={trackRef}
-          className="relative w-full h-full flex items-center justify-center"
-          style={{ transformStyle: 'preserve-3d' }}
+          className="relative w-full h-full flex items-center justify-center [transform-style:preserve-3d]"
         >
           {CAROUSEL_CARDS.map((card, idx) => {
             const offset = idx - activeIndex;
@@ -240,26 +243,30 @@ export function Cards3DCarousel() {
             const translateX = offset * 320;
             const translateZ = isCenter ? 35 : -90;
             const scale = isCenter ? 1.02 : 0.86;
-            const opacity = isCenter ? 1 : Math.abs(offset) === 1 ? 0.8 : 0.3;
+            const opacity = isCenter ? 1 : Math.abs(offset) === 1 ? 0.75 : 0.25;
             const zIndex = isCenter ? 30 : 20 - Math.abs(offset);
 
             return (
               <div
                 key={card.id}
                 onClick={() => goToCard(idx)}
-                className={`absolute w-[310px] sm:w-[360px] md:w-[380px] h-[440px] sm:h-[480px] rounded-[32px] p-7 flex flex-col justify-between cursor-pointer transition-all duration-700 ease-[cubic-bezier(0.25,1,0.5,1)] ${
+                className={`absolute w-[310px] sm:w-[360px] md:w-[380px] h-[430px] sm:h-[470px] rounded-[32px] p-7 flex flex-col justify-between cursor-pointer ${
                   isCenter
                     ? 'bg-[#EAEFF4] border border-white'
                     : 'bg-[#DCE2EA] border border-white/60 hover:bg-[#E2E8F0]'
                 }`}
                 style={{
-                  transform: `translateX(${translateX}px) translateZ(${translateZ}px) rotateY(${rotateY}deg) scale(${scale})`,
+                  transform: `translate3d(${translateX}px, 0, ${translateZ}px) rotateY(${rotateY}deg) scale(${scale})`,
                   opacity,
                   zIndex,
+                  willChange: 'transform, opacity',
+                  backfaceVisibility: 'hidden',
+                  WebkitBackfaceVisibility: 'hidden',
                   transformStyle: 'preserve-3d',
+                  transition: 'transform 480ms cubic-bezier(0.16, 1, 0.3, 1), opacity 380ms ease',
                   boxShadow: isCenter
-                    ? '0 28px 65px rgba(0,0,0,0.65), inset 0 1px 2px #ffffff, 0 0 0 1px rgba(255,255,255,0.9)'
-                    : '0 16px 40px rgba(0,0,0,0.55), inset 0 1px 2px rgba(255,255,255,0.7), 0 0 0 1px rgba(255,255,255,0.5)',
+                    ? '0 24px 55px rgba(0,0,0,0.65), inset 0 1px 2px #ffffff, 0 0 0 1px rgba(255,255,255,0.9)'
+                    : '0 14px 35px rgba(0,0,0,0.5), inset 0 1px 2px rgba(255,255,255,0.7), 0 0 0 1px rgba(255,255,255,0.5)',
                 }}
               >
                 {/* Card Top Row: Neumorphic Inset Badge & Raised Metric */}
@@ -337,17 +344,12 @@ export function Cards3DCarousel() {
       </div>
 
       {/* Controller & 01/04 Progress Indicator (Dark Theme Seamless) */}
-      <div className="relative z-20 mt-8 flex items-center gap-6">
+      <div className="relative z-20 mt-6 sm:mt-8 flex items-center gap-6">
         {/* Previous Button */}
         <button
           onClick={handlePrev}
-          disabled={activeIndex === 0}
           aria-label="Previous card"
-          className={`w-10 h-10 rounded-full flex items-center justify-center transition-all duration-200 bg-[#12171E] border border-white/10 ${
-            activeIndex === 0
-              ? 'text-white/20 opacity-40 cursor-not-allowed'
-              : 'text-white hover:bg-white/10 hover:border-white/30 active:scale-95 cursor-pointer shadow-lg'
-          }`}
+          className="w-10 h-10 rounded-full flex items-center justify-center transition-all duration-200 bg-[#12171E] border border-white/10 text-white hover:bg-white/10 hover:border-white/30 active:scale-95 cursor-pointer shadow-lg"
         >
           <ChevronLeft className="w-5 h-5 stroke-[2.5]" />
         </button>
@@ -379,13 +381,8 @@ export function Cards3DCarousel() {
         {/* Next Button */}
         <button
           onClick={handleNext}
-          disabled={activeIndex === numCards - 1}
           aria-label="Next card"
-          className={`w-10 h-10 rounded-full flex items-center justify-center transition-all duration-200 bg-[#12171E] border border-white/10 ${
-            activeIndex === numCards - 1
-              ? 'text-white/20 opacity-40 cursor-not-allowed'
-              : 'text-white hover:bg-white/10 hover:border-white/30 active:scale-95 cursor-pointer shadow-lg'
-          }`}
+          className="w-10 h-10 rounded-full flex items-center justify-center transition-all duration-200 bg-[#12171E] border border-white/10 text-white hover:bg-white/10 hover:border-white/30 active:scale-95 cursor-pointer shadow-lg"
         >
           <ChevronRight className="w-5 h-5 stroke-[2.5]" />
         </button>
@@ -393,3 +390,4 @@ export function Cards3DCarousel() {
     </section>
   );
 }
+

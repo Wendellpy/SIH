@@ -311,11 +311,21 @@ export function ArchitecturalBuildingViewer() {
     container.addEventListener('mousemove', handlePointerMove);
     container.addEventListener('click', handlePointerClick);
 
-    // 8. Animation Loop (Strictly Vertical Alignment)
+    // 8. Animation Loop (Strictly Vertical Alignment & Paused when Offscreen)
     let currentRotationY = -0.45;
+    let isVisible = false;
+
+    const visibilityObserver = new IntersectionObserver(
+      ([entry]) => {
+        isVisible = entry.isIntersecting;
+      },
+      { threshold: 0.05 }
+    );
+    visibilityObserver.observe(container);
 
     const animate = () => {
       animationFrameId = requestAnimationFrame(animate);
+      if (!isVisible) return;
 
       // Horizontal Y rotation only — strictly vertical!
       currentRotationY += (stateRef.current.targetRotationY - currentRotationY) * 0.06;
@@ -399,6 +409,7 @@ export function ArchitecturalBuildingViewer() {
 
     return () => {
       cancelAnimationFrame(animationFrameId);
+      visibilityObserver.disconnect();
       window.removeEventListener('resize', handleResize);
       container.removeEventListener('mousemove', handlePointerMove);
       container.removeEventListener('click', handlePointerClick);

@@ -131,21 +131,21 @@ function InteractiveCityHero() {
   const mouseX = useMotionValue(0);
   const mouseY = useMotionValue(0);
 
-  // Spring physics for smooth organic inertia
-  const springConfig = { damping: 20, stiffness: 150, mass: 0.6 };
+  // Responsive spring physics with high damping for silky smooth 60fps tracking
+  const springConfig = { damping: 25, stiffness: 180, mass: 0.5 };
   const smoothX = useSpring(mouseX, springConfig);
   const smoothY = useSpring(mouseY, springConfig);
 
   // 3D rotations and directional translation following mouse
-  const rotateX = useTransform(smoothY, [-0.5, 0.5], [8, -8]);
-  const rotateY = useTransform(smoothX, [-0.5, 0.5], [-12, 12]);
-  const translateX = useTransform(smoothX, [-0.5, 0.5], [-35, 35]);
-  const translateY = useTransform(smoothY, [-0.5, 0.5], [-25, 25]);
-  const scale = useTransform(smoothX, [-0.5, 0, 0.5], [1.03, 1, 1.03]);
+  const rotateX = useTransform(smoothY, [-0.5, 0.5], [7, -7]);
+  const rotateY = useTransform(smoothX, [-0.5, 0.5], [-10, 10]);
+  const translateX = useTransform(smoothX, [-0.5, 0.5], [-28, 28]);
+  const translateY = useTransform(smoothY, [-0.5, 0.5], [-20, 20]);
+  const scale = useTransform(smoothX, [-0.5, 0, 0.5], [1.02, 1, 1.02]);
 
-  // Subtle interactive glow coordinates
-  const glowX = useTransform(smoothX, [-0.5, 0.5], ['30%', '70%']);
-  const glowY = useTransform(smoothY, [-0.5, 0.5], ['30%', '70%']);
+  // Subtle interactive glow coordinates using GPU translate instead of left/top layout thrashing
+  const glowTranslateX = useTransform(smoothX, [-0.5, 0.5], [-40, 40]);
+  const glowTranslateY = useTransform(smoothY, [-0.5, 0.5], [-25, 25]);
 
   const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
     if (!containerRef.current) return;
@@ -177,20 +177,29 @@ function InteractiveCityHero() {
           y: translateY,
           scale,
           transformStyle: 'preserve-3d',
+          willChange: 'transform',
         }}
         className="relative w-full flex items-center justify-center"
       >
-        {/* Soft Dynamic Glow behind 3D Model that moves with mouse */}
+        {/* Soft Dynamic Glow behind 3D Model with GPU transform */}
         <motion.div
-          className="absolute inset-0 pointer-events-none rounded-full blur-3xl opacity-20"
+          className="absolute inset-0 pointer-events-none rounded-full blur-3xl opacity-25"
           style={{
-            background: 'radial-gradient(circle at center, rgba(95, 168, 255, 0.5) 0%, rgba(95, 168, 255, 0) 70%)',
-            left: glowX,
-            top: glowY,
-            transform: 'translate(-50%, -50%)',
-            width: '70%',
-            height: '70%',
+            background: 'radial-gradient(circle at center, rgba(95, 168, 255, 0.45) 0%, rgba(95, 168, 255, 0) 70%)',
+            x: glowTranslateX,
+            y: glowTranslateY,
+            width: '80%',
+            height: '80%',
+            left: '10%',
+            top: '10%',
+            willChange: 'transform',
           }}
+        />
+
+        {/* Ambient Ground Shadow Plate for depth without heavy alpha-mask recalculations */}
+        <div
+          className="absolute -bottom-6 w-3/4 h-16 rounded-full blur-2xl pointer-events-none bg-black/80"
+          style={{ transform: 'rotateX(80deg) translateZ(-40px)' }}
         />
 
         <Image
@@ -198,7 +207,7 @@ function InteractiveCityHero() {
           alt="Mumbai 3D Digital Twin Model"
           width={1024}
           height={682}
-          className="w-full h-auto object-contain filter drop-shadow-[0_30px_70px_rgba(0,0,0,0.95)] pointer-events-none transition-transform duration-100"
+          className="w-full h-auto object-contain filter drop-shadow-[0_20px_35px_rgba(0,0,0,0.85)] pointer-events-none"
           priority
         />
       </motion.div>
@@ -210,12 +219,6 @@ function InteractiveCityHero() {
    MAIN COMPONENT
    ═══════════════════════════════════════════════════ */
 export default function LandingPage() {
-  const [scrollY, setScrollY] = useState(0);
-  useEffect(() => {
-    const h = () => setScrollY(window.scrollY);
-    window.addEventListener('scroll', h, { passive: true });
-    return () => window.removeEventListener('scroll', h);
-  }, []);
 
   return (
     <main
